@@ -13,3 +13,21 @@ final profileProvider = FutureProvider<UserProfile>((ref) async {
   }
   return ref.watch(catalogRepositoryProvider).fetchProfile();
 });
+
+/// Nível de ADM do usuário logado ('root' | 'admin' | 'moderator') ou null.
+final adminLevelProvider = FutureProvider<String?>((ref) async {
+  final AccountState account = ref.watch(accountProvider);
+  if (!account.hasSession) {
+    return null;
+  }
+  try {
+    final Object? result = await ref.watch(supabaseClientProvider).rpc('admin_me');
+    if (result is Map) {
+      final Object? level = result['level'];
+      return level?.toString();
+    }
+  } on Object {
+    return null;
+  }
+  return null;
+});

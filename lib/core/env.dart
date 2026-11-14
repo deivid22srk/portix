@@ -2,6 +2,9 @@ import 'package:flutter/widgets.dart';
 
 import '../app/app_strings.dart';
 
+/// Versão exibida/comparada com os avisos de atualização.
+const String kAppVersion = '1.0.0';
+
 class Env {
   const Env._();
 

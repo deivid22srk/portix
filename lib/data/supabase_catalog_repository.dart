@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/cache_store.dart';
 import '../core/env.dart';
+import '../models/app_update.dart';
 import '../models/collections.dart';
 import '../models/compat_report.dart';
 import '../models/game.dart';
@@ -127,6 +128,18 @@ class SupabaseCatalogRepository implements CatalogRepository {
           .toList(growable: false);
     }
     return const <CompatReport>[];
+  }
+
+  @override
+  Future<AppUpdate?> fetchLatestUpdate() async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc('latest_update'),
+    );
+    final Map<String, dynamic> map = _map(response);
+    if (map.isEmpty) {
+      return null;
+    }
+    return AppUpdate.fromMap(map);
   }
 
   @override

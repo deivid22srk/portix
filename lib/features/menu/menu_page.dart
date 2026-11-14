@@ -11,6 +11,7 @@ import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
 import '../../models/download_task.dart';
 import '../../models/profile.dart';
+import '../../shared/widgets/admin_crown.dart';
 import '../../shared/widgets/app_mark.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
@@ -63,6 +64,7 @@ class MenuPage extends ConsumerWidget {
     final AccountState account = ref.watch(accountProvider);
     final UserProfile profile = ref.watch(profileProvider).value ??
         UserProfile(id: account.id ?? '', displayName: account.displayName);
+    final String? adminLevel = ref.watch(adminLevelProvider).value;
     final Collections collections = ref.watch(collectionsProvider).value ?? Collections.empty;
     final int downloads = ref
         .watch(downloadsProvider)
@@ -119,6 +121,10 @@ class MenuPage extends ConsumerWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
+                              if (adminLevel != null) ...<Widget>[
+                                const SizedBox(height: 4),
+                                AdminBadge(level: adminLevel),
+                              ],
                               const SizedBox(height: 3),
                               Row(
                                 children: <Widget>[

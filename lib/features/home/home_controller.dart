@@ -4,10 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../data/catalog_repository.dart';
+import '../../models/app_update.dart';
 import '../../models/home_feed.dart';
 
 final homeFeedProvider =
     AsyncNotifierProvider<HomeFeedNotifier, HomeFeed>(HomeFeedNotifier.new);
+
+/// Último aviso de atualização publicado pelo ADM raiz (público).
+final latestUpdateProvider = FutureProvider<AppUpdate?>(
+  (ref) => ref.watch(catalogRepositoryProvider).fetchLatestUpdate(),
+);
 
 // Facetas para os filtros. Se a rede falhar, reaproveita o que veio no feed.
 final catalogFacetsProvider = FutureProvider<CatalogFacets>((ref) async {

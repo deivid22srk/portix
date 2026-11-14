@@ -1,3 +1,4 @@
+import '../models/app_update.dart';
 import '../models/collections.dart';
 import '../models/compat_report.dart';
 import '../models/game_detail.dart';
@@ -22,6 +23,8 @@ abstract class CatalogRepository {
   Future<List<CompatReport>> fetchCompatReports(String gameId);
 
   Future<UserProfile> fetchProfile();
+
+  Future<AppUpdate?> fetchLatestUpdate();
 
   Future<void> updateProfile({String? displayName, String? coverUrl});
 

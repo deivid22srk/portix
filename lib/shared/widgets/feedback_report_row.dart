@@ -5,6 +5,7 @@ import '../../app/theme.dart';
 import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/compat_report.dart';
+import 'admin_crown.dart';
 import 'primitives.dart';
 
 /// Rótulo de cada veredito de compatibilidade.
@@ -132,11 +133,7 @@ class FeedbackReportRow extends StatelessWidget {
                       const SizedBox(width: 6),
                     ],
                     if (report.authorRole != null) ...<Widget>[
-                      BadgeChip(
-                        label: l10n.adminBadge,
-                        color: AppColors.accent,
-                        icon: Icons.verified_rounded,
-                      ),
+                      AdminBadge(level: report.authorRole!),
                       const SizedBox(width: 6),
                     ],
                     Expanded(

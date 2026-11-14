@@ -297,6 +297,11 @@ class L10n {
   String get reportsSearchHint => _t('Buscar por aparelho, chipset ou autor',
       'Search by device, chipset or author');
   String get adminBadge => _t('ADM', 'ADM');
+  String get admRootLabel => _t('ADM raiz', 'Root ADM');
+  String get admAdminLabel => _t('Administrador', 'Admin');
+  String get admModLabel => _t('Moderador', 'Moderator');
+  String get updateAvailable => _t('Atualização disponível', 'Update available');
+  String get updateNow => _t('Atualizar', 'Update now');
   String get chooseApk => _t('Escolha o APK', 'Choose the APK');
   String get searchingRelease => _t('Buscando a release…', 'Looking up the release…');
 
