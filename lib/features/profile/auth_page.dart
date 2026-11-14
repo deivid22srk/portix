@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -5,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/auth.dart';
+import '../../core/auth_providers.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../shared/widgets/primitives.dart';
@@ -40,6 +43,25 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     } else {
       context.go('/menu');
     }
+  }
+
+  String _prettyError(Object error) {
+    final String text = error.toString();
+    final int start = text.indexOf('{');
+    if (start >= 0) {
+      try {
+        final Object? body = jsonDecode(text.substring(start));
+        if (body is Map) {
+          final Object? msg = body['msg'] ?? body['message'] ?? body['error_description'];
+          if (msg != null) {
+            return msg.toString();
+          }
+        }
+      } on Object {
+        // mantém o texto original
+      }
+    }
+    return text;
   }
 
   Future<void> _submit() async {
@@ -91,7 +113,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = error.toString();
+          _error = _prettyError(error);
         });
       }
     }
@@ -108,7 +130,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = error.toString();
+          _error = _prettyError(error);
         });
       }
     }
@@ -117,6 +139,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    final Set<String> providers =
+        ref.watch(enabledProvidersProvider).value ?? const <String>{};
+    final bool googleKnownOff = providers.isNotEmpty && !providers.contains('google');
 
     ref.listen<AccountState>(accountProvider, (AccountState? previous, AccountState next) {
       if (next.isSignedIn && context.canPop()) {
@@ -208,6 +233,16 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 icon: Icons.g_mobiledata_rounded,
                 onPressed: _busy ? null : _google,
               ),
+              if (googleKnownOff) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.googleUnavailable,
+                  textAlign: TextAlign.center,
+                  style: context.texts.labelSmall?.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

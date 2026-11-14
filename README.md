@@ -192,6 +192,18 @@ normalizados do catálogo.
 
 ---
 
+## Contas e login
+
+- **E-mail/senha**: funciona já (`mailer_autoconfirm` ligado → entra na hora).
+- **Google**: o botão está no app, mas o provedor precisa de **Client ID** e
+  **Secret** (Supabase → Authentication → Providers → Google). No Google Cloud,
+  cadastre o redirect `https://<ref>.supabase.co/auth/v1/callback`; o deep link
+  do app é `portix://login-callback`. Sem essas credenciais o GoTrue responde
+  “provider is not enabled”. O app detecta e mostra um aviso amigável.
+- Sessão anônima continua para convidados; **avaliar jogos exige conta real**.
+
+---
+
 ## Download nativo (Rust + serviço Android)
 
 O download de APK é feito por um **motor em Rust** (`native/portix_downloader`,

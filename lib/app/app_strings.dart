@@ -275,6 +275,8 @@ class L10n {
   String get emailRequired => _t('Informe um e-mail válido', 'Enter a valid email');
   String get authCheckEmail => _t('Confira seu e-mail para confirmar a conta.',
       'Check your email to confirm the account.');
+  String get googleUnavailable => _t('Login com Google ainda não está configurado neste projeto.',
+      'Google sign-in is not configured in this project yet.');
 
   // ------------------------------------------------------------ compat v2
   String get compatPerfect => _t('Roda perfeito', 'Runs perfectly');
