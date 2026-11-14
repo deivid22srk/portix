@@ -253,6 +253,44 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ],
                         ),
                       ],
+                      if (state.query.isEmpty && facets.genres.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xl),
+                        Row(
+                          children: <Widget>[
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 15,
+                              color: AppColors.accent,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                l10n.sectionGenres,
+                                style: context.texts.labelMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.sm,
+                          children: <Widget>[
+                            for (final GenreInfo genre in facets.genres.take(8))
+                              AppPill(
+                                label: genre.name,
+                                dense: true,
+                                onTap: () => ref
+                                    .read(searchControllerProvider.notifier)
+                                    .applyFilters(
+                                      state.filters.copyWith(genre: genre.name),
+                                    ),
+                              ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.lg),
                     ],
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
@@ -158,6 +159,19 @@ class MenuPage extends ConsumerWidget {
                         Expanded(child: _MenuStat(value: downloads.toString(), label: l10n.hubDownloads)),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _SectionLabel(l10n.activity),
+                  const SizedBox(height: AppSpacing.md),
+                  SectionTile(
+                    icon: Icons.layers_rounded,
+                    label: l10n.hubTitle,
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: AppColors.textTertiary,
+                    ),
+                    onTap: () => context.go('/hub'),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   _SectionLabel(l10n.appearanceSection),

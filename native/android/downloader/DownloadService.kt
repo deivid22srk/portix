@@ -7,7 +7,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import java.io.File
 import kotlin.math.roundToInt
@@ -67,7 +69,11 @@ class DownloadService : Service(), DownloadCallback {
         val directory = File(getExternalFilesDir(null), "apk").apply { mkdirs() }
         destPath = File(directory, "portix-$id.apk").absolutePath
 
-        val handle = NativeDownloader.startDownload(url, destPath, this)
+        val handle = if (NativeDownloader.isAvailable) {
+            NativeDownloader.startDownload(url, destPath, this)
+        } else {
+            0L
+        }
         currentId = id
         currentHandle = handle
         if (handle == 0L) {
@@ -86,11 +92,6 @@ class DownloadService : Service(), DownloadCallback {
 
     override fun onComplete(ok: Boolean, error: String?) {
         currentHandle = 0
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(
-            NOTIFICATION_ID,
-            buildNotification(1, 1, ongoing = false, ok = ok, error = error),
-        )
         DownloaderBridge.emit(
             mapOf(
                 "id" to downloadId,
@@ -99,8 +100,15 @@ class DownloadService : Service(), DownloadCallback {
                 "error" to error,
             ),
         )
-        stopForeground(STOP_FOREGROUND_DETACH)
-        stopSelf()
+        Handler(Looper.getMainLooper()).post {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(
+                NOTIFICATION_ID,
+                buildNotification(1, 1, ongoing = false, ok = ok, error = error),
+            )
+            stopForeground(STOP_FOREGROUND_DETACH)
+            stopSelf()
+        }
     }
 
     private fun ensureChannel() {
