@@ -354,15 +354,14 @@ class _Scaffold extends StatelessWidget {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({required this.child, this.padding = const EdgeInsets.all(16)});
+  const _Panel({required this.child});
 
   final Widget child;
-  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _C.card,
         borderRadius: BorderRadius.circular(20),
