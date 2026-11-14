@@ -22,6 +22,7 @@ class ProfileEditPage extends ConsumerStatefulWidget {
 
 class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   final TextEditingController _name = TextEditingController();
+  final TextEditingController _handle = TextEditingController();
   final TextEditingController _cover = TextEditingController();
   bool _initialized = false;
   bool _busy = false;
@@ -29,8 +30,15 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   @override
   void dispose() {
     _name.dispose();
+    _handle.dispose();
     _cover.dispose();
     super.dispose();
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   void _close() {
@@ -42,12 +50,24 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   }
 
   Future<void> _save() async {
+    final L10n l10n = context.l10n;
     setState(() => _busy = true);
     try {
       await ref.read(catalogRepositoryProvider).updateProfile(
             displayName: _name.text,
             coverUrl: _cover.text,
           );
+      try {
+        await ref.read(catalogRepositoryProvider).setHandle(_handle.text.trim());
+      } on Object catch (error) {
+        final String text = error.toString();
+        if (!mounted) {
+          return;
+        }
+        setState(() => _busy = false);
+        _snack(text.contains('HANDLE_TAKEN') ? l10n.handleTaken : l10n.handleInvalid);
+        return;
+      }
       ref.invalidate(profileProvider);
       if (!mounted) {
         return;
@@ -75,6 +95,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
 
     if (!_initialized && profile.hasValue) {
       _name.text = profile.requireValue.displayName;
+      _handle.text = profile.requireValue.handle ?? '';
       _cover.text = profile.requireValue.coverUrl ?? '';
       _initialized = true;
     }
@@ -149,6 +170,10 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                       _Label(l10n.yourName),
                       const SizedBox(height: AppSpacing.sm),
                       _Input(controller: _name, hint: l10n.yourName),
+                      const SizedBox(height: AppSpacing.lg),
+                      _Label(l10n.handleLabel),
+                      const SizedBox(height: AppSpacing.sm),
+                      _Input(controller: _handle, hint: l10n.handleHint),
                       const SizedBox(height: AppSpacing.lg),
                       _Label(l10n.coverUrlLabel),
                       const SizedBox(height: AppSpacing.sm),

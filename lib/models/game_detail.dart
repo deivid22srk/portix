@@ -85,6 +85,9 @@ class Review {
     this.gpu,
     this.ramGb,
     this.authorRole,
+    this.authorId,
+    this.authorHandle,
+    this.authorCover,
   });
 
   final String id;
@@ -102,6 +105,10 @@ class Review {
 
   /// 'root' | 'admin' | 'moderator' quando o autor é administrador.
   final String? authorRole;
+
+  final String? authorId;
+  final String? authorHandle;
+  final String? authorCover;
 
   String get deviceLabel {
     final List<String> parts = <String>[?brand, ?model];
@@ -121,7 +128,9 @@ class Review {
         soc: asText(map['soc']),
         gpu: asText(map['gpu']),
         ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
-        authorRole: asText(map['author_role']),
+        authorId: asText(map['author_id']),
+        authorHandle: asText(map['author_handle']),
+        authorCover: asText(map['author_cover']),
       );
 }
 

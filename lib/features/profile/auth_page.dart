@@ -69,7 +69,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final L10n l10n = context.l10n;
     final String email = _email.text.trim();
     final String password = _password.text;
-    if (!email.contains('@')) {
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$').hasMatch(email)) {
       setState(() => _error = l10n.emailRequired);
       return;
     }

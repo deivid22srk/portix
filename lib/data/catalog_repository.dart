@@ -5,7 +5,9 @@ import '../models/game_detail.dart';
 import '../models/home_feed.dart';
 import '../models/news.dart';
 import '../models/profile.dart';
+import '../models/public_profile.dart';
 import '../models/search.dart';
+import '../models/user_result.dart';
 
 abstract class CatalogRepository {
   HomeFeed? readCachedHome();
@@ -23,6 +25,12 @@ abstract class CatalogRepository {
   Future<List<CompatReport>> fetchCompatReports(String gameId);
 
   Future<UserProfile> fetchProfile();
+
+  Future<void> setHandle(String handle);
+
+  Future<List<UserResult>> searchUsers(String query);
+
+  Future<PublicProfile> fetchPublicProfile(String id);
 
   Future<AppUpdate?> fetchLatestUpdate();
 

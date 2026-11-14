@@ -13,7 +13,9 @@ import '../models/home_feed.dart';
 import '../models/news.dart';
 import '../models/parsing.dart';
 import '../models/profile.dart';
+import '../models/public_profile.dart';
 import '../models/search.dart';
+import '../models/user_result.dart';
 import 'catalog_repository.dart';
 
 class SupabaseCatalogRepository implements CatalogRepository {
@@ -151,7 +153,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     final Object? row = await _guard<Object?>(
       () => _client
           .from('profiles')
-          .select('id,display_name,cover_url')
+          .select('id,display_name,cover_url,handle')
           .eq('id', user.id)
           .maybeSingle(),
     );
@@ -160,6 +162,44 @@ class SupabaseCatalogRepository implements CatalogRepository {
       return UserProfile(id: user.id);
     }
     return UserProfile.fromMap(map);
+  }
+
+  @override
+  Future<void> setHandle(String handle) async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      throw const AppFailure(FailureKind.auth);
+    }
+    await _guard<Object?>(
+      () => _client.rpc('set_handle', params: <String, dynamic>{'p_handle': handle}),
+    );
+  }
+
+  @override
+  Future<List<UserResult>> searchUsers(String query) async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc('search_users', params: <String, dynamic>{
+        'p_query': query.trim().isEmpty ? null : query.trim(),
+        'p_limit': 30,
+        'p_offset': 0,
+      }),
+    );
+    final Map<String, dynamic> map = _map(response);
+    return asMapList(map['items'])
+        .map(UserResult.fromMap)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<PublicProfile> fetchPublicProfile(String id) async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc('profile_public', params: <String, dynamic>{'p_id': id}),
+    );
+    final Map<String, dynamic> map = _map(response);
+    if (map.isEmpty) {
+      throw const AppFailure(FailureKind.notFound);
+    }
+    return PublicProfile.fromMap(map);
   }
 
   @override

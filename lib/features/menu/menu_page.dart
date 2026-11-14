@@ -121,6 +121,15 @@ class MenuPage extends ConsumerWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
+                              if (profile.handle != null) ...<Widget>[
+                                const SizedBox(height: 2),
+                                Text(
+                                  '@${profile.handle}',
+                                  style: context.texts.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                               if (adminLevel != null) ...<Widget>[
                                 const SizedBox(height: 4),
                                 AdminBadge(level: adminLevel),

@@ -1,12 +1,13 @@
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
-import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/compat_report.dart';
 import 'admin_crown.dart';
 import 'primitives.dart';
+import 'profile_avatar.dart';
 
 /// Rótulo de cada veredito de compatibilidade.
 String compatVerdictLabel(L10n l10n, String status) {
@@ -67,21 +68,15 @@ class FeedbackReportRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 30,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.glassStrong,
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: Text(
-              initialsOf(report.author),
-              style: context.texts.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.accent,
-              ),
+          Pressable(
+            onTap: report.authorId == null
+                ? null
+                : () => context.push<Object?>('/u/${report.authorId}'),
+            child: ProfileAvatar(
+              name: report.author,
+              imageUrl: report.authorCover,
+              size: 34,
+              level: report.authorRole,
             ),
           ),
           const SizedBox(width: 9),
@@ -138,7 +133,7 @@ class FeedbackReportRow extends StatelessWidget {
                     ],
                     Expanded(
                       child: Text(
-                        '${report.author}${specs.isEmpty ? '' : ' · $specs'}',
+                        '${report.authorHandle != null ? '@${report.authorHandle} · ' : ''}${report.author}${specs.isEmpty ? '' : ' · $specs'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: context.texts.labelSmall?.copyWith(

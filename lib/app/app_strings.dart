@@ -297,6 +297,18 @@ class L10n {
   String get reportsSearchHint => _t('Buscar por aparelho, chipset ou autor',
       'Search by device, chipset or author');
   String get adminBadge => _t('ADM', 'ADM');
+  String get searchTabGames => _t('Jogos', 'Games');
+  String get searchTabUsers => _t('Usuários', 'Users');
+  String get searchUsersHint => _t('Buscar por @ ou nome', 'Search by @ or name');
+  String get usersEmpty => _t('Nenhum usuário encontrado', 'No users found');
+  String get userLibraryTitle => _t('Biblioteca', 'Library');
+  String get userLibraryEmpty => _t('Biblioteca pública vazia', 'Empty public library');
+  String get noHandle => _t('Sem @', 'No handle');
+  String get handleLabel => _t('Seu @ (nome de usuário)', 'Your @ (username)');
+  String get handleHint => _t('hailgames', 'hailgames');
+  String get handleInvalid => _t('Use 3 a 20 letras, números ou _', 'Use 3-20 letters, numbers or _');
+  String get handleTaken => _t('Esse @ já está em uso', 'That @ is already taken');
+  String get openProfile => _t('Ver perfil', 'View profile');
   String get admRootLabel => _t('ADM raiz', 'Root ADM');
   String get admAdminLabel => _t('Administrador', 'Admin');
   String get admModLabel => _t('Moderador', 'Moderator');

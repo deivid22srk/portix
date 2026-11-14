@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -9,13 +11,16 @@ import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
 import '../../models/home_feed.dart';
 import '../../models/search.dart';
+import '../../models/user_result.dart';
 import '../../shared/widgets/filter_sheet.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
+import '../../shared/widgets/profile_avatar.dart';
 import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
 import '../home/home_controller.dart';
-import 'search_controller.dart';
+import '../profile/profile_controller.dart';
+import '../search/search_controller.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -28,6 +33,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final TextEditingController _text = TextEditingController();
   final FocusNode _focus = FocusNode();
   final ScrollController _scroll = ScrollController();
+
+  int _mode = 0;
+  String _usersQuery = '';
+  Timer? _usersTimer;
 
   @override
   void initState() {
@@ -45,6 +54,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   void dispose() {
+    _usersTimer?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _focus.dispose();
@@ -104,6 +114,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           text: next.query,
           selection: TextSelection.collapsed(offset: next.query.length),
         );
+      }
+      if (next.query != _usersQuery) {
+        _usersTimer?.cancel();
+        _usersTimer = Timer(const Duration(milliseconds: 320), () {
+          if (mounted) {
+            setState(() => _usersQuery = next.query);
+          }
+        });
       }
     });
 
@@ -201,6 +219,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: AppSpacing.md),
+                      SegmentedControl<int>(
+                        items: <SegmentItem<int>>[
+                          SegmentItem<int>(value: 0, label: l10n.searchTabGames),
+                          SegmentItem<int>(value: 1, label: l10n.searchTabUsers),
+                        ],
+                        value: _mode,
+                        onChanged: (int value) => setState(() => _mode = value),
+                      ),
                       if (state.filters.activeCount > 0) ...<Widget>[
                         const SizedBox(height: AppSpacing.md),
                         Wrap(
@@ -296,9 +323,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ),
                 ),
               ),
-              if (state.isInitialLoading)
+              if (_mode == 0 && state.isInitialLoading)
                 const SliverToBoxAdapter(child: SearchSkeleton()),
-              if (state.status == SearchStatus.error && state.items.isEmpty)
+              if (_mode == 0 && state.status == SearchStatus.error && state.items.isEmpty)
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 380,
@@ -309,7 +336,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     ),
                   ),
                 ),
-              if (state.status == SearchStatus.empty)
+              if (_mode == 0 && state.status == SearchStatus.empty)
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 380,
@@ -325,7 +352,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     ),
                   ),
                 ),
-              if (state.items.isNotEmpty) ...<Widget>[
+              if (_mode == 0 && state.items.isNotEmpty) ...<Widget>[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -401,6 +428,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 ),
               ],
             ],
+            if (_mode == 1) _UsersResults(query: _usersQuery),
           ),
         ),
       ),
@@ -497,6 +525,112 @@ class _ActiveChip extends StatelessWidget {
             const Icon(Icons.close_rounded, size: 13, color: AppColors.textSecondary),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Resultados da busca por usuários (por @ ou nome).
+class _UsersResults extends ConsumerWidget {
+  const _UsersResults({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final L10n l10n = context.l10n;
+    final AsyncValue<List<UserResult>> async = ref.watch(userSearchProvider(query));
+    final List<UserResult> users = async.value ?? const <UserResult>[];
+
+    if (async.isLoading && users.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+          child: Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+            ),
+          ),
+        ),
+      );
+    }
+    if (users.isEmpty) {
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: 340,
+          child: EmptyState(
+            icon: Icons.person_search_rounded,
+            title: l10n.usersEmpty,
+            body: l10n.searchUsersHint,
+          ),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screen,
+        0,
+        AppSpacing.screen,
+        AppSpacing.xxxl,
+      ),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: _UserTile(user: users[index]),
+          ),
+          childCount: users.length,
+        ),
+      ),
+    );
+  }
+}
+
+class _UserTile extends StatelessWidget {
+  const _UserTile({required this.user});
+
+  final UserResult user;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    return GlassContainer(
+      radius: AppRadii.md,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      onTap: () => context.push<Object?>('/u/${user.id}'),
+      child: Row(
+        children: <Widget>[
+          ProfileAvatar(
+            name: user.displayName,
+            imageUrl: user.coverUrl,
+            size: 44,
+            level: user.level,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  user.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  user.handle == null ? l10n.noHandle : '@${user.handle}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textTertiary),
+        ],
       ),
     );
   }

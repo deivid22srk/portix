@@ -12,6 +12,7 @@ import '../features/menu/menu_page.dart';
 import '../features/news/news_page.dart';
 import '../features/profile/auth_page.dart';
 import '../features/profile/profile_edit_page.dart';
+import '../features/profile/user_profile_page.dart';
 import '../features/search/search_page.dart';
 import '../features/shell/main_shell.dart';
 import '../features/shell/not_found_page.dart';
@@ -54,6 +55,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile/edit',
         pageBuilder: (BuildContext context, GoRouterState state) =>
             _expandPage(state, const ProfileEditPage()),
+      ),
+      GoRoute(
+        path: '/u/:id',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          UserProfilePage(id: state.pathParameters['id'] ?? ''),
+        ),
       ),
       GoRoute(
         path: '/game/:slug',
