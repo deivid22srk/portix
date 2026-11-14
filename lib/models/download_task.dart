@@ -14,6 +14,8 @@ class DownloadTask {
     this.status = DownloadStatus.queued,
     this.progress = 0,
     this.startedAt,
+    this.nativeId,
+    this.apkPath,
   });
 
   final String gameId;
@@ -27,6 +29,12 @@ class DownloadTask {
   final double progress;
   final DateTime? startedAt;
 
+  /// Identificador do download nativo (serviço Android), quando aplicável.
+  final int? nativeId;
+
+  /// Caminho do APK baixado, quando concluído pelo motor nativo.
+  final String? apkPath;
+
   bool get isActive => status == DownloadStatus.queued || status == DownloadStatus.downloading;
 
   bool get isDone => status == DownloadStatus.done;
@@ -36,6 +44,7 @@ class DownloadTask {
     double? progress,
     String? portUrl,
     String? platformName,
+    String? apkPath,
   }) =>
       DownloadTask(
         gameId: gameId,
@@ -48,6 +57,8 @@ class DownloadTask {
         status: status ?? this.status,
         progress: progress ?? this.progress,
         startedAt: startedAt,
+        nativeId: nativeId,
+        apkPath: apkPath ?? this.apkPath,
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -61,6 +72,8 @@ class DownloadTask {
         'status': status.name,
         'progress': progress,
         'started_at': startedAt?.toIso8601String(),
+        'native_id': nativeId,
+        'apk_path': apkPath,
       };
 
   factory DownloadTask.fromJson(Map<String, dynamic> map) {
@@ -82,6 +95,8 @@ class DownloadTask {
       status: status,
       progress: asDouble(map['progress']),
       startedAt: asDate(map['started_at']),
+      nativeId: map['native_id'] == null ? null : asInt(map['native_id']),
+      apkPath: asText(map['apk_path']),
     );
   }
 }

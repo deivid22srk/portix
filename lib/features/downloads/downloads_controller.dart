@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
@@ -25,18 +26,26 @@ final downloadForGameProvider = Provider.family<DownloadTask?, String>(
   },
 );
 
+/// Fila de downloads. No Android usa o motor nativo (Rust + serviço em primeiro
+/// plano com notificação); em outras plataformas cai numa simulação local.
 class DownloadsController extends Notifier<List<DownloadTask>> {
   static const String _storageKey = 'downloads.tasks';
 
   Timer? _ticker;
   int _ticks = 0;
+  StreamSubscription<NativeDownloadEvent>? _events;
 
   @override
   List<DownloadTask> build() {
     ref.onDispose(() {
       _ticker?.cancel();
       _ticker = null;
+      _events?.cancel();
+      _events = null;
     });
+    if (NativeDownloader.isAndroid) {
+      _events = NativeDownloader.events().listen(_onNativeEvent);
+    }
     return _loadPersisted();
   }
 
@@ -58,10 +67,11 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
           if (task.gameId.isEmpty) {
             continue;
           }
-          // Um download interrompido pelo sistema volta como pausado,
-          // nunca como se estivesse progredindo sozinho.
+          // Um download interrompido volta como pausado, nunca progredindo.
           tasks.add(
-            task.isActive ? task.copyWith(status: DownloadStatus.paused) : task,
+            task.isActive || task.status == DownloadStatus.failed
+                ? task.copyWith(status: DownloadStatus.paused)
+                : task,
           );
         }
       }
@@ -84,6 +94,8 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       }
       return;
     }
+
+    final bool useNative = NativeDownloader.isAndroid && port?.url != null;
     final DownloadTask task = DownloadTask(
       gameId: game.id,
       title: game.title,
@@ -93,20 +105,89 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       portUrl: port?.url,
       platformName: port?.platformName,
       status: DownloadStatus.downloading,
-      progress: 0.03,
+      progress: useNative ? 0 : 0.03,
       startedAt: DateTime.now(),
+      nativeId: useNative ? _nativeIdFor(game.id) : null,
     );
     state = <DownloadTask>[task, ...state];
     _persist();
-    _ensureTicker();
-    _sync(task);
+    if (useNative) {
+      unawaited(_startNative(task));
+    } else {
+      _ensureTicker();
+      _sync(task);
+    }
     HapticFeedback.selectionClick();
   }
 
+  Future<void> _startNative(DownloadTask task) async {
+    final String? url = task.portUrl;
+    final int? id = task.nativeId;
+    if (url == null || id == null) {
+      return;
+    }
+    await NativeDownloader.requestNotifications();
+    final bool ok = await NativeDownloader.start(
+      id: id,
+      url: url,
+      title: task.title,
+    );
+    if (!ok) {
+      _update(
+        task.gameId,
+        (DownloadTask current) => current.copyWith(status: DownloadStatus.failed),
+      );
+      _persist();
+    }
+  }
+
+  void _onNativeEvent(NativeDownloadEvent event) {
+    final int index =
+        state.indexWhere((DownloadTask task) => task.nativeId == event.id);
+    if (index < 0) {
+      return;
+    }
+    final DownloadTask task = state[index];
+    switch (event.status) {
+      case 'downloading':
+        final double? progress = event.progress;
+        _update(
+          task.gameId,
+          (DownloadTask current) => current.copyWith(
+            status: DownloadStatus.downloading,
+            progress: progress ?? current.progress,
+          ),
+        );
+      case 'done':
+        final DownloadTask done = task.copyWith(
+          status: DownloadStatus.done,
+          progress: 1,
+          apkPath: event.path,
+        );
+        _replace(done);
+        _persist();
+        _sync(done);
+        HapticFeedback.mediumImpact();
+        unawaited(_addToLibrary(done));
+      case 'failed':
+        _update(
+          task.gameId,
+          (DownloadTask current) => current.copyWith(status: DownloadStatus.failed),
+        );
+        _persist();
+      default:
+        break;
+    }
+  }
+
   void pause(String gameId) {
+    final DownloadTask? task = taskFor(gameId);
+    if (task?.nativeId != null && task?.status == DownloadStatus.downloading) {
+      unawaited(NativeDownloader.cancel(task!.nativeId!));
+    }
     _update(
       gameId,
-      (DownloadTask task) => task.copyWith(status: DownloadStatus.paused),
+      (DownloadTask current) => current.copyWith(status: DownloadStatus.paused),
     );
     _persist();
     _syncFor(gameId);
@@ -114,31 +195,37 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
   }
 
   void resume(String gameId) {
+    final DownloadTask? task = taskFor(gameId);
     _update(
       gameId,
-      (DownloadTask task) => task.copyWith(status: DownloadStatus.downloading),
+      (DownloadTask current) => current.copyWith(status: DownloadStatus.downloading),
     );
     _persist();
     _syncFor(gameId);
-    _ensureTicker();
+    if (task?.nativeId != null) {
+      final DownloadTask? updated = taskFor(gameId);
+      if (updated != null) {
+        unawaited(_startNative(updated));
+      }
+    } else {
+      _ensureTicker();
+    }
     HapticFeedback.selectionClick();
   }
 
   void cancel(String gameId) {
+    final DownloadTask? task = taskFor(gameId);
+    if (task?.nativeId != null) {
+      unawaited(NativeDownloader.cancel(task!.nativeId!));
+    }
     state = state
-        .where((DownloadTask task) => task.gameId != gameId)
+        .where((DownloadTask item) => item.gameId != gameId)
         .toList(growable: false);
     _persist();
     _stopTickerIfIdle();
   }
 
-  void remove(String gameId) {
-    state = state
-        .where((DownloadTask task) => task.gameId != gameId)
-        .toList(growable: false);
-    _persist();
-    _stopTickerIfIdle();
-  }
+  void remove(String gameId) => cancel(gameId);
 
   void clearCompleted() {
     state = state
@@ -154,6 +241,17 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       }
     }
     return null;
+  }
+
+  int _nativeIdFor(String gameId) {
+    final int raw = gameId.hashCode & 0x7fffffff;
+    return raw == 0 ? 1 : raw;
+  }
+
+  void _replace(DownloadTask task) {
+    state = state
+        .map((DownloadTask item) => item.gameId == task.gameId ? task : item)
+        .toList(growable: false);
   }
 
   void _update(String gameId, DownloadTask Function(DownloadTask) transform) {
@@ -177,10 +275,12 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     _ticks = 0;
   }
 
+  bool get _hasSimulated =>
+      state.any((DownloadTask task) =>
+          task.nativeId == null && task.status == DownloadStatus.downloading);
+
   void _stopTickerIfIdle() {
-    final bool anyActive =
-        state.any((DownloadTask task) => task.status == DownloadStatus.downloading);
-    if (!anyActive) {
+    if (!_hasSimulated) {
       _stopTicker();
     }
   }
@@ -189,7 +289,7 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     final List<DownloadTask> next = <DownloadTask>[];
     final List<DownloadTask> finished = <DownloadTask>[];
     for (final DownloadTask task in state) {
-      if (task.status != DownloadStatus.downloading) {
+      if (task.nativeId != null || task.status != DownloadStatus.downloading) {
         next.add(task);
         continue;
       }
@@ -252,8 +352,7 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
             progress: (task.progress * 100).round(),
           );
     } on Object {
-      // Sem conexão o estado local continua válido; a próxima sincronização
-      // envia o progresso mais recente.
+      // Sem conexão o estado local continua válido.
     }
   }
 

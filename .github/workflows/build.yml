@@ -65,6 +65,34 @@ jobs:
           dart run flutter_launcher_icons
           dart run flutter_native_splash:create
 
+      - name: Rust + targets Android
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Resolver NDK
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          NDK_DIR="$(ls -d "$SDK/ndk/"* 2>/dev/null | sort -V | tail -1 || true)"
+          if [ -z "$NDK_DIR" ]; then
+            SDKMANAGER="$(command -v sdkmanager || echo "$SDK/cmdline-tools/latest/bin/sdkmanager")"
+            yes | "$SDKMANAGER" --install "ndk;26.1.10909125" >/dev/null
+            NDK_DIR="$SDK/ndk/26.1.10909125"
+          fi
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$NDK_DIR" >> "$GITHUB_ENV"
+          echo "NDK: $NDK_DIR"
+
+      - name: Compilar motor de download (Rust)
+        run: |
+          cd native/portix_downloader
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 \
+            -o ../../android/app/src/main/jniLibs build --release
+          find ../../android/app/src/main/jniLibs -name "*.so" -print
+
       - name: Build APK release (split por ABI)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

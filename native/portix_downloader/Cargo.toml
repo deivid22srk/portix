@@ -1,0 +1,20 @@
+[package]
+name = "portix_downloader"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "portix_downloader"
+crate-type = ["cdylib"]
+
+[dependencies]
+jni = "0.21"
+# ureq usa rustls (TLS puro em Rust), evitando OpenSSL no Android.
+ureq = { version = "2.10", default-features = false, features = ["tls", "gzip"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

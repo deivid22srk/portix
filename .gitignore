@@ -34,6 +34,10 @@ env.local.json
 *.zip
 tools/import/cache/
 
+# Rust / artefatos nativos gerados
+native/portix_downloader/target/
+android/app/src/main/jniLibs/
+
 # Sistema
 .DS_Store
 Thumbs.db

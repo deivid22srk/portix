@@ -10,6 +10,7 @@ import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/env.dart';
 import '../../core/formatters.dart';
+import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
@@ -80,14 +81,18 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     );
   }
 
-  void _install(GameDetail detail) {
+  Future<void> _install(GameDetail detail) async {
     final L10n l10n = context.l10n;
     final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
     if (current != null && current.isDone) {
+      final String? path = current.apkPath;
+      if (path != null && await NativeDownloader.install(path)) {
+        return;
+      }
       final GamePort? port = detail.primaryPort;
       if (port?.url != null) {
-        _openLink(port!.url);
-      } else {
+        await _openLink(port!.url);
+      } else if (mounted) {
         _showSnack(l10n.installedLabel);
       }
       return;
@@ -280,7 +285,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final String installLabel = task == null
         ? l10n.install
         : task.isDone
-            ? l10n.installedLabel
+            ? (task.apkPath != null ? l10n.install : l10n.installedLabel)
             : l10n.continueAction;
     final IconData installIcon = task == null
         ? Icons.download_rounded

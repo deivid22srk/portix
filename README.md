@@ -192,6 +192,26 @@ normalizados do catálogo.
 
 ---
 
+## Download nativo (Rust + serviço Android)
+
+O download de APK é feito por um **motor em Rust** (`native/portix_downloader`,
+compilado como `.so` por ABI com `cargo-ndk`) exposto ao Kotlin via **JNI**:
+
+- `DownloadService` — serviço em primeiro plano (`dataSync`) com **notificação
+  persistente de progresso**; o APK vai para `getExternalFilesDir/apk`.
+- `MainActivity` — canal `portix/downloader` (iniciar/cancelar/instalar/permissão)
+  e `portix/downloader/events` (progresso/conclusão em tempo real ao Dart).
+- Instalação via `FileProvider` (`${applicationId}.fileprovider`) e intent
+  `application/vnd.android.package-archive` (permissão `REQUEST_INSTALL_PACKAGES`).
+- Fallback: fora do Android, a fila continua simulada como antes.
+
+As fontes Kotlin e o XML do FileProvider vivem em `native/android/` e são
+copiados para o scaffold gerado por `tools/ci/prepare_android.py` (o `android/`
+não é versionado). O CI instala Rust + `cargo-ndk` + NDK e compila o `.so` para
+`arm64-v8a`, `armeabi-v7a` e `x86_64` antes de empacotar os APKs.
+
+---
+
 ## Rodando localmente
 
 ```bash

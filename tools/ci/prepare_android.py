@@ -9,6 +9,7 @@ permissão de internet, label, back callback, R8 e memória do Gradle.
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 
 
@@ -113,7 +114,7 @@ def patch_gradle(android: Path) -> None:
 
     rules = android / "app" / "proguard-rules.pro"
     rules.write_text(
-        "# PORTIX — regras de keep para plugins que usam reflexão.\n"
+        "# PORTIX — regras de keep para plugins que usam reflexão/JNI.\n"
         "-keepattributes Signature\n"
         "-keepattributes *Annotation*\n"
         "-keep class io.supabase.** { *; }\n"
@@ -121,7 +122,10 @@ def patch_gradle(android: Path) -> None:
         "-keep class com.google.gson.** { *; }\n"
         "-dontwarn com.google.gson.**\n"
         "-keep class com.google.android.play.core.** { *; }\n"
-        "-dontwarn com.google.android.play.core.**\n",
+        "-dontwarn com.google.android.play.core.**\n"
+        "# Motor de download nativo (Rust/JNI) e serviço de primeiro plano.\n"
+        "-keepclasseswithmembernames class * { native <methods>; }\n"
+        "-keep class com.deivid22srk.portix.downloader.** { *; }\n",
         encoding="utf-8",
     )
 
@@ -140,15 +144,114 @@ def patch_gradle_properties(android: Path) -> None:
     properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+NATIVE_PERMISSIONS = (
+    '\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
+    '\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />'
+    '\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />'
+    '\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
+)
+
+NATIVE_COMPONENTS = (
+    "\n        <service\n"
+    '            android:name=".downloader.DownloadService"\n'
+    '            android:exported="false"\n'
+    '            android:foregroundServiceType="dataSync" />\n'
+    "        <provider\n"
+    '            android:name="androidx.core.content.FileProvider"\n'
+    '            android:authorities="${applicationId}.fileprovider"\n'
+    '            android:exported="false"\n'
+    '            android:grantUriPermissions="true">\n'
+    "            <meta-data\n"
+    '                android:name="android.support.FILE_PROVIDER_PATHS"\n'
+    '                android:resource="@xml/portix_file_paths" />\n'
+    "        </provider>\n"
+)
+
+
+def patch_manifest_native(android: Path) -> None:
+    """Adiciona permissões, o serviço de download e o FileProvider."""
+    manifest = android / "app" / "src" / "main" / "AndroidManifest.xml"
+    text = _read(manifest)
+
+    if "POST_NOTIFICATIONS" not in text:
+        text = re.sub(
+            r"(<manifest[^>]*>)",
+            r"\1" + NATIVE_PERMISSIONS,
+            text,
+            count=1,
+        )
+
+    if "DownloadService" not in text:
+        text = text.replace("</application>", NATIVE_COMPONENTS + "    </application>", 1)
+
+    _write(manifest, text)
+
+
+def copy_native(android: Path) -> None:
+    """Copia as fontes Kotlin (serviço/ponte) e o XML do FileProvider."""
+    root = Path(__file__).resolve().parents[2]
+    source = root / "native" / "android"
+    if not source.exists():
+        raise SystemExit("Pasta native/android não encontrada")
+
+    package_dir = (
+        android / "app" / "src" / "main" / "kotlin" / "com" / "deivid22srk" / "portix"
+    )
+    package_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source / "MainActivity.kt", package_dir / "MainActivity.kt")
+
+    downloader_source = source / "downloader"
+    downloader_dir = package_dir / "downloader"
+    downloader_dir.mkdir(parents=True, exist_ok=True)
+    for item in sorted(downloader_source.glob("*.kt")):
+        shutil.copyfile(item, downloader_dir / item.name)
+
+    res_dir = android / "app" / "src" / "main" / "res" / "xml"
+    res_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(
+        source / "res" / "xml" / "portix_file_paths.xml",
+        res_dir / "portix_file_paths.xml",
+    )
+
+
+def patch_gradle_dependencies(android: Path) -> None:
+    """Garante o AndroidX Core (NotificationCompat/FileProvider)."""
+    kts = android / "app" / "build.gradle.kts"
+    groovy = android / "app" / "build.gradle"
+    if kts.exists():
+        path = kts
+        text = _read(path)
+        if "androidx.core:core-ktx" in text:
+            return
+        dependency = '    implementation("androidx.core:core-ktx:1.13.1")\n'
+    elif groovy.exists():
+        path = groovy
+        text = _read(path)
+        if "androidx.core:core-ktx" in text:
+            return
+        dependency = '    implementation "androidx.core:core-ktx:1.13.1"\n'
+    else:
+        raise SystemExit("build.gradle(.kts) do app não encontrado")
+
+    if "dependencies {" in text:
+        text = text.replace("dependencies {", "dependencies {\n" + dependency, 1)
+    else:
+        text += "\ndependencies {\n" + dependency + "}\n"
+    _write(path, text)
+
+
 def main() -> None:
     android = Path(__file__).resolve().parents[2] / "android"
     if not android.exists():
         raise SystemExit("Pasta android/ ausente: rode flutter create antes")
     patch_manifest(android)
+    patch_manifest_native(android)
     patch_gradle(android)
+    patch_gradle_dependencies(android)
     patch_gradle_properties(android)
     patch_lint(android)
-    print("Scaffold Android ajustado para release.")
+    copy_native(android)
+    print("Scaffold Android ajustado para release (com download nativo).")
 
 
 if __name__ == "__main__":
