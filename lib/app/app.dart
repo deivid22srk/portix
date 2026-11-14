@@ -19,6 +19,13 @@ class PortixApp extends ConsumerWidget {
 
   static const List<Locale> _locales = <Locale>[Locale('pt', 'BR'), Locale('en')];
 
+  /// Limita a escala de fonte do sistema para o layout não quebrar.
+  Widget _withTextScale(Widget? child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 0.9,
+        maxScaleFactor: 1.35,
+        child: child ?? const SizedBox.shrink(),
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppSettings settings = ref.watch(settingsProvider);
@@ -33,6 +40,7 @@ class PortixApp extends ConsumerWidget {
         locale: settings.locale,
         supportedLocales: _locales,
         localizationsDelegates: _delegates,
+        builder: (BuildContext context, Widget? child) => _withTextScale(child),
         home: const SplashPage(),
       );
     }
@@ -45,6 +53,7 @@ class PortixApp extends ConsumerWidget {
         locale: settings.locale,
         supportedLocales: _locales,
         localizationsDelegates: _delegates,
+        builder: (BuildContext context, Widget? child) => _withTextScale(child),
         home: BootstrapErrorPage(
           error: bootstrap.error ?? const AppFailure(FailureKind.unknown),
         ),
@@ -59,6 +68,7 @@ class PortixApp extends ConsumerWidget {
       locale: settings.locale,
       supportedLocales: _locales,
       localizationsDelegates: _delegates,
+      builder: (BuildContext context, Widget? child) => _withTextScale(child),
       routerConfig: ref.watch(routerProvider),
     );
   }

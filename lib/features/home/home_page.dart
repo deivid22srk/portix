@@ -250,22 +250,12 @@ class HomePage extends ConsumerWidget {
   List<_BrowseTarget> _sectionTiles(BuildContext context, HomeFeed feed) {
     final L10n l10n = context.l10n;
     final List<_BrowseTarget> tiles = <_BrowseTarget>[];
+
     if (feed.free.isNotEmpty) {
       tiles.add(_BrowseTarget(
         icon: Icons.bolt_rounded,
         label: l10n.sectionFree,
         freeOnly: true,
-      ));
-    }
-    final List<PlatformInfo> platforms = feed.platforms
-        .where((PlatformInfo platform) => !platform.isSecondary)
-        .toList(growable: false);
-    if (platforms.isNotEmpty) {
-      final PlatformInfo platform = platforms.first;
-      tiles.add(_BrowseTarget(
-        icon: Icons.sports_esports_rounded,
-        label: platform.name,
-        platform: platform.slug,
       ));
     }
     if (feed.classics.isNotEmpty) {
@@ -275,13 +265,25 @@ class HomePage extends ConsumerWidget {
         sort: 'year',
       ));
     }
-    if (feed.genres.isNotEmpty) {
-      final GenreInfo genre = feed.genres.first;
+    for (final GenreInfo genre in feed.genres.take(2)) {
       tiles.add(_BrowseTarget(
         icon: Icons.category_rounded,
         label: genre.name,
         genre: genre.name,
       ));
+    }
+    if (tiles.length < 4) {
+      final List<PlatformInfo> platforms = feed.platforms
+          .where((PlatformInfo platform) => !platform.isSecondary)
+          .toList(growable: false);
+      if (platforms.isNotEmpty) {
+        final PlatformInfo platform = platforms.first;
+        tiles.add(_BrowseTarget(
+          icon: Icons.sports_esports_rounded,
+          label: platform.name,
+          platform: platform.slug,
+        ));
+      }
     }
     return tiles.take(4).toList(growable: false);
   }
