@@ -78,7 +78,7 @@ jobs:
         run: ls -lh build/app/outputs/flutter-apk/
 
       - name: Publicar APKs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: portix-apk
           path: build/app/outputs/flutter-apk/*.apk
