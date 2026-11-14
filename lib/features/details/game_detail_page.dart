@@ -43,10 +43,28 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   bool _expandedDescription = false;
   bool _submitting = false;
+  bool _barTitle = false;
   int _rating = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scroll.hasClients) {
+      return;
+    }
+    final bool next = _scroll.offset > 220;
+    if (next != _barTitle && mounted) {
+      setState(() => _barTitle = next);
+    }
+  }
+
+  @override
   void dispose() {
+    _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _review.dispose();
     super.dispose();
@@ -544,7 +562,70 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
             ],
           ),
           ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _TopBar(visible: _barTitle, title: game.title, onBack: _back),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({
+    required this.visible,
+    required this.title,
+    required this.onBack,
+  });
+
+  final bool visible;
+  final String title;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !visible,
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: AppMotion.base,
+        child: Container(
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top + 8,
+            left: AppSpacing.screen,
+            right: AppSpacing.screen,
+            bottom: 10,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.bg.withValues(alpha: 0.86),
+            border: const Border(
+              bottom: BorderSide(color: AppColors.glassBorder),
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              GlassCircleButton(
+                icon: Icons.arrow_back_rounded,
+                size: 40,
+                onTap: onBack,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

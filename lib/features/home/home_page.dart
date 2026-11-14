@@ -56,6 +56,9 @@ class HomePage extends ConsumerWidget {
 
   List<Widget> _feedSlivers(BuildContext context, WidgetRef ref, HomeFeed feed) {
     final L10n l10n = context.l10n;
+    final List<PlatformInfo> platforms = feed.platforms
+        .where((PlatformInfo platform) => !platform.isSecondary)
+        .toList(growable: false);
     final List<Widget> slivers = <Widget>[];
 
     if (feed.highlights.isNotEmpty) {
