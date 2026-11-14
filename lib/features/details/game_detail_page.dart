@@ -362,14 +362,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                       Row(
                         children: <Widget>[
                           Expanded(
-                            child: SecondaryButton(
-                              label: l10n.favoriteTooltip,
-                              icon: favorite
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
+                            child: _FavoritePill(
                               active: favorite,
-                              onPressed: () => _toggleFavorite(detail),
-                              iconColor: favorite ? AppColors.favorite : null,
+                              label: l10n.favoriteTooltip,
+                              onTap: () => _toggleFavorite(detail),
                             ),
                           ),
                           const SizedBox(width: AppSpacing.md),
@@ -718,6 +714,104 @@ class _Chips extends StatelessWidget {
         InfoChip(label: l10n.needsFiles, icon: Icons.folder_rounded, color: AppColors.warning),
     ];
     return Wrap(spacing: 10, runSpacing: 10, children: chips);
+  }
+}
+
+class _FavoritePill extends StatefulWidget {
+  const _FavoritePill({
+    required this.active,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool active;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_FavoritePill> createState() => _FavoritePillState();
+}
+
+class _FavoritePillState extends State<_FavoritePill>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
+
+  late final Animation<double> _scale = TweenSequence<double>(
+    <TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 1, end: 1.35)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 1.35, end: 1)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 60,
+      ),
+    ],
+  ).animate(_controller);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handle() {
+    _controller.forward(from: 0);
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool active = widget.active;
+    return Pressable(
+      onTap: _handle,
+      child: Container(
+        height: AppSpacing.secondaryButtonHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          color: active ? AppColors.accent.withValues(alpha: 0.16) : AppColors.glass,
+          border: Border.all(
+            color: active
+                ? AppColors.accent.withValues(alpha: 0.5)
+                : AppColors.glassBorder,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            AnimatedBuilder(
+              animation: _scale,
+              builder: (BuildContext context, Widget? child) =>
+                  Transform.scale(scale: _scale.value, child: child),
+              child: Icon(
+                active ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                size: 19,
+                color: active ? AppColors.favorite : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                widget.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.labelLarge?.copyWith(
+                  color: active ? AppColors.accent : AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

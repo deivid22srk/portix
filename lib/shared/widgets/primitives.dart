@@ -1023,10 +1023,11 @@ class GradientProgress extends StatelessWidget {
 
 /// Item de um controle segmentado.
 class SegmentItem<T> {
-  const SegmentItem({required this.value, required this.label});
+  const SegmentItem({required this.value, required this.label, this.icon});
 
   final T value;
   final String label;
+  final IconData? icon;
 }
 
 /// Controle segmentado de vidro.
@@ -1060,18 +1061,35 @@ class SegmentedControl<T> extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                     color: item.value == value ? AppColors.glassStrong : Colors.transparent,
                   ),
-                  child: Text(
-                    item.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.texts.labelMedium?.copyWith(
-                      color: item.value == value
-                          ? AppColors.textPrimary
-                          : AppColors.textTertiary,
-                      fontWeight:
-                          item.value == value ? FontWeight.w700 : FontWeight.w500,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      if (item.icon != null) ...<Widget>[
+                        Icon(
+                          item.icon,
+                          size: 15,
+                          color: item.value == value
+                              ? AppColors.accent
+                              : AppColors.textTertiary,
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                      Flexible(
+                        child: Text(
+                          item.label,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.labelMedium?.copyWith(
+                            color: item.value == value
+                                ? AppColors.textPrimary
+                                : AppColors.textTertiary,
+                            fontWeight:
+                                item.value == value ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

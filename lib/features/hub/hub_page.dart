@@ -75,14 +75,17 @@ class _HubPageState extends ConsumerState<HubPage> {
                         SegmentItem<_HubSegment>(
                           value: _HubSegment.favorites,
                           label: '${l10n.hubFavorites} · ${collections.favorites.length}',
+                          icon: Icons.favorite_rounded,
                         ),
                         SegmentItem<_HubSegment>(
                           value: _HubSegment.installed,
                           label: '${l10n.hubInstalled} · ${collections.library.length}',
+                          icon: Icons.download_done_rounded,
                         ),
                         SegmentItem<_HubSegment>(
                           value: _HubSegment.downloads,
                           label: '${l10n.hubDownloads} · ${tasks.length}',
+                          icon: Icons.download_rounded,
                         ),
                       ],
                       value: _segment,

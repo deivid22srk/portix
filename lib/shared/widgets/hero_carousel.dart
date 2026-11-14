@@ -168,17 +168,29 @@ class _HeroCarouselState extends State<HeroCarousel> {
                 child: Row(
                   children: <Widget>[
                     for (int i = 0; i < widget.games.length; i += 1)
-                      AnimatedContainer(
-                        duration: AppMotion.indicator,
-                        curve: AppMotion.emphasized,
-                        margin: const EdgeInsets.only(right: 6),
-                        width: i == _index ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                          color: i == _index
-                              ? AppColors.textPrimary
-                              : AppColors.textPrimary.withValues(alpha: 0.4),
+                      Pressable(
+                        haptics: false,
+                        onTap: () {
+                          if (_controller.hasClients) {
+                            _controller.animateToPage(
+                              i,
+                              duration: AppMotion.slow,
+                              curve: AppMotion.emphasized,
+                            );
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: AppMotion.indicator,
+                          curve: AppMotion.emphasized,
+                          margin: const EdgeInsets.only(right: 6),
+                          width: i == _index ? 24 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                            color: i == _index
+                                ? AppColors.textPrimary
+                                : AppColors.textPrimary.withValues(alpha: 0.4),
+                          ),
                         ),
                       ),
                   ],
