@@ -59,6 +59,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         }
       } on Object {
         // mantém o texto original
+        return text;
       }
     }
     return text;
