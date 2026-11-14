@@ -588,38 +588,43 @@ class _TopBar extends StatelessWidget {
       child: AnimatedOpacity(
         opacity: visible ? 1 : 0,
         duration: AppMotion.base,
-        child: Container(
-          padding: EdgeInsets.only(
-            top: MediaQuery.paddingOf(context).top + 8,
-            left: AppSpacing.screen,
-            right: AppSpacing.screen,
-            bottom: 10,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.bg.withValues(alpha: 0.86),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.glassBorder),
-            ),
-          ),
-          child: Row(
-            children: <Widget>[
-              GlassCircleButton(
-                icon: Icons.arrow_back_rounded,
-                size: 40,
-                onTap: onBack,
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: EdgeInsets.only(
+                top: MediaQuery.paddingOf(context).top + 8,
+                left: AppSpacing.screen,
+                right: AppSpacing.screen,
+                bottom: 10,
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.texts.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              decoration: const BoxDecoration(
+                color: Color(0x66000000),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.glassBorder),
                 ),
               ),
-            ],
+              child: Row(
+                children: <Widget>[
+                  GlassCircleButton(
+                    icon: Icons.arrow_back_rounded,
+                    size: 40,
+                    onTap: onBack,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.texts.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

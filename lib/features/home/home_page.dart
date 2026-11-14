@@ -9,6 +9,7 @@ import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
 import '../../models/home_feed.dart';
 import '../../shared/widgets/game_media.dart';
+import '../../shared/widgets/glass_header.dart';
 import '../../shared/widgets/hero_carousel.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
@@ -367,46 +368,10 @@ class _HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    return SliverAppBar(
-      pinned: true,
-      stretch: true,
+    return GlassSliverAppBar(
+      title: l10n.navHome,
+      subtitle: l10n.tagline,
       expandedHeight: 176,
-      backgroundColor: AppColors.bg,
-      surfaceTintColor: Colors.transparent,
-      scrolledUnderElevation: 0,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      titleSpacing: AppSpacing.screen,
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: false,
-        titlePadding: const EdgeInsetsDirectional.only(
-          start: AppSpacing.screen,
-          end: AppSpacing.screen,
-          bottom: 18,
-        ),
-        title: Text(
-          l10n.navHome,
-          style: context.texts.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.6,
-          ),
-        ),
-        background: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screen,
-            0,
-            AppSpacing.screen,
-            46,
-          ),
-          child: Align(
-            alignment: Alignment.bottomLeft,
-            child: Text(
-              l10n.tagline,
-              style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

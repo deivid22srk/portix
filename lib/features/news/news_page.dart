@@ -9,6 +9,7 @@ import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/news.dart';
 import '../../shared/widgets/game_media.dart';
+import '../../shared/widgets/glass_header.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
 import '../news/news_controller.dart';
@@ -65,46 +66,10 @@ class _NewsPageState extends ConsumerState<NewsPage> {
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: <Widget>[
-            SliverAppBar(
-              pinned: true,
+            GlassSliverAppBar(
+              title: l10n.newsTitle,
+              subtitle: l10n.newsSubtitle,
               expandedHeight: 150,
-              backgroundColor: AppColors.bg,
-              surfaceTintColor: Colors.transparent,
-              scrolledUnderElevation: 0,
-              automaticallyImplyLeading: false,
-              titleSpacing: AppSpacing.screen,
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: const EdgeInsetsDirectional.only(
-                  start: AppSpacing.screen,
-                  end: AppSpacing.screen,
-                  bottom: 16,
-                ),
-                title: Text(
-                  l10n.newsTitle,
-                  style: context.texts.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.6,
-                  ),
-                ),
-                background: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.screen,
-                    0,
-                    AppSpacing.screen,
-                    42,
-                  ),
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Text(
-                      l10n.newsSubtitle,
-                      style: context.texts.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ),
             if (state.isInitialLoading)
               const SliverToBoxAdapter(child: SearchSkeleton()),
