@@ -1,0 +1,39 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.jks
+*.keystore
+
+# iOS / macOS (não usados neste app)
+ios/Pods/
+ios/.symlinks/
+macos/Pods/
+
+# Segredos e dados brutos do catálogo
+.env
+.env.*
+!.env.example
+env.local.json
+*_catalog.json
+*.zip
+tools/import/cache/
+
+# Sistema
+.DS_Store
+Thumbs.db

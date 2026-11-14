@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Ajusta o scaffold Android gerado pelo Flutter para o build de release.
+
+O repositório não versiona a pasta `android/` (o CI a gera com
+`flutter create`). Este script aplica os ajustes que não vêm no template:
+permissão de internet, label, back callback, R8 e memória do Gradle.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def _write(path: Path, text: str) -> None:
+    path.write_text(text, encoding="utf-8")
+
+
+def patch_manifest(android: Path) -> None:
+    manifest = android / "app" / "src" / "main" / "AndroidManifest.xml"
+    text = _read(manifest)
+
+    if "android.permission.INTERNET" not in text:
+        text = re.sub(
+            r"(<manifest[^>]*>)",
+            r'\1\n    <uses-permission android:name="android.permission.INTERNET" />',
+            text,
+            count=1,
+        )
+
+    text = re.sub(r'android:label="[^"]*"', 'android:label="PORTIX"', text, count=1)
+
+    application = re.search(r"<application\b[^>]*>", text)
+    if application is not None and "enableOnBackInvokedCallback" not in application.group(0):
+        tag = application.group(0)
+        patched = tag[:-1] + ' android:enableOnBackInvokedCallback="true">'
+        text = text.replace(tag, patched, count=1)
+
+    _write(manifest, text)
+
+
+def patch_gradle(android: Path) -> None:
+    kts = android / "app" / "build.gradle.kts"
+    groovy = android / "app" / "build.gradle"
+    if kts.exists():
+        path = kts
+        text = _read(path)
+        if "isMinifyEnabled" not in text:
+            text = text.replace(
+                "release {",
+                "release {\n"
+                '            isMinifyEnabled = true\n'
+                '            isShrinkResources = true\n'
+                '            proguardFiles(\n'
+                '                getDefaultProguardFile("proguard-android-optimize.txt"),\n'
+                '                "proguard-rules.pro",\n'
+                "            )",
+                1,
+            )
+    elif groovy.exists():
+        path = groovy
+        text = _read(path)
+        if "minifyEnabled" not in text:
+            text = text.replace(
+                "release {",
+                "release {\n"
+                "            minifyEnabled true\n"
+                "            shrinkResources true\n"
+                '            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"',
+                1,
+            )
+    else:
+        raise SystemExit("build.gradle(.kts) não encontrado no scaffold Android")
+
+    _write(path, text)
+
+    rules = android / "app" / "proguard-rules.pro"
+    rules.write_text(
+        "# PORTIX — regras de keep para plugins que usam reflexão.\n"
+        "-keepattributes Signature\n"
+        "-keepattributes *Annotation*\n"
+        "-keep class io.supabase.** { *; }\n"
+        "-dontwarn io.supabase.**\n"
+        "-keep class com.google.gson.** { *; }\n"
+        "-dontwarn com.google.gson.**\n"
+        "-keep class com.google.android.play.core.** { *; }\n"
+        "-dontwarn com.google.android.play.core.**\n",
+        encoding="utf-8",
+    )
+
+
+def patch_gradle_properties(android: Path) -> None:
+    properties = android / "gradle.properties"
+    text = _read(properties) if properties.exists() else ""
+    lines = [
+        line
+        for line in text.splitlines()
+        if not line.startswith("org.gradle.jvmargs")
+    ]
+    lines.append("org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G -Dfile.encoding=UTF-8")
+    if "android.useAndroidX" not in "\n".join(lines):
+        lines.append("android.useAndroidX=true")
+    properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def main() -> None:
+    android = Path(__file__).resolve().parents[2] / "android"
+    if not android.exists():
+        raise SystemExit("Pasta android/ ausente: rode flutter create antes")
+    patch_manifest(android)
+    patch_gradle(android)
+    patch_gradle_properties(android)
+    print("Scaffold Android ajustado para release.")
+
+
+if __name__ == "__main__":
+    main()
