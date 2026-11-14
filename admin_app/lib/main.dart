@@ -1151,7 +1151,7 @@ class _GameFormDialogState extends State<_GameFormDialog> {
 
   late bool _isFree = widget.initial?['is_free'] == true;
   late bool _needsRom = widget.initial?['needs_rom'] == true;
-  late Set<String> _selected = _initialPlatforms();
+  late final Set<String> _selected = _initialPlatforms();
 
   String _text(String key) => (widget.initial?[key] ?? '').toString();
 
