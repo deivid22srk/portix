@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.FileProvider
+import com.deivid22srk.portix.device.PortixDeviceInfo
 import com.deivid22srk.portix.downloader.DownloadService
 import com.deivid22srk.portix.downloader.DownloaderBridge
 import com.deivid22srk.portix.downloader.NativeDownloader
@@ -21,6 +22,7 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private val methodsChannelName = "portix/downloader"
     private val eventsChannelName = "portix/downloader/events"
+    private val deviceChannelName = "portix/device"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -66,6 +68,14 @@ class MainActivity : FlutterActivity() {
                     }
                 },
             )
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, deviceChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "info" -> result.success(PortixDeviceInfo.collect(applicationContext))
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     private fun requestNotifications() {

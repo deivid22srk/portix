@@ -5,15 +5,19 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../app/settings.dart';
+import '../../core/auth.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
 import '../../models/download_task.dart';
+import '../../models/profile.dart';
 import '../../shared/widgets/app_mark.dart';
+import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/downloads_controller.dart';
 import '../home/home_controller.dart';
+import '../profile/profile_controller.dart';
 
 class MenuPage extends ConsumerWidget {
   const MenuPage({super.key});
@@ -56,6 +60,9 @@ class MenuPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
     final AppSettings settings = ref.watch(settingsProvider);
+    final AccountState account = ref.watch(accountProvider);
+    final UserProfile profile = ref.watch(profileProvider).value ??
+        UserProfile(id: account.id ?? '', displayName: account.displayName);
     final Collections collections = ref.watch(collectionsProvider).value ?? Collections.empty;
     final int downloads = ref
         .watch(downloadsProvider)
@@ -91,15 +98,15 @@ class MenuPage extends ConsumerWidget {
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Row(
                       children: <Widget>[
-                        Container(
+                        SizedBox(
                           width: 62,
                           height: 62,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                            color: AppColors.glass,
-                            border: Border.all(color: AppColors.glassBorder),
+                          child: GameCover(
+                            imageUrl: profile.coverUrl,
+                            title: profile.displayName,
+                            memWidth: 180,
+                            borderRadius: AppRadii.md,
                           ),
-                          child: const Center(child: PortixMark(size: 40, glow: false)),
                         ),
                         const SizedBox(width: AppSpacing.lg),
                         Expanded(
@@ -107,7 +114,7 @@ class MenuPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                l10n.player,
+                                profile.displayName,
                                 style: context.texts.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -115,19 +122,27 @@ class MenuPage extends ConsumerWidget {
                               const SizedBox(height: 3),
                               Row(
                                 children: <Widget>[
-                                  const Icon(
-                                    Icons.lock_rounded,
+                                  Icon(
+                                    account.isSignedIn
+                                        ? Icons.verified_rounded
+                                        : Icons.lock_rounded,
                                     size: 12,
-                                    color: AppColors.success,
+                                    color: account.isSignedIn
+                                        ? AppColors.accent
+                                        : AppColors.success,
                                   ),
                                   const SizedBox(width: 4),
                                   Flexible(
                                     child: Text(
-                                      l10n.anonymousSession,
+                                      account.isSignedIn
+                                          ? l10n.accountSection
+                                          : l10n.guestLabel,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: context.texts.labelSmall?.copyWith(
-                                        color: AppColors.success,
+                                        color: account.isSignedIn
+                                            ? AppColors.accent
+                                            : AppColors.success,
                                       ),
                                     ),
                                   ),
@@ -139,6 +154,32 @@ class MenuPage extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (account.isSignedIn)
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: SecondaryButton(
+                            label: l10n.editProfile,
+                            icon: Icons.edit_rounded,
+                            onPressed: () => context.push<Object?>('/profile/edit'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        SecondaryButton(
+                          label: l10n.signOut,
+                          icon: Icons.logout_rounded,
+                          expand: false,
+                          onPressed: () => ref.read(accountProvider.notifier).signOut(),
+                        ),
+                      ],
+                    )
+                  else
+                    PrimaryButton(
+                      label: '${l10n.signIn} / ${l10n.signUp}',
+                      icon: Icons.login_rounded,
+                      onPressed: () => context.push<Object?>('/auth'),
+                    ),
                   const SizedBox(height: AppSpacing.md),
                   GlassContainer(
                     radius: AppRadii.lg,

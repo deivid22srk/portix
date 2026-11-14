@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
+import '../../core/auth.dart';
+import '../../core/device_info.dart';
 import '../../core/download_source.dart';
 import '../../core/env.dart';
 import '../../core/formatters.dart';
@@ -15,6 +17,8 @@ import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
+import '../../models/compat_report.dart';
+import '../../models/compat_summary.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../models/game_detail.dart';
@@ -26,6 +30,11 @@ import '../downloads/downloads_controller.dart';
 
 final gameDetailProvider = FutureProvider.family<GameDetail, String>(
   (ref, String slug) => ref.watch(catalogRepositoryProvider).fetchGame(slug),
+);
+
+final gameCompatReportsProvider = FutureProvider.family<List<CompatReport>, String>(
+  (ref, String gameId) =>
+      ref.watch(catalogRepositoryProvider).fetchCompatReports(gameId),
 );
 
 class GameDetailPage extends ConsumerStatefulWidget {
@@ -238,17 +247,24 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   Future<void> _openCompatSheet(GameDetail detail) async {
     final L10n l10n = context.l10n;
+    if (!ref.read(accountProvider).isSignedIn) {
+      _showSnack(
+        l10n.loginRequired,
+        actionLabel: l10n.signIn,
+        onAction: () => context.push<Object?>('/auth'),
+      );
+      return;
+    }
+    final DeviceSpecs specs = await DeviceInfo.load();
+    if (!mounted) {
+      return;
+    }
     final String? status = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       useSafeArea: true,
       barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (BuildContext context) => _CompatSheet(
-        title: l10n.compatTitle,
-        works: l10n.compatWorks,
-        patch: l10n.compatPatch,
-        broken: l10n.compatBroken,
-      ),
+      builder: (BuildContext context) => _CompatSheet(specs: specs),
     );
     if (status == null || !mounted) {
       return;
@@ -257,11 +273,17 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       await ref.read(catalogRepositoryProvider).submitCompatReport(
             gameId: detail.game.id,
             status: status,
+            brand: specs.brand,
+            model: specs.model,
+            soc: specs.soc,
+            gpu: specs.gpu,
+            ramGb: specs.ramGb,
           );
       if (!mounted) {
         return;
       }
       ref.invalidate(gameDetailProvider(widget.slug));
+      ref.invalidate(gameCompatReportsProvider(detail.game.id));
       _showSnack(l10n.compatSent);
     } on Object {
       if (mounted) {
@@ -452,6 +474,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                         summary: detail.compat,
                         onReport: () => _openCompatSheet(detail),
                       ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _BlockTitle(title: l10n.compatCommunity),
+                      const SizedBox(height: AppSpacing.md),
+                      _CommunityReports(gameId: game.id),
                       const SizedBox(height: AppSpacing.xxl),
                       _BlockTitle(title: l10n.infoTitle),
                       const SizedBox(height: AppSpacing.md),
@@ -927,30 +953,34 @@ class CompatReportCard extends StatelessWidget {
               style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
             )
           else
-            Row(
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: <Widget>[
-                Expanded(
-                  child: _CompatPill(
-                    label: l10n.compatWorks,
-                    count: summary.works,
-                    color: AppColors.success,
-                  ),
+                _CompatPill(
+                  label: l10n.compatPerfect,
+                  count: summary.perfect,
+                  color: AppColors.success,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _CompatPill(
-                    label: l10n.compatPatch,
-                    count: summary.patch,
-                    color: AppColors.warning,
-                  ),
+                _CompatPill(
+                  label: l10n.compatGood,
+                  count: summary.good,
+                  color: AppColors.accentAlt,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _CompatPill(
-                    label: l10n.compatBroken,
-                    count: summary.broken,
-                    color: AppColors.danger,
-                  ),
+                _CompatPill(
+                  label: l10n.compatStutter,
+                  count: summary.stutter,
+                  color: AppColors.warning,
+                ),
+                _CompatPill(
+                  label: l10n.compatUnplayable,
+                  count: summary.unplayable,
+                  color: AppColors.danger,
+                ),
+                _CompatPill(
+                  label: l10n.compatNotRun,
+                  count: summary.notRun,
+                  color: AppColors.textSecondary,
                 ),
               ],
             ),
@@ -1007,20 +1037,23 @@ class _CompatPill extends StatelessWidget {
 }
 
 class _CompatSheet extends StatelessWidget {
-  const _CompatSheet({
-    required this.title,
-    required this.works,
-    required this.patch,
-    required this.broken,
-  });
+  const _CompatSheet({required this.specs});
 
-  final String title;
-  final String works;
-  final String patch;
-  final String broken;
+  final DeviceSpecs specs;
 
   @override
   Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    final String device = <String>[
+      if (specs.brand != null) specs.brand!,
+      if (specs.model != null) specs.model!,
+    ].join(' ');
+    final String details = <String>[
+      if (specs.soc != null) specs.soc!,
+      if (specs.gpu != null) specs.gpu!,
+      if (specs.ramGb != null) '${specs.ramGb} GB',
+    ].join(' · ');
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.bgElevated,
@@ -1047,31 +1080,231 @@ class _CompatSheet extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                title,
+                context.l10n.compatTitle,
                 style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                device.isEmpty ? l10n.compatYourDevice : device,
+                style: context.texts.labelMedium?.copyWith(color: AppColors.textSecondary),
+              ),
+              if (details.isNotEmpty)
+                Text(
+                  details,
+                  style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+                ),
               const SizedBox(height: AppSpacing.lg),
-              SecondaryButton(
-                label: works,
-                icon: Icons.check_circle_rounded,
-                active: true,
-                onPressed: () => Navigator.of(context).pop('works'),
-              ),
+              _VerdictOption(value: 'perfect', label: l10n.compatPerfect, icon: Icons.rocket_launch_rounded, color: AppColors.success),
               const SizedBox(height: AppSpacing.sm),
-              SecondaryButton(
-                label: patch,
-                icon: Icons.build_rounded,
-                onPressed: () => Navigator.of(context).pop('patch'),
-              ),
+              _VerdictOption(value: 'good', label: l10n.compatGood, icon: Icons.thumb_up_rounded, color: AppColors.accentAlt),
               const SizedBox(height: AppSpacing.sm),
-              SecondaryButton(
-                label: broken,
-                icon: Icons.block_rounded,
-                onPressed: () => Navigator.of(context).pop('broken'),
-              ),
+              _VerdictOption(value: 'stutter', label: l10n.compatStutter, icon: Icons.speed_rounded, color: AppColors.warning),
+              const SizedBox(height: AppSpacing.sm),
+              _VerdictOption(value: 'unplayable', label: l10n.compatUnplayable, icon: Icons.hourglass_disabled_rounded, color: AppColors.danger),
+              const SizedBox(height: AppSpacing.sm),
+              _VerdictOption(value: 'not_run', label: l10n.compatNotRun, icon: Icons.block_rounded, color: AppColors.textSecondary),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _VerdictOption extends StatelessWidget {
+  const _VerdictOption({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SecondaryButton(
+      label: label,
+      icon: icon,
+      iconColor: color,
+      onPressed: () => Navigator.of(context).pop(value),
+    );
+  }
+}
+
+/// Rótulo e cor de cada veredito de compatibilidade.
+String compatVerdictLabel(L10n l10n, String status) {
+  switch (status) {
+    case 'perfect':
+      return l10n.compatPerfect;
+    case 'stutter':
+      return l10n.compatStutter;
+    case 'unplayable':
+      return l10n.compatUnplayable;
+    case 'not_run':
+      return l10n.compatNotRun;
+    case 'good':
+    default:
+      return l10n.compatGood;
+  }
+}
+
+Color compatVerdictColor(String status) {
+  switch (status) {
+    case 'perfect':
+      return AppColors.success;
+    case 'stutter':
+      return AppColors.warning;
+    case 'unplayable':
+      return AppColors.danger;
+    case 'not_run':
+      return AppColors.textSecondary;
+    case 'good':
+    default:
+      return AppColors.accentAlt;
+  }
+}
+
+class _CommunityReports extends ConsumerWidget {
+  const _CommunityReports({required this.gameId});
+
+  final String gameId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final L10n l10n = context.l10n;
+    final AsyncValue<List<CompatReport>> async =
+        ref.watch(gameCompatReportsProvider(gameId));
+    final List<CompatReport> reports = async.value ?? const <CompatReport>[];
+
+    if (async.isLoading && reports.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+          ),
+        ),
+      );
+    }
+    if (reports.isEmpty) {
+      return GlassContainer(
+        radius: AppRadii.lg,
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Text(
+          l10n.compatNoReports,
+          style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+        ),
+      );
+    }
+
+    return FutureBuilder<DeviceSpecs>(
+      future: DeviceInfo.load(),
+      builder: (BuildContext context, AsyncSnapshot<DeviceSpecs> snapshot) {
+        final String? soc = snapshot.data?.soc;
+        return Column(
+          children: <Widget>[
+            for (final CompatReport report in reports)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: _CompatReportRow(
+                  report: report,
+                  sameSoc: soc != null && soc.isNotEmpty && report.soc == soc,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CompatReportRow extends StatelessWidget {
+  const _CompatReportRow({required this.report, required this.sameSoc});
+
+  final CompatReport report;
+  final bool sameSoc;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    final String specs = <String>[
+      if (report.soc != null) report.soc!,
+      if (report.gpu != null) report.gpu!,
+      if (report.ramGb != null) '${report.ramGb} GB',
+    ].join(' · ');
+
+    return GlassContainer(
+      radius: AppRadii.md,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.glassStrong,
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Text(
+              initialsOf(report.author),
+              style: context.texts.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.accent,
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        report.deviceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.texts.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    BadgeChip(
+                      label: compatVerdictLabel(l10n, report.status),
+                      color: compatVerdictColor(report.status),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${report.author}${specs.isEmpty ? '' : ' · $specs'}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+                ),
+                if (sameSoc) ...<Widget>[
+                  const SizedBox(height: 6),
+                  BadgeChip(
+                    label: l10n.compatSameSoc,
+                    color: AppColors.accent,
+                    icon: Icons.memory_rounded,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

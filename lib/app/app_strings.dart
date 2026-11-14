@@ -252,6 +252,41 @@ class L10n {
   String get notApk => _t('O link não apontou para um APK válido.',
       'The link did not point to a valid APK.');
 
+  // --------------------------------------------------------- contas / perfil
+  String get authTitle => _t('Entrar no PORTIX', 'Sign in to PORTIX');
+  String get authSubtitle => _t('Crie uma conta para avaliar jogos e montar seu perfil.',
+      'Create an account to rate games and build your profile.');
+  String get signIn => _t('Entrar', 'Sign in');
+  String get signUp => _t('Criar conta', 'Create account');
+  String get signOut => _t('Sair', 'Sign out');
+  String get email => _t('E-mail', 'Email');
+  String get password => _t('Senha', 'Password');
+  String get yourName => _t('Seu nome', 'Your name');
+  String get continueWithGoogle => _t('Continuar com Google', 'Continue with Google');
+  String get loginRequired => _t('Entre para avaliar.', 'Sign in to rate.');
+  String get editProfile => _t('Editar perfil', 'Edit profile');
+  String get coverUrlLabel => _t('URL da capa (opcional)', 'Cover URL (optional)');
+  String get coverHint => _t('https://...', 'https://...');
+  String get saveChanges => _t('Salvar', 'Save');
+  String get profileSaved => _t('Perfil atualizado', 'Profile updated');
+  String get guestLabel => _t('Convidado', 'Guest');
+  String get accountSection => _t('Conta', 'Account');
+  String get passwordShort => _t('A senha precisa de 6+ caracteres', 'Password needs 6+ characters');
+  String get emailRequired => _t('Informe um e-mail válido', 'Enter a valid email');
+  String get authCheckEmail => _t('Confira seu e-mail para confirmar a conta.',
+      'Check your email to confirm the account.');
+
+  // ------------------------------------------------------------ compat v2
+  String get compatPerfect => _t('Roda perfeito', 'Runs perfectly');
+  String get compatGood => _t('Roda bem', 'Runs well');
+  String get compatStutter => _t('Com travadas', 'Stutters');
+  String get compatUnplayable => _t('Injogável', 'Unplayable');
+  String get compatNotRun => _t('Não roda', 'Does not run');
+  String get compatCommunity => _t('Como roda por aparelho', 'How it runs by device');
+  String get compatNoReports => _t('Ainda sem relatos da comunidade.', 'No community reports yet.');
+  String get compatYourDevice => _t('Seu aparelho', 'Your device');
+  String get compatSameSoc => _t('Mesmo processador', 'Same chipset');
+
   // -------------------------------------------------------------- contagens
   String gameCount(int n) => _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');
   String portCount(int n) => _t('$n ${n == 1 ? 'port' : 'ports'}', '$n ${n == 1 ? 'port' : 'ports'}');

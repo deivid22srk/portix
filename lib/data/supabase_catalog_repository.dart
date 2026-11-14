@@ -5,11 +5,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/cache_store.dart';
 import '../core/env.dart';
 import '../models/collections.dart';
+import '../models/compat_report.dart';
 import '../models/game.dart';
 import '../models/game_detail.dart';
 import '../models/home_feed.dart';
 import '../models/news.dart';
 import '../models/parsing.dart';
+import '../models/profile.dart';
 import '../models/search.dart';
 import 'catalog_repository.dart';
 
@@ -115,6 +117,11 @@ class SupabaseCatalogRepository implements CatalogRepository {
   Future<void> submitCompatReport({
     required String gameId,
     required String status,
+    String? brand,
+    String? model,
+    String? soc,
+    String? gpu,
+    int? ramGb,
   }) async {
     final User? user = _client.auth.currentUser;
     if (user == null) {
@@ -124,7 +131,62 @@ class SupabaseCatalogRepository implements CatalogRepository {
       () => _client.rpc('submit_compat_report', params: <String, dynamic>{
         'p_game': gameId,
         'p_status': status,
+        'p_brand': brand,
+        'p_model': model,
+        'p_soc': soc,
+        'p_gpu': gpu,
+        'p_ram_gb': ramGb,
       }),
+    );
+  }
+
+  @override
+  Future<List<CompatReport>> fetchCompatReports(String gameId) async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc('game_compat_reports', params: <String, dynamic>{
+        'p_game': gameId,
+      }),
+    );
+    if (response is List) {
+      return response
+          .whereType<Map>()
+          .map((Map item) => CompatReport.fromMap(asMap(item)))
+          .toList(growable: false);
+    }
+    return const <CompatReport>[];
+  }
+
+  @override
+  Future<UserProfile> fetchProfile() async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      throw const AppFailure(FailureKind.auth);
+    }
+    final Object? row = await _guard<Object?>(
+      () => _client
+          .from('profiles')
+          .select('id,display_name,cover_url')
+          .eq('id', user.id)
+          .maybeSingle(),
+    );
+    final Map<String, dynamic> map = _map(row);
+    if (map.isEmpty) {
+      return UserProfile(id: user.id);
+    }
+    return UserProfile.fromMap(map);
+  }
+
+  @override
+  Future<void> updateProfile({String? displayName, String? coverUrl}) async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      throw const AppFailure(FailureKind.auth);
+    }
+    await _guard<void>(
+      () => _client.from('profiles').update(<String, dynamic>{
+        if (displayName != null) 'display_name': displayName.trim(),
+        if (coverUrl != null) 'cover_url': coverUrl.trim().isEmpty ? null : coverUrl.trim(),
+      }).eq('id', user.id),
     );
   }
 

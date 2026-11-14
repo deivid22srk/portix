@@ -9,6 +9,8 @@ import '../features/home/home_page.dart';
 import '../features/hub/hub_page.dart';
 import '../features/menu/menu_page.dart';
 import '../features/news/news_page.dart';
+import '../features/profile/auth_page.dart';
+import '../features/profile/profile_edit_page.dart';
 import '../features/search/search_page.dart';
 import '../features/shell/main_shell.dart';
 import '../features/shell/not_found_page.dart';
@@ -41,6 +43,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/search',
         pageBuilder: (BuildContext context, GoRouterState state) =>
             _expandPage(state, const SearchPage()),
+      ),
+      GoRoute(
+        path: '/auth',
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _expandPage(state, const AuthPage()),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _expandPage(state, const ProfileEditPage()),
       ),
       GoRoute(
         path: '/game/:slug',

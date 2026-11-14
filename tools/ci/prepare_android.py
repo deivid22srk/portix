@@ -188,7 +188,7 @@ def patch_manifest_native(android: Path) -> None:
 
 
 def copy_native(android: Path) -> None:
-    """Copia as fontes Kotlin (serviço/ponte) e o XML do FileProvider."""
+    """Copia as fontes Kotlin (serviço/ponte/device) e o XML do FileProvider."""
     root = Path(__file__).resolve().parents[2]
     source = root / "native" / "android"
     if not source.exists():
@@ -205,6 +205,14 @@ def copy_native(android: Path) -> None:
     downloader_dir.mkdir(parents=True, exist_ok=True)
     for item in sorted(downloader_source.glob("*.kt")):
         shutil.copyfile(item, downloader_dir / item.name)
+
+    # Copia qualquer outro pacote Kotlin (ex.: device/)
+    for child in sorted(source.iterdir()):
+        if child.is_dir() and child.name not in {"res", "downloader"}:
+            target = package_dir / child.name
+            target.mkdir(parents=True, exist_ok=True)
+            for item in sorted(child.glob("*.kt")):
+                shutil.copyfile(item, target / item.name)
 
     res_dir = android / "app" / "src" / "main" / "res" / "xml"
     res_dir.mkdir(parents=True, exist_ok=True)
@@ -240,12 +248,38 @@ def patch_gradle_dependencies(android: Path) -> None:
     _write(path, text)
 
 
+def patch_manifest_oauth(android: Path) -> None:
+    """Adiciona o deep link do login Google (esquema portix://login-callback)."""
+    manifest = android / "app" / "src" / "main" / "AndroidManifest.xml"
+    text = _read(manifest)
+    if "login-callback" in text:
+        return
+
+    match = re.search(
+        r'(<activity\b[^>]*android:name="\.MainActivity"[\s\S]*?)(</activity>)',
+        text,
+    )
+    if match is None:
+        return
+    oauth = (
+        "\n            <intent-filter>\n"
+        '                <action android:name="android.intent.action.VIEW" />\n'
+        '                <category android:name="android.intent.category.DEFAULT" />\n'
+        '                <category android:name="android.intent.category.BROWSABLE" />\n'
+        '                <data android:scheme="portix" android:host="login-callback" />\n'
+        "            </intent-filter>\n        "
+    )
+    text = text[: match.end(1)] + oauth + text[match.end(1):]
+    _write(manifest, text)
+
+
 def main() -> None:
     android = Path(__file__).resolve().parents[2] / "android"
     if not android.exists():
         raise SystemExit("Pasta android/ ausente: rode flutter create antes")
     patch_manifest(android)
     patch_manifest_native(android)
+    patch_manifest_oauth(android)
     patch_gradle(android)
     patch_gradle_dependencies(android)
     patch_gradle_properties(android)

@@ -1,3 +1,4 @@
+import 'compat_summary.dart';
 import 'game.dart';
 import 'parsing.dart';
 
@@ -90,29 +91,6 @@ class Review {
         body: asTextOr(map['body'], ''),
         author: asTextOr(map['author'], 'Jogador'),
         createdAt: asDate(map['created_at']),
-      );
-}
-
-class CompatSummary {
-  const CompatSummary({
-    this.works = 0,
-    this.patch = 0,
-    this.broken = 0,
-    this.total = 0,
-  });
-
-  final int works;
-  final int patch;
-  final int broken;
-  final int total;
-
-  bool get isEmpty => total == 0;
-
-  factory CompatSummary.fromMap(Map<String, dynamic> map) => CompatSummary(
-        works: asInt(map['works']),
-        patch: asInt(map['patch']),
-        broken: asInt(map['broken']),
-        total: asInt(map['total']),
       );
 }
 

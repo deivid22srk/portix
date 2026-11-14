@@ -1,7 +1,9 @@
 import '../models/collections.dart';
+import '../models/compat_report.dart';
 import '../models/game_detail.dart';
 import '../models/home_feed.dart';
 import '../models/news.dart';
+import '../models/profile.dart';
 import '../models/search.dart';
 
 abstract class CatalogRepository {
@@ -20,7 +22,18 @@ abstract class CatalogRepository {
   Future<void> submitCompatReport({
     required String gameId,
     required String status,
+    String? brand,
+    String? model,
+    String? soc,
+    String? gpu,
+    int? ramGb,
   });
+
+  Future<List<CompatReport>> fetchCompatReports(String gameId);
+
+  Future<UserProfile> fetchProfile();
+
+  Future<void> updateProfile({String? displayName, String? coverUrl});
 
   Future<Collections> fetchCollections();
 
