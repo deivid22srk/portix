@@ -81,7 +81,7 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     }
   }
 
-  void start(Game game, {GamePort? port}) {
+  void start(Game game, {GamePort? port, String? urlOverride}) {
     final int index =
         state.indexWhere((DownloadTask task) => task.gameId == game.id);
     if (index >= 0) {
@@ -95,14 +95,15 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       return;
     }
 
-    final bool useNative = NativeDownloader.isAndroid && port?.url != null;
+    final String? url = urlOverride ?? port?.url;
+    final bool useNative = NativeDownloader.isAndroid && url != null;
     final DownloadTask task = DownloadTask(
       gameId: game.id,
       title: game.title,
       slug: game.slug,
       coverUrl: game.coverUrl,
       portKey: port?.portKey,
-      portUrl: port?.url,
+      portUrl: url,
       platformName: port?.platformName,
       status: DownloadStatus.downloading,
       progress: useNative ? 0 : 0.03,
@@ -135,7 +136,10 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     if (!ok) {
       _update(
         task.gameId,
-        (DownloadTask current) => current.copyWith(status: DownloadStatus.failed),
+        (DownloadTask current) => current.copyWith(
+          status: DownloadStatus.failed,
+          error: 'motor de download indisponível',
+        ),
       );
       _persist();
     }
@@ -172,7 +176,10 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       case 'failed':
         _update(
           task.gameId,
-          (DownloadTask current) => current.copyWith(status: DownloadStatus.failed),
+          (DownloadTask current) => current.copyWith(
+            status: DownloadStatus.failed,
+            error: event.error ?? 'falha',
+          ),
         );
         _persist();
       default:

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
+import '../../core/download_source.dart';
 import '../../core/env.dart';
 import '../../core/formatters.dart';
 import '../../core/native_downloader.dart';
@@ -107,20 +108,37 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       if (path != null && await NativeDownloader.install(path)) {
         return;
       }
-      final GamePort? port = detail.primaryPort;
-      if (port?.url != null) {
-        await _openLink(port!.url);
+      final GamePort? donePort = detail.primaryPort;
+      if (donePort?.url != null) {
+        await _openLink(donePort!.url);
       } else if (mounted) {
         _showSnack(l10n.installedLabel);
       }
       return;
     }
+
     final GamePort? port = detail.primaryPort;
-    if (port == null || port.url == null) {
+    final String? url = port?.url;
+    if (port == null || url == null) {
       _showSnack(l10n.noLink);
       return;
     }
-    ref.read(downloadsProvider.notifier).start(detail.game, port: port);
+
+    final String direct = resolveDirectUrl(url);
+    if (!isDirectApkUrl(direct)) {
+      // A maioria dos ports é uma página de destino; abrimos a fonte.
+      await _openLink(url);
+      if (mounted) {
+        _showSnack(l10n.sourceOnly);
+      }
+      return;
+    }
+
+    ref.read(downloadsProvider.notifier).start(
+          detail.game,
+          port: port,
+          urlOverride: direct,
+        );
     _showSnack(
       l10n.downloadStarted,
       actionLabel: l10n.viewDownloads,
@@ -300,12 +318,12 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final bool inLibrary = collections.isInLibrary(game.id);
     final DownloadTask? task = ref.watch(downloadForGameProvider(game.id));
 
-    final String installLabel = task == null
+    final String installLabel = task == null || task.status == DownloadStatus.failed
         ? l10n.install
         : task.isDone
             ? (task.apkPath != null ? l10n.install : l10n.installedLabel)
             : l10n.continueAction;
-    final IconData installIcon = task == null
+    final IconData installIcon = task == null || task.status == DownloadStatus.failed
         ? Icons.download_rounded
         : task.isDone
             ? Icons.check_circle_rounded

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
@@ -44,6 +45,21 @@ class DownloadTile extends ConsumerWidget {
         return AppColors.success;
       case DownloadStatus.failed:
         return AppColors.danger;
+    }
+  }
+
+  Future<void> _openSource(String? url) async {
+    if (url == null) {
+      return;
+    }
+    final Uri? uri = Uri.tryParse(url);
+    if (uri == null) {
+      return;
+    }
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on Object {
+      // Sem app que trate o link, nada a fazer aqui.
     }
   }
 
@@ -104,7 +120,50 @@ class DownloadTile extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
                 ),
-                if (!task.isDone) ...<Widget>[
+                if (task.status == DownloadStatus.failed) ...<Widget>[
+                  const SizedBox(height: 9),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 15,
+                        color: AppColors.danger,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          task.error ?? l10n.errorGeneric,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.labelSmall?.copyWith(
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: <Widget>[
+                      if (task.portUrl != null)
+                        SecondaryButton(
+                          label: l10n.openSource,
+                          icon: Icons.open_in_new_rounded,
+                          height: 38,
+                          expand: false,
+                          onPressed: () => _openSource(task.portUrl),
+                        ),
+                      const Spacer(),
+                      GlassCircleButton(
+                        icon: Icons.close_rounded,
+                        size: 32,
+                        tooltip: l10n.cancel,
+                        onTap: () => controller.cancel(task.gameId),
+                      ),
+                    ],
+                  ),
+                ] else if (!task.isDone) ...<Widget>[
                   const SizedBox(height: 9),
                   GradientProgress(value: task.progress, height: 6),
                   const SizedBox(height: AppSpacing.sm),

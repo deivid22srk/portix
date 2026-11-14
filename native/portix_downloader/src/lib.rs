@@ -76,9 +76,19 @@ fn transfer(
     emit_progress(env, callback, 0, -1)?;
 
     let response = ureq::get(url)
+        .set("User-Agent", "PORTIX/1.0 (Android)")
+        .set("Accept", "application/vnd.android.package-archive,*/*")
         .timeout(Duration::from_secs(30))
         .call()
         .map_err(|error| format!("http: {error}"))?;
+
+    let content_type = response
+        .header("Content-Type")
+        .unwrap_or("")
+        .to_lowercase();
+    if content_type.contains("text/html") {
+        return Err("o link não aponta para um APK".to_string());
+    }
 
     let total: i64 = response
         .header("Content-Length")
@@ -90,6 +100,8 @@ fn transfer(
 
     let mut buffer = vec![0u8; 64 * 1024];
     let mut done: i64 = 0;
+    let mut head = [0u8; 4];
+    let mut head_len = 0usize;
     let mut last = Instant::now();
 
     loop {
@@ -102,6 +114,11 @@ fn transfer(
         if read == 0 {
             break;
         }
+        if head_len < 4 {
+            let take = (4 - head_len).min(read);
+            head[head_len..head_len + take].copy_from_slice(&buffer[..take]);
+            head_len += take;
+        }
         file.write_all(&buffer[..read])
             .map_err(|error| format!("write: {error}"))?;
         done += read as i64;
@@ -113,6 +130,11 @@ fn transfer(
 
     file.flush().map_err(|error| format!("flush: {error}"))?;
     drop(file);
+
+    if done < 4 || &head != b"PK\x03\x04" {
+        return Err("o arquivo baixado não é um APK".to_string());
+    }
+
     emit_progress(env, callback, done, total)?;
     Ok(())
 }
@@ -130,6 +152,10 @@ fn run_download(jvm: JavaVM, callback: GlobalRef, id: i64, url: String, dest: St
         Ok(Err(message)) => Some(message),
         Err(_) => Some("falha interna".to_string()),
     };
+
+    if error.is_some() {
+        let _ = std::fs::remove_file(&dest);
+    }
 
     if let Ok(mut env) = jvm.attach_current_thread() {
         emit_complete(&mut env, &callback, error.is_none(), error.as_deref().unwrap_or(""));

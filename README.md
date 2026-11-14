@@ -203,6 +203,9 @@ compilado como `.so` por ABI com `cargo-ndk`) exposto ao Kotlin via **JNI**:
   e `portix/downloader/events` (progresso/conclusão em tempo real ao Dart).
 - Instalação via `FileProvider` (`${applicationId}.fileprovider`) e intent
   `application/vnd.android.package-archive` (permissão `REQUEST_INSTALL_PACKAGES`).
+- **Só baixa APK direto**: se o link do port é uma página de destino (GitHub
+  repo, Telegram, Drive, MediaFire...), o app abre a fonte em vez de fingir o
+  download. O motor Rust ainda valida `Content-Type` e o *magic* `PK` do ZIP/APK.
 - Fallback: fora do Android, a fila continua simulada como antes.
 
 As fontes Kotlin e o XML do FileProvider vivem em `native/android/` e são

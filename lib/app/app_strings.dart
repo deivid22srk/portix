@@ -243,9 +243,14 @@ class L10n {
   String get compatBroken => _t('Não roda', 'Does not run');
   String get compatReport => _t('Relatar', 'Report');
   String get compatSent => _t('Relato enviado. Obrigado!', 'Report sent. Thanks!');
-  String compatReports(int n) =>
+  String get compatReports(int n) =>
       _t('$n ${n == 1 ? 'relato' : 'relatos'}', '$n ${n == 1 ? 'report' : 'reports'}');
   String get downloadsLabel => _t('baixados', 'downloads');
+  String get sourceOnly => _t(
+      'Este port não tem um APK direto. Abrindo a fonte para você baixar.',
+      'This port has no direct APK. Opening the source so you can download it.');
+  String get notApk => _t('O link não apontou para um APK válido.',
+      'The link did not point to a valid APK.');
 
   // -------------------------------------------------------------- contagens
   String gameCount(int n) => _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');
