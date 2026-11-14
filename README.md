@@ -1,5 +1,7 @@
 # PORTIX
 
+[![Build APK](https://github.com/deivid22srk/portix/actions/workflows/build.yml/badge.svg)](https://github.com/deivid22srk/portix/actions/workflows/build.yml)
+
 **Seus consoles. No seu bolso.**
 
 PORTIX é uma loja/biblioteca Android de _ports_ de jogos clássicos e modernos.
@@ -16,7 +18,7 @@ de downloads simulada, tudo com Material 3, tema escuro por padrão e pt-BR/en.
 
 | Camada | Tecnologia |
 | --- | --- |
-| UI | Flutter stable (Dart 3), Material 3 |
+| UI | Flutter stable 3.50 (Dart 3.14), Material 3 via `material_ui` |
 | Estado | Riverpod 3 (`Notifier`, `AsyncNotifier`, `FutureProvider`) |
 | Navegação | go_router 18 (`StatefulShellRoute` + rotas de topo) |
 | Backend | Supabase (Postgres + RLS + RPCs jsonb + auth anônima) |
