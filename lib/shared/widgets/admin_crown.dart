@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
+import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 
 /// Cor da coroa conforme o nível de ADM.
