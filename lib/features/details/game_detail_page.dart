@@ -1209,7 +1209,7 @@ class _CoverBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double height = MediaQuery.sizeOf(context).height * 0.52;
+    final double height = MediaQuery.sizeOf(context).height * 0.56;
     return Stack(
       children: <Widget>[
         const ColoredBox(color: AppColors.bg, child: SizedBox.expand()),
@@ -1221,11 +1221,11 @@ class _CoverBackdrop extends StatelessWidget {
             height: height,
             child: ClipRect(
               child: Opacity(
-                opacity: 0.55,
+                opacity: 0.78,
                 child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 44, sigmaY: 44),
+                  imageFilter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
                   child: Transform.scale(
-                    scale: 1.35,
+                    scale: 1.2,
                     child: GameCover(
                       imageUrl: coverUrl,
                       title: title,
@@ -1255,15 +1255,15 @@ class _CoverBackdrop extends StatelessWidget {
               ),
             ),
           ),
-        // Camada escura semitransparente por cima da imagem.
+        // Camada escura leve, só para manter o contraste do texto.
         Positioned(
           top: 0,
           left: 0,
           right: 0,
           height: height,
-          child: const ColoredBox(color: Color(0x99000000)),
+          child: const ColoredBox(color: Color(0x4D000000)),
         ),
-        // Gradiente vertical que escurece em direção ao fundo.
+        // Gradiente vertical suave até o fundo.
         Positioned(
           top: 0,
           left: 0,
@@ -1275,8 +1275,8 @@ class _CoverBackdrop extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: <Color>[
-                  AppColors.bg.withValues(alpha: 0.30),
-                  AppColors.bg.withValues(alpha: 0.70),
+                  AppColors.bg.withValues(alpha: 0.0),
+                  AppColors.bg.withValues(alpha: 0.28),
                   AppColors.bg,
                 ],
                 stops: const <double>[0, 0.72, 1],
