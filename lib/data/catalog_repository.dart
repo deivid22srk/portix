@@ -19,16 +19,6 @@ abstract class CatalogRepository {
 
   Future<NewsPayload> fetchNews({int offset = 0, int limit = 20});
 
-  Future<void> submitCompatReport({
-    required String gameId,
-    required String status,
-    String? brand,
-    String? model,
-    String? soc,
-    String? gpu,
-    int? ramGb,
-  });
-
   Future<List<CompatReport>> fetchCompatReports(String gameId);
 
   Future<UserProfile> fetchProfile();
@@ -47,6 +37,13 @@ abstract class CatalogRepository {
     required String gameId,
     required int rating,
     required String body,
+    required String verdict,
+    int? fps,
+    String? brand,
+    String? model,
+    String? soc,
+    String? gpu,
+    int? ramGb,
   });
 
   Future<void> syncDownload({

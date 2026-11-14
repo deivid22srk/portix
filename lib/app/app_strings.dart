@@ -288,6 +288,14 @@ class L10n {
   String get compatNoReports => _t('Ainda sem relatos da comunidade.', 'No community reports yet.');
   String get compatYourDevice => _t('Seu aparelho', 'Your device');
   String get compatSameSoc => _t('Mesmo processador', 'Same chipset');
+  String get feedbackTitle => _t('Avaliar e relatar', 'Rate and report');
+  String get ratingLabel => _t('Sua nota', 'Your rating');
+  String get verdictLabel => _t('Como roda', 'How it runs');
+  String get fpsOptional => _t('Informar FPS médio', 'Report average FPS');
+  String get seeAllReports => _t('Ver todos', 'See all');
+  String get reportsTitle => _t('Relatos da comunidade', 'Community reports');
+  String get reportsSearchHint => _t('Buscar por aparelho, chipset ou autor',
+      'Search by device, chipset or author');
   String get chooseApk => _t('Escolha o APK', 'Choose the APK');
   String get searchingRelease => _t('Buscando a release…', 'Looking up the release…');
 

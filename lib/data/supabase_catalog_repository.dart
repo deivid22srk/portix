@@ -114,33 +114,6 @@ class SupabaseCatalogRepository implements CatalogRepository {
   }
 
   @override
-  Future<void> submitCompatReport({
-    required String gameId,
-    required String status,
-    String? brand,
-    String? model,
-    String? soc,
-    String? gpu,
-    int? ramGb,
-  }) async {
-    final User? user = _client.auth.currentUser;
-    if (user == null) {
-      throw const AppFailure(FailureKind.auth);
-    }
-    await _guard<bool>(
-      () => _client.rpc('submit_compat_report', params: <String, dynamic>{
-        'p_game': gameId,
-        'p_status': status,
-        'p_brand': brand,
-        'p_model': model,
-        'p_soc': soc,
-        'p_gpu': gpu,
-        'p_ram_gb': ramGb,
-      }),
-    );
-  }
-
-  @override
   Future<List<CompatReport>> fetchCompatReports(String gameId) async {
     final Object? response = await _guard<Object?>(
       () => _client.rpc('game_compat_reports', params: <String, dynamic>{
@@ -237,6 +210,13 @@ class SupabaseCatalogRepository implements CatalogRepository {
     required String gameId,
     required int rating,
     required String body,
+    required String verdict,
+    int? fps,
+    String? brand,
+    String? model,
+    String? soc,
+    String? gpu,
+    int? ramGb,
   }) async {
     final User? user = _client.auth.currentUser;
     if (user == null) {
@@ -249,6 +229,13 @@ class SupabaseCatalogRepository implements CatalogRepository {
           'user_id': user.id,
           'rating': rating,
           'body': body,
+          'verdict': verdict,
+          'fps': fps,
+          'brand': brand,
+          'model': model,
+          'soc': soc,
+          'gpu': gpu,
+          'ram_gb': ramGb,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         },
         onConflict: 'game_id,user_id',

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/tokens.dart';
 import '../features/details/game_detail_page.dart';
+import '../features/details/game_reports_page.dart';
 import '../features/explore/explore_page.dart';
 import '../features/home/home_page.dart';
 import '../features/hub/hub_page.dart';
@@ -66,6 +67,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
+      ),
+      GoRoute(
+        path: '/game/:slug/reports',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          GameReportsPage(slug: state.pathParameters['slug'] ?? ''),
+        ),
       ),
     ],
     errorBuilder: (BuildContext context, GoRouterState state) =>

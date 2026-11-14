@@ -77,6 +77,13 @@ class Review {
     required this.body,
     required this.author,
     this.createdAt,
+    this.verdict = 'good',
+    this.fps,
+    this.brand,
+    this.model,
+    this.soc,
+    this.gpu,
+    this.ramGb,
   });
 
   final String id;
@@ -84,6 +91,18 @@ class Review {
   final String body;
   final String author;
   final DateTime? createdAt;
+  final String verdict;
+  final int? fps;
+  final String? brand;
+  final String? model;
+  final String? soc;
+  final String? gpu;
+  final int? ramGb;
+
+  String get deviceLabel {
+    final List<String> parts = <String>[?brand, ?model];
+    return parts.isEmpty ? 'Aparelho' : parts.join(' ');
+  }
 
   factory Review.fromMap(Map<String, dynamic> map) => Review(
         id: asTextOr(map['id'], ''),
@@ -91,6 +110,13 @@ class Review {
         body: asTextOr(map['body'], ''),
         author: asTextOr(map['author'], 'Jogador'),
         createdAt: asDate(map['created_at']),
+        verdict: asTextOr(map['verdict'], 'good'),
+        fps: map['fps'] == null ? null : asInt(map['fps']),
+        brand: asText(map['brand']),
+        model: asText(map['model']),
+        soc: asText(map['soc']),
+        gpu: asText(map['gpu']),
+        ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
       );
 }
 
