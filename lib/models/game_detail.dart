@@ -93,18 +93,43 @@ class Review {
       );
 }
 
+class CompatSummary {
+  const CompatSummary({
+    this.works = 0,
+    this.patch = 0,
+    this.broken = 0,
+    this.total = 0,
+  });
+
+  final int works;
+  final int patch;
+  final int broken;
+  final int total;
+
+  bool get isEmpty => total == 0;
+
+  factory CompatSummary.fromMap(Map<String, dynamic> map) => CompatSummary(
+        works: asInt(map['works']),
+        patch: asInt(map['patch']),
+        broken: asInt(map['broken']),
+        total: asInt(map['total']),
+      );
+}
+
 class GameDetail {
   const GameDetail({
     required this.game,
     this.ports = const <GamePort>[],
     this.reviews = const <Review>[],
     this.related = const <Game>[],
+    this.compat = const CompatSummary(),
   });
 
   final Game game;
   final List<GamePort> ports;
   final List<Review> reviews;
   final List<Game> related;
+  final CompatSummary compat;
 
   GamePort? get primaryPort {
     for (final GamePort port in ports) {
@@ -125,6 +150,7 @@ class GameDetail {
       ports: asMapList(map['ports']).map(GamePort.fromMap).toList(growable: false),
       reviews: asMapList(map['reviews']).map(Review.fromMap).toList(growable: false),
       related: asMapList(map['related']).map(Game.fromMap).toList(growable: false),
+      compat: CompatSummary.fromMap(asMap(map['compat'])),
     );
   }
 }

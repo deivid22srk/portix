@@ -69,23 +69,45 @@ Princípios aplicados:
 
 ---
 
+## Design system (“Aurora”)
+
+Todo o visual vive em `lib/core/theme/tokens.dart` (cores, raios, espaçamentos,
+durações e sombras) e em `lib/shared/widgets/primitives.dart` (componentes).
+Nenhuma tela declara cor/tamanho solto.
+
+- **Tema único escuro**, fundo `#07090E`, superfícies de **vidro** (branco 6–12%)
+  com borda fina e cantos muito arredondados.
+- **Destaque** ciano `#22D3EE` → esmeralda `#34D399` (gradiente em botões e
+  progresso), favorito rosa `#FB7185`, status verde/âmbar/vermelho.
+- Brilho ambiente radial no topo das telas; **blur só** na barra de navegação,
+  no botão de busca e em elementos fixos (nunca dentro de listas/grades).
+- Tipografia **Poppins** (via `google_fonts`), títulos grandes que colapsam.
+- Componentes: `GlassContainer`, `GlassCircleButton`, `PrimaryButton`,
+  `SecondaryButton`, `InfoChip`, `StatBadge`, `SectionHeader`, `SectionTile`,
+  `SearchFab`, `GlassNavBar`, `HeroCarousel`, `CompatReportCard`, `GameCard`,
+  skeletons com shimmer e estados vazio/erro.
+
+---
+
 ## Telas
 
-- **Splash** — marca desenhada em código, bootstrap do Supabase e fallback de
-  configuração/erro.
-- **Home** — saudação, destaque, plataformas, Em alta, Novos, Clássicos, Grátis,
-  gêneros e estatísticas do catálogo.
-- **Explorar** — busca com debounce, filtros por plataforma/gênero, grátis,
-  arquivos do jogo, ordenação, histórico local e paginação infinita.
-- **Detalhes** — capa com parallax, metadados, descrição expansível, requisitos,
-  ports (fonte, versão, compatibilidade, notas), avaliações com nota e
-  relacionados.
-- **Biblioteca** — estatísticas, atalho para desejos e jogos instalados.
-- **Wishlist** — favoritos com remoção imediata.
-- **Downloads** — fila simulada com progresso, pausa, retomada, remoção e
-  persistência entre sessões.
-- **Perfil** — tema (sistema/claro/escuro), idioma (pt-BR/en), notificações
-  simuladas, recarga do catálogo, limpeza de cache e sobre.
+- **Início** — cabeçalho que colapsa, carrossel de destaques (16:10, parallax,
+  autoplay, controles de vidro), card de apresentação, “Explorar por seção”
+  (tiles), Novidades, Mais bem avaliados, Mais populares e estatísticas.
+- **Explorar** — grade 2 colunas de `GameCard` (3:4), contagem e filtros em
+  bottom sheet de vidro, paginação infinita e entrada escalonada.
+- **Notícias** — feed de jogos adicionados/atualizados, com data relativa.
+- **Meu Hub** — segmentos Favoritos / Instalados / Downloads em grade e lista.
+- **Menu** — conta anônima, idioma (pt-BR/en), notificações, recarregar
+  catálogo, limpar cache e sobre.
+- **Busca** — tela cheia aberta pelo botão circular, campo em vidro com foco
+  automático, histórico e resultados.
+- **Detalhes** — capa em retrato ao lado do título, chips, ação principal
+  (gradiente), marcar como instalado, favoritar + compartilhar, descrição,
+  **card “Roda no seu celular?”** com relatos reais, informações, ports,
+  avaliações e relacionados.
+- **Splash / 404** — mesma linguagem visual de vidro.
+
 
 ---
 
@@ -115,6 +137,9 @@ Princípios aplicados:
 | `my_collections()` | favoritos, biblioteca e downloads do usuário |
 | `toggle_favorite(uuid)` | alterna favorito e devolve o novo estado |
 | `toggle_library(uuid)` | alterna biblioteca e devolve o novo estado |
+| `news_feed(limit, offset)` | feed de novidades (adicionados/atualizados) |
+| `compat_summary(uuid)` | contagens de relatos por status |
+| `submit_compat_report(uuid, status)` | grava/atualiza o relato do usuário |
 
 ### RLS
 
@@ -131,6 +156,8 @@ As migrações idempotentes estão em `supabase/migrations/`:
 1. `0001_schema.sql` — tabelas, extensões, índices, triggers e grants.
 2. `0002_policies.sql` — RLS.
 3. `0003_rpc.sql` — views, funções e grants.
+4. `0004_compat_and_news.sql` — relatos de compatibilidade (`compat_reports`),
+   feed de notícias e `home_feed` com “mais bem avaliados”.
 
 ---
 

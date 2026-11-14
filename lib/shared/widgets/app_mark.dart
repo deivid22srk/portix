@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/theme.dart';
+import '../../core/theme/tokens.dart';
 
 // Marca do PORTIX: um portal aberto com um núcleo de luz.
 // Desenhada em código para ficar idêntica em qualquer densidade.
@@ -12,10 +13,12 @@ class PortixMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(painter: _PortixMarkPainter(glow: glow)),
+    return RepaintBoundary(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(painter: _PortixMarkPainter(glow: glow)),
+      ),
     );
   }
 }
@@ -35,8 +38,8 @@ class _PortixMarkPainter extends CustomPainter {
       final Paint halo = Paint()
         ..shader = RadialGradient(
           colors: <Color>[
-            AppPalette.violet.withValues(alpha: 0.30),
-            AppPalette.cyan.withValues(alpha: 0.08),
+            AppColors.accent.withValues(alpha: 0.30),
+            AppColors.accentAlt.withValues(alpha: 0.10),
             Colors.transparent,
           ],
           stops: const <double>[0, 0.45, 1],
@@ -59,7 +62,7 @@ class _PortixMarkPainter extends CustomPainter {
     );
     final Paint archPaint = Paint()
       ..shader = const LinearGradient(
-        colors: <Color>[Colors.white, Color(0xFFD8DDFF)],
+        colors: <Color>[Colors.white, Color(0xFFCFFAFE)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
@@ -70,15 +73,15 @@ class _PortixMarkPainter extends CustomPainter {
     final Paint orbHalo = Paint()
       ..shader = RadialGradient(
         colors: <Color>[
-          AppPalette.cyan.withValues(alpha: 0.55),
-          AppPalette.violet.withValues(alpha: 0),
+          AppColors.accentAlt.withValues(alpha: 0.55),
+          AppColors.accent.withValues(alpha: 0),
         ],
       ).createShader(Rect.fromCircle(center: orbCenter, radius: orbRadius * 2.4));
     canvas.drawCircle(orbCenter, orbRadius * 2.4, orbHalo);
 
     final Paint orb = Paint()
       ..shader = const LinearGradient(
-        colors: <Color>[AppPalette.cyan, AppPalette.violet],
+        colors: <Color>[AppColors.accent, AppColors.accentAlt],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(Rect.fromCircle(center: orbCenter, radius: orbRadius));
@@ -98,19 +101,18 @@ class PortixWordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         PortixMark(size: markSize),
-        const SizedBox(width: 10),
+        SizedBox(width: AppSpacing.sm),
         Text(
           'PORTIX',
           style: context.texts.titleLarge?.copyWith(
             fontSize: fontSize,
             fontWeight: FontWeight.w700,
             letterSpacing: 3.4,
-            color: p.text,
+            color: context.palette.text,
           ),
         ),
       ],

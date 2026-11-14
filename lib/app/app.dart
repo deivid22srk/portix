@@ -1,5 +1,5 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../core/env.dart';
 import '../core/providers.dart';
@@ -13,8 +13,7 @@ import 'theme.dart';
 class PortixApp extends ConsumerWidget {
   const PortixApp({super.key});
 
-  // `GlobalMaterialLocalizations.delegates` já reúne Material, Widgets e
-  // Cupertino, então um único delegate cobre os três.
+  // `GlobalMaterialLocalizations.delegates` reúne Material, Widgets e Cupertino.
   static const List<LocalizationsDelegate<dynamic>> _delegates =
       GlobalMaterialLocalizations.delegates;
 
@@ -24,16 +23,13 @@ class PortixApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppSettings settings = ref.watch(settingsProvider);
     final AsyncValue<void> bootstrap = ref.watch(supabaseBootstrapProvider);
-    final ThemeData light = ref.watch(lightThemeProvider);
-    final ThemeData dark = ref.watch(darkThemeProvider);
+    final ThemeData theme = ref.watch(darkThemeProvider);
 
     if (bootstrap.isLoading) {
       return MaterialApp(
         title: 'PORTIX',
         debugShowCheckedModeBanner: false,
-        theme: light,
-        darkTheme: dark,
-        themeMode: settings.themeMode,
+        theme: theme,
         locale: settings.locale,
         supportedLocales: _locales,
         localizationsDelegates: _delegates,
@@ -45,9 +41,7 @@ class PortixApp extends ConsumerWidget {
       return MaterialApp(
         title: 'PORTIX',
         debugShowCheckedModeBanner: false,
-        theme: light,
-        darkTheme: dark,
-        themeMode: settings.themeMode,
+        theme: theme,
         locale: settings.locale,
         supportedLocales: _locales,
         localizationsDelegates: _delegates,
@@ -60,10 +54,8 @@ class PortixApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'PORTIX',
       debugShowCheckedModeBanner: false,
-      theme: light,
-      darkTheme: dark,
-      themeMode: settings.themeMode,
-      themeAnimationDuration: const Duration(milliseconds: 260),
+      theme: theme,
+      themeAnimationDuration: const Duration(milliseconds: 240),
       locale: settings.locale,
       supportedLocales: _locales,
       localizationsDelegates: _delegates,

@@ -75,6 +75,7 @@ class HomeFeed {
   const HomeFeed({
     this.trending = const <Game>[],
     this.recent = const <Game>[],
+    this.topRated = const <Game>[],
     this.free = const <Game>[],
     this.classics = const <Game>[],
     this.platforms = const <PlatformInfo>[],
@@ -84,13 +85,37 @@ class HomeFeed {
 
   final List<Game> trending;
   final List<Game> recent;
+  final List<Game> topRated;
   final List<Game> free;
   final List<Game> classics;
   final List<PlatformInfo> platforms;
   final List<GenreInfo> genres;
   final CatalogStats stats;
 
-  bool get isEmpty => trending.isEmpty && recent.isEmpty && free.isEmpty && classics.isEmpty;
+  bool get isEmpty =>
+      trending.isEmpty &&
+      recent.isEmpty &&
+      topRated.isEmpty &&
+      free.isEmpty &&
+      classics.isEmpty;
+
+  /// Lista de destaque para o carrossel: prioriza populares e completa com
+  /// recentes, sem repetir jogos.
+  List<Game> get highlights {
+    final List<Game> result = <Game>[];
+    final Set<String> seen = <String>{};
+    for (final List<Game> source in <List<Game>>[trending, recent, topRated]) {
+      for (final Game game in source) {
+        if (seen.add(game.id)) {
+          result.add(game);
+        }
+        if (result.length >= 6) {
+          return result;
+        }
+      }
+    }
+    return result;
+  }
 
   factory HomeFeed.fromMap(Map<String, dynamic> map) {
     List<Game> games(String key) =>
@@ -98,6 +123,7 @@ class HomeFeed {
     return HomeFeed(
       trending: games('trending'),
       recent: games('recent'),
+      topRated: games('top_rated'),
       free: games('free'),
       classics: games('classics'),
       platforms: asMapList(map['platforms'])

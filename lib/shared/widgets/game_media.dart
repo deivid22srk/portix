@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/formatters.dart';
+import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
 import 'primitives.dart';
 
+/// Placeholder procedural para capas ausentes/falhas: gradiente + iniciais.
 class CoverPlaceholder extends StatelessWidget {
   const CoverPlaceholder({
     super.key,
@@ -36,31 +38,14 @@ class CoverPlaceholder extends StatelessWidget {
             top: -36,
             right: -28,
             child: Container(
-              width: 140,
-              height: 140,
+              width: 150,
+              height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: <Color>[
-                    Colors.white.withValues(alpha: 0.16),
-                    Colors.white.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -40,
-            left: -24,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: <Color>[
-                    Colors.black.withValues(alpha: 0.25),
-                    Colors.black.withValues(alpha: 0),
+                    AppColors.accent.withValues(alpha: 0.22),
+                    AppColors.accent.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -71,7 +56,7 @@ class CoverPlaceholder extends StatelessWidget {
               child: Text(
                 initialsOf(title),
                 style: context.texts.displaySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.82),
+                  color: Colors.white.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w800,
                   letterSpacing: -2,
                 ),
@@ -83,14 +68,15 @@ class CoverPlaceholder extends StatelessWidget {
   }
 }
 
+/// Capa de jogo com cache e placeholder.
 class GameCover extends StatelessWidget {
   const GameCover({
     super.key,
     required this.title,
     this.imageUrl,
     this.fit = BoxFit.cover,
-    this.memWidth = 420,
-    this.borderRadius = 18,
+    this.memWidth = 480,
+    this.borderRadius = AppRadii.md,
   });
 
   final String title;
@@ -110,69 +96,36 @@ class GameCover extends StatelessWidget {
               imageUrl: url,
               fit: fit,
               memCacheWidth: memWidth,
-              fadeInDuration: const Duration(milliseconds: 260),
-              fadeOutDuration: const Duration(milliseconds: 120),
+              fadeInDuration: AppMotion.base,
+              fadeOutDuration: AppMotion.fast,
               filterQuality: FilterQuality.medium,
               placeholder: (BuildContext context, String value) =>
                   CoverPlaceholder(title: title),
-              errorWidget:
-                  (BuildContext context, String value, Object error) =>
-                      CoverPlaceholder(title: title),
+              errorWidget: (BuildContext context, String value, Object error) =>
+                  CoverPlaceholder(title: title),
             ),
     );
   }
 }
 
-class _MediaTag extends StatelessWidget {
-  const _MediaTag({required this.label, this.color, this.icon});
-
-  final String label;
-  final Color? color;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.48),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          if (icon != null) ...<Widget>[
-            Icon(icon, size: 11, color: color ?? Colors.white),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: context.texts.labelSmall?.copyWith(
-              color: color ?? Colors.white,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+/// Card de capa 3:4: título na base sobre gradiente + badge no topo.
 class GameCard extends StatelessWidget {
   const GameCard({
     super.key,
     required this.game,
-    this.width = 156,
+    this.width,
     this.heroTag,
     this.onTap,
+    this.showStats = true,
+    this.aspectRatio = 3 / 4,
   });
 
   final Game game;
-  final double width;
+  final double? width;
   final String? heroTag;
   final VoidCallback? onTap;
+  final bool showStats;
+  final double aspectRatio;
 
   void _open(BuildContext context) {
     context.push<Object?>('/game/${game.slug}', extra: heroTag);
@@ -180,117 +133,75 @@ class GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
-    final String meta = <String>[
-      if (game.year != null) game.year.toString(),
-      if (game.genre != null) game.genre!,
-    ].join(' · ');
-
-    return RepaintBoundary(
+    final Widget card = RepaintBoundary(
       child: Pressable(
         onTap: onTap ?? () => _open(context),
-        child: SizedBox(
-          width: width,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Hero(
-                tag: heroTag ?? 'card-${game.id}',
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      GameCover(
-                        imageUrl: game.coverUrl,
-                        title: game.title,
-                        memWidth: (width * 2.6).round(),
-                      ),
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: <Color>[
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.06),
-                                Colors.black.withValues(alpha: 0.62),
-                              ],
-                              stops: const <double>[0.5, 0.72, 1],
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (game.primaryPlatform.isNotEmpty)
-                        Positioned(
-                          left: 9,
-                          top: 9,
-                          child: _MediaTag(label: game.primaryPlatform),
-                        ),
-                      if (game.portCount > 0 && game.portCount > 1)
-                        Positioned(
-                          right: 9,
-                          top: 9,
-                          child: _MediaTag(
-                            label: game.portCount.toString(),
-                            icon: Icons.layers_rounded,
-                          ),
-                        ),
-                      Positioned(
-                        left: 10,
-                        right: 10,
-                        bottom: 9,
-                        child: Row(
-                          children: <Widget>[
-                            if (game.hasRating)
-                              _MediaTag(
-                                label: formatRating(game.rating),
-                                icon: Icons.star_rounded,
-                                color: p.warning,
-                              )
-                            else
-                              _MediaTag(label: 'PORTIX', icon: Icons.bolt_rounded),
-                          ],
-                        ),
-                      ),
-                    ],
+        child: AspectRatio(
+          aspectRatio: aspectRatio,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                Hero(
+                  tag: heroTag ?? 'card-${game.id}',
+                  child: GameCover(
+                    imageUrl: game.coverUrl,
+                    title: game.title,
+                    memWidth: 480,
+                    borderRadius: 0,
                   ),
                 ),
-              ),
-              const SizedBox(height: 9),
-              Text(
-                game.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.texts.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  height: 1.25,
-                  letterSpacing: -0.1,
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: <Color>[
+                        Colors.transparent,
+                        Color(0x22000000),
+                        Color(0xD9000000),
+                      ],
+                      stops: <double>[0.45, 0.68, 1],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                 ),
-              ),
-              if (meta.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 3),
-                Text(
-                  meta,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.texts.bodySmall?.copyWith(
-                    color: p.muted,
-                    fontSize: 11.5,
+                if (showStats)
+                  Positioned(
+                    left: 10,
+                    top: 10,
+                    child: StatBadge(rating: game.rating, visits: game.visitCount),
+                  ),
+                Positioned(
+                  left: 14,
+                  right: 14,
+                  bottom: 12,
+                  child: Text(
+                    game.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.texts.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      height: 1.2,
+                    ),
                   ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
+    if (width == null) {
+      return card;
+    }
+    return SizedBox(width: width, child: card);
   }
 }
 
+/// Linha compacta de jogo (usada em listas de downloads/relatórios).
 class GameRow extends StatelessWidget {
   const GameRow({
     super.key,
@@ -307,75 +218,68 @@ class GameRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     final String meta = subtitle ??
         <String>[
           if (game.year != null) game.year.toString(),
           if (game.primaryPlatform.isNotEmpty) game.primaryPlatform,
         ].join(' · ');
-    return Pressable(
+    return GlassContainer(
+      radius: AppRadii.md,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: p.surface.withValues(alpha: p.dark ? 0.55 : 0.9),
-          border: Border.all(color: p.line),
-        ),
-        child: Row(
-          children: <Widget>[
-            SizedBox(
-              width: 58,
-              height: 78,
-              child: GameCover(
-                imageUrl: game.coverUrl,
-                title: game.title,
-                memWidth: 180,
-                borderRadius: 12,
-              ),
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 58,
+            height: 78,
+            child: GameCover(
+              imageUrl: game.coverUrl,
+              title: game.title,
+              memWidth: 180,
+              borderRadius: AppRadii.sm,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  game.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                if (meta.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 3),
                   Text(
-                    game.title,
+                    meta,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.texts.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (meta.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 3),
-                    Text(
-                      meta,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.texts.bodySmall?.copyWith(color: p.muted),
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Row(
-                    children: <Widget>[
-                      if (game.hasRating)
-                        RatingLine(rating: game.rating, compact: true)
-                      else
-                        Text(
-                          context.l10n.newGame,
-                          style: context.texts.labelSmall?.copyWith(color: p.muted),
-                        ),
-                      const Spacer(),
-                      ?trailing,
-                    ],
+                    style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
                   ),
                 ],
-              ),
+                const SizedBox(height: 6),
+                Row(
+                  children: <Widget>[
+                    if (game.hasRating)
+                      RatingLine(rating: game.rating, compact: true)
+                    else
+                      Text(
+                        context.l10n.newGame,
+                        style: context.texts.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    const Spacer(),
+                    ?trailing,
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

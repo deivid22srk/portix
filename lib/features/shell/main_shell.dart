@@ -1,12 +1,12 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
-import '../../app/theme.dart';
+import '../../core/theme/tokens.dart';
 import '../../shared/widgets/primitives.dart';
 
-// Casca principal do app: mantém as cinco abas vivas e desenha uma barra
-// flutuante própria, com blur leve e indicador de seleção por gradiente.
+// Casca principal: mantém as cinco abas vivas e desenha a barra de navegação
+// de vidro flutuante + botão de busca circular.
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -23,12 +23,16 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     final double bottomInset = MediaQuery.of(context).padding.bottom;
-    final List<_NavItem> items = <_NavItem>[
-      _NavItem(Icons.home_outlined, Icons.home_rounded, l10n.navHome),
-      _NavItem(Icons.explore_outlined, Icons.explore_rounded, l10n.navSearch),
-      _NavItem(Icons.video_library_outlined, Icons.video_library_rounded, l10n.navLibrary),
-      _NavItem(Icons.download_outlined, Icons.download_rounded, l10n.navDownloads),
-      _NavItem(Icons.person_outline_rounded, Icons.person_rounded, l10n.navProfile),
+    final List<GlassNavItem> items = <GlassNavItem>[
+      GlassNavItem(Icons.home_outlined, Icons.home_rounded, l10n.navHome),
+      GlassNavItem(
+        Icons.sports_esports_outlined,
+        Icons.sports_esports_rounded,
+        l10n.navExplore,
+      ),
+      GlassNavItem(Icons.article_outlined, Icons.article_rounded, l10n.navNews),
+      GlassNavItem(Icons.layers_outlined, Icons.layers_rounded, l10n.navHub),
+      GlassNavItem(Icons.menu_rounded, Icons.menu_rounded, l10n.navMenu),
     ];
 
     return Scaffold(
@@ -36,82 +40,23 @@ class MainShell extends StatelessWidget {
       backgroundColor: Colors.transparent,
       body: AppBackdrop(child: navigationShell),
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? 10 : 16),
-        child: GlassPanel(
-          radius: 26,
-          blur: true,
-          padding: const EdgeInsets.all(6),
-          child: Row(
-            children: <Widget>[
-              for (int index = 0; index < items.length; index += 1)
-                Expanded(
-                  child: _NavButton(
-                    item: items[index],
-                    active: navigationShell.currentIndex == index,
-                    onTap: () => _select(index),
-                  ),
-                ),
-            ],
-          ),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          0,
+          AppSpacing.screen,
+          bottomInset > 0 ? 10 : AppSpacing.lg,
         ),
-      ),
-    );
-  }
-}
-
-class _NavItem {
-  const _NavItem(this.icon, this.activeIcon, this.label);
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-}
-
-class _NavButton extends StatelessWidget {
-  const _NavButton({
-    required this.item,
-    required this.active,
-    required this.onTap,
-  });
-
-  final _NavItem item;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
-    return Pressable(
-      onTap: onTap,
-      haptics: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(19),
-          color: active ? p.primary.withValues(alpha: p.dark ? 0.18 : 0.10) : Colors.transparent,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: <Widget>[
-            Icon(
-              active ? item.activeIcon : item.icon,
-              size: 22,
-              color: active ? p.primary : p.muted,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.texts.labelSmall?.copyWith(
-                fontSize: 10,
-                color: active ? p.text : p.muted,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                letterSpacing: -0.1,
+            Expanded(
+              child: GlassNavBar(
+                items: items,
+                currentIndex: navigationShell.currentIndex,
+                onSelect: _select,
               ),
             ),
+            const SizedBox(width: 10),
+            SearchFab(onTap: () => context.push<Object?>('/search')),
           ],
         ),
       ),

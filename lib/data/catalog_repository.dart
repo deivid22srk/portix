@@ -1,6 +1,7 @@
 import '../models/collections.dart';
 import '../models/game_detail.dart';
 import '../models/home_feed.dart';
+import '../models/news.dart';
 import '../models/search.dart';
 
 abstract class CatalogRepository {
@@ -13,6 +14,13 @@ abstract class CatalogRepository {
   Future<GameDetail> fetchGame(String slug);
 
   Future<SearchPayload> search(SearchRequest request);
+
+  Future<NewsPayload> fetchNews({int offset = 0, int limit = 20});
+
+  Future<void> submitCompatReport({
+    required String gameId,
+    required String status,
+  });
 
   Future<Collections> fetchCollections();
 

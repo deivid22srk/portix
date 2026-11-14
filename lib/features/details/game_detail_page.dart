@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
@@ -9,6 +9,7 @@ import '../../app/theme.dart';
 import '../../core/env.dart';
 import '../../core/formatters.dart';
 import '../../core/providers.dart';
+import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
@@ -38,32 +39,14 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   final TextEditingController _review = TextEditingController();
 
   bool _expandedDescription = false;
-  bool _barTitle = false;
   bool _submitting = false;
   int _rating = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(_onScroll);
-  }
-
-  @override
   void dispose() {
-    _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _review.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_scroll.hasClients) {
-      return;
-    }
-    final bool next = _scroll.offset > 250;
-    if (next != _barTitle) {
-      setState(() => _barTitle = next);
-    }
   }
 
   void _back() {
@@ -75,21 +58,20 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   void _showSnack(String message, {String? actionLabel, VoidCallback? onAction}) {
-    final AppPalette p = context.palette;
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: p.surfaceHigh,
+        backgroundColor: AppColors.bgElevated,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
         action: actionLabel == null
             ? null
             : SnackBarAction(
                 label: actionLabel,
-                textColor: p.secondary,
+                textColor: AppColors.accent,
                 onPressed: onAction ?? () {},
               ),
       ),
@@ -98,10 +80,14 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   void _install(GameDetail detail) {
     final L10n l10n = context.l10n;
-    final DownloadTask? current =
-        ref.read(downloadForGameProvider(detail.game.id));
+    final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
     if (current != null && current.isDone) {
-      _showSnack(l10n.installedLabel);
+      final GamePort? port = detail.primaryPort;
+      if (port?.url != null) {
+        _openLink(port!.url);
+      } else {
+        _showSnack(l10n.installedLabel);
+      }
       return;
     }
     final GamePort? port = detail.primaryPort;
@@ -113,13 +99,12 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     _showSnack(
       l10n.downloadStarted,
       actionLabel: l10n.viewDownloads,
-      onAction: () => context.go('/downloads'),
+      onAction: () => context.go('/hub'),
     );
   }
 
   Future<void> _toggleFavorite(GameDetail detail) async {
-    final bool ok =
-        await ref.read(collectionsProvider.notifier).toggleFavorite(detail.game);
+    final bool ok = await ref.read(collectionsProvider.notifier).toggleFavorite(detail.game);
     if (!mounted) {
       return;
     }
@@ -129,13 +114,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   Future<void> _toggleLibrary(GameDetail detail) async {
-    final bool wasInLibrary = ref
-            .read(collectionsProvider)
-            .value
-            ?.isInLibrary(detail.game.id) ??
-        false;
-    final bool ok =
-        await ref.read(collectionsProvider.notifier).toggleLibrary(detail.game);
+    final bool wasInLibrary =
+        ref.read(collectionsProvider).value?.isInLibrary(detail.game.id) ?? false;
+    final bool ok = await ref.read(collectionsProvider.notifier).toggleLibrary(detail.game);
     if (!mounted) {
       return;
     }
@@ -212,10 +193,43 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
   }
 
+  Future<void> _openCompatSheet(GameDetail detail) async {
+    final L10n l10n = context.l10n;
+    final String? status = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (BuildContext context) => _CompatSheet(
+        title: l10n.compatTitle,
+        works: l10n.compatWorks,
+        patch: l10n.compatPatch,
+        broken: l10n.compatBroken,
+      ),
+    );
+    if (status == null || !mounted) {
+      return;
+    }
+    try {
+      await ref.read(catalogRepositoryProvider).submitCompatReport(
+            gameId: detail.game.id,
+            status: status,
+          );
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(gameDetailProvider(widget.slug));
+      _showSnack(l10n.compatSent);
+    } on Object {
+      if (mounted) {
+        _showSnack(l10n.errorGeneric);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final AsyncValue<GameDetail> async =
-        ref.watch(gameDetailProvider(widget.slug));
+    final AsyncValue<GameDetail> async = ref.watch(gameDetailProvider(widget.slug));
 
     if (async.hasValue) {
       return _buildDetail(context, async.requireValue);
@@ -228,21 +242,20 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           child: Stack(
             children: <Widget>[
               Positioned(
-                left: 14,
-                top: 8,
-                child: IconGlassButton(
+                left: AppSpacing.md,
+                top: AppSpacing.sm,
+                child: GlassCircleButton(
                   icon: Icons.arrow_back_rounded,
                   onTap: _back,
                 ),
               ),
               if (async.hasError)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                   child: ErrorStateView(
                     message: context.failureText(async.error),
                     retryLabel: context.l10n.tryAgain,
-                    onRetry: () =>
-                        ref.invalidate(gameDetailProvider(widget.slug)),
+                    onRetry: () => ref.invalidate(gameDetailProvider(widget.slug)),
                   ),
                 )
               else
@@ -255,11 +268,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   Widget _buildDetail(BuildContext context, GameDetail detail) {
-    final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
     final Game game = detail.game;
-    final Collections collections =
-        ref.watch(collectionsProvider).value ?? Collections.empty;
+    final Collections collections = ref.watch(collectionsProvider).value ?? Collections.empty;
     final bool favorite = collections.isFavorite(game.id);
     final bool inLibrary = collections.isInLibrary(game.id);
     final DownloadTask? task = ref.watch(downloadForGameProvider(game.id));
@@ -280,415 +291,340 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AppBackdrop(
-        child: CustomScrollView(
-          controller: _scroll,
-          physics: const BouncingScrollPhysics(),
-          slivers: <Widget>[
-            SliverAppBar(
-              expandedHeight: 392,
-              pinned: true,
-              stretch: true,
-              backgroundColor: p.bg,
-              surfaceTintColor: Colors.transparent,
-              scrolledUnderElevation: 0,
-              systemOverlayStyle: SystemUiOverlayStyle.light,
-              leadingWidth: 64,
-              leading: Padding(
-                padding: const EdgeInsets.only(left: 14),
-                child: Center(
-                  child: IconGlassButton(
-                    icon: Icons.arrow_back_rounded,
-                    size: 40,
-                    onTap: _back,
+        child: SafeArea(
+          bottom: false,
+          child: CustomScrollView(
+            controller: _scroll,
+            physics: const BouncingScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.screen,
+                    AppSpacing.md,
+                    AppSpacing.screen,
+                    0,
                   ),
-                ),
-              ),
-              titleSpacing: 0,
-              title: AnimatedOpacity(
-                opacity: _barTitle ? 1 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Text(
-                  game.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.texts.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              actions: <Widget>[
-                IconGlassButton(
-                  icon: favorite
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  active: favorite,
-                  size: 40,
-                  tooltip: favorite ? l10n.unfavoriteTooltip : l10n.favoriteTooltip,
-                  onTap: () => _toggleFavorite(detail),
-                ),
-                const SizedBox(width: 8),
-                IconGlassButton(
-                  icon: Icons.ios_share_rounded,
-                  size: 40,
-                  tooltip: l10n.share,
-                  onTap: () => _share(detail),
-                ),
-                const SizedBox(width: 14),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                collapseMode: CollapseMode.parallax,
-                stretchModes: const <StretchMode>[StretchMode.zoomBackground],
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    if (widget.heroTag != null)
-                      Hero(
-                        tag: widget.heroTag!,
-                        child: GameCover(
-                          imageUrl: game.coverUrl,
-                          title: game.title,
-                          memWidth: 1000,
-                          borderRadius: 0,
-                        ),
-                      )
-                    else
-                      GameCover(
-                        imageUrl: game.coverUrl,
-                        title: game.title,
-                        memWidth: 1000,
-                        borderRadius: 0,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      GlassCircleButton(
+                        icon: Icons.arrow_back_rounded,
+                        onTap: _back,
                       ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            Color(0x55000000),
-                            Color(0x00000000),
-                            Color(0x99000000),
-                          ],
-                          stops: <double>[0, 0.34, 1],
-                        ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _Header(game: game, heroTag: widget.heroTag),
+                      const SizedBox(height: AppSpacing.lg),
+                      _Chips(game: game),
+                      const SizedBox(height: AppSpacing.lg),
+                      PrimaryButton(
+                        label: installLabel,
+                        icon: installIcon,
+                        onPressed: () => _install(detail),
                       ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: 170,
-                      child: DecoratedBox(decoration: BoxDecoration(gradient: p.scrim)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      game.title,
-                      style: context.texts.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.9,
-                        height: 1.06,
+                      const SizedBox(height: AppSpacing.md),
+                      SecondaryButton(
+                        label: inLibrary ? l10n.inLibrary : l10n.installedAction,
+                        icon: inLibrary ? Icons.check_rounded : Icons.download_done_rounded,
+                        active: inLibrary,
+                        onPressed: () => _toggleLibrary(detail),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: <Widget>[
-                        if (game.hasRating) ...<Widget>[
-                          RatingLine(
-                            rating: game.rating,
-                            count: game.ratingCount,
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (game.year != null)
-                          Text(
-                            game.year.toString(),
-                            style: context.texts.labelMedium?.copyWith(
-                              color: p.muted,
-                            ),
-                          ),
-                        if (game.genre != null) ...<Widget>[
-                          if (game.year != null)
-                            Text(
-                              '  ·  ',
-                              style: context.texts.labelMedium?.copyWith(
-                                color: p.muted,
-                              ),
-                            ),
-                          Flexible(
-                            child: Text(
-                              game.genre!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: context.texts.labelMedium?.copyWith(
-                                color: p.muted,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const Spacer(),
-                        if (game.visitCount > 0)
-                          Text(
-                            '${compactNumber(game.visitCount)} ${l10n.visits}',
-                            style: context.texts.labelSmall?.copyWith(
-                              color: p.muted,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 7,
-                      runSpacing: 7,
-                      children: <Widget>[
-                        for (final String platform in game.platforms.take(3))
-                          BadgeChip(
-                            label: platform,
-                            color: p.secondary,
-                            icon: Icons.layers_rounded,
-                          ),
-                        if (game.isFree)
-                          BadgeChip(
-                            label: l10n.freeBadge,
-                            color: p.success,
-                            icon: Icons.bolt_rounded,
-                          ),
-                        if (game.needsRom)
-                          BadgeChip(
-                            label: l10n.needsFiles,
-                            color: p.warning,
-                            icon: Icons.folder_rounded,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: GradientButton(
-                            label: installLabel,
-                            icon: installIcon,
-                            height: 54,
-                            onPressed: () => _install(detail),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        GhostButton(
-                          label: inLibrary ? l10n.inLibrary : l10n.addToLibrary,
-                          icon: inLibrary
-                              ? Icons.check_rounded
-                              : Icons.add_rounded,
-                          height: 54,
-                          active: inLibrary,
-                          onPressed: () => _toggleLibrary(detail),
-                        ),
-                      ],
-                    ),
-                    if (task != null && !task.isDone) ...<Widget>[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
                         children: <Widget>[
                           Expanded(
-                            child: GradientProgress(value: task.progress),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            l10n.progressPercent((task.progress * 100).round()),
-                            style: context.texts.labelSmall?.copyWith(
-                              color: p.muted,
-                              fontWeight: FontWeight.w700,
+                            child: SecondaryButton(
+                              label: l10n.favoriteTooltip,
+                              icon: favorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              active: favorite,
+                              onPressed: () => _toggleFavorite(detail),
+                              iconColor: favorite ? AppColors.favorite : null,
                             ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          GlassCircleButton(
+                            icon: Icons.ios_share_rounded,
+                            size: AppSpacing.secondaryButtonHeight,
+                            tooltip: l10n.share,
+                            onTap: () => _share(detail),
                           ),
                         ],
                       ),
-                    ],
-                    const SizedBox(height: 26),
-                    _BlockTitle(title: l10n.synopsis),
-                    const SizedBox(height: 10),
-                    GlassPanel(
-                      radius: 20,
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            game.description.isEmpty
-                                ? l10n.notInformed
-                                : game.description,
-                            maxLines: _expandedDescription ? null : 5,
-                            overflow: _expandedDescription
-                                ? TextOverflow.visible
-                                : TextOverflow.ellipsis,
-                            style: context.texts.bodyMedium?.copyWith(
-                              color: p.muted,
-                              height: 1.55,
-                            ),
-                          ),
-                          if (longDescription) ...<Widget>[
-                            const SizedBox(height: 8),
-                            Pressable(
-                              onTap: () => setState(
-                                () => _expandedDescription =
-                                    !_expandedDescription,
-                              ),
-                              child: Text(
-                                _expandedDescription
-                                    ? l10n.readLess
-                                    : l10n.readMore,
-                                style: context.texts.labelMedium?.copyWith(
-                                  color: p.secondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                      if (task != null && !task.isDone) ...<Widget>[
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          children: <Widget>[
+                            Expanded(child: GradientProgress(value: task.progress)),
+                            const SizedBox(width: AppSpacing.md),
+                            Text(
+                              l10n.progressPercent((task.progress * 100).round()),
+                              style: context.texts.labelSmall?.copyWith(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 26),
-                    _BlockTitle(title: l10n.requirements),
-                    const SizedBox(height: 10),
-                    _RequirementsPanel(game: game, ports: detail.ports.length),
-                    const SizedBox(height: 26),
-                    _BlockTitle(
-                      title: l10n.portsTitle,
-                      trailing: l10n.portCount(detail.ports.length),
-                    ),
-                    const SizedBox(height: 10),
-                    if (detail.ports.isEmpty)
-                      Text(
-                        l10n.notInformed,
-                        style: context.texts.bodyMedium?.copyWith(
-                          color: p.muted,
                         ),
-                      )
-                    else
-                      for (final GamePort port in detail.ports)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _PortCard(
-                            port: port,
-                            onOpen: () => _openLink(port.url),
-                          ),
-                        ),
-                    const SizedBox(height: 26),
-                    _BlockTitle(
-                      title: l10n.reviewsTitle,
-                      trailing: l10n.reviewCount(detail.reviews.length),
-                    ),
-                    const SizedBox(height: 10),
-                    GlassPanel(
-                      radius: 20,
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l10n.yourRating,
-                            style: context.texts.labelMedium?.copyWith(
-                              color: p.muted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          StarPicker(
-                            value: _rating,
-                            onChanged: (int value) =>
-                                setState(() => _rating = value),
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: _review,
-                            maxLines: 3,
-                            minLines: 2,
-                            maxLength: 1000,
-                            style: context.texts.bodyMedium,
-                            cursorColor: p.primary,
-                            decoration: InputDecoration(
-                              hintText: l10n.reviewHint,
-                              hintStyle: context.texts.bodySmall?.copyWith(
-                                color: p.muted,
+                      ],
+                      const SizedBox(height: AppSpacing.xxl),
+                      _BlockTitle(title: l10n.descriptionTitle),
+                      const SizedBox(height: AppSpacing.md),
+                      GlassContainer(
+                        radius: AppRadii.lg,
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              game.description.isEmpty ? l10n.notInformed : game.description,
+                              maxLines: _expandedDescription ? null : 5,
+                              overflow: _expandedDescription
+                                  ? TextOverflow.visible
+                                  : TextOverflow.ellipsis,
+                              style: context.texts.bodyMedium?.copyWith(
+                                color: AppColors.textSecondary,
                               ),
-                              filled: true,
-                              fillColor: p.surfaceHigh.withValues(alpha: 0.6),
-                              counterText: '',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
+                            ),
+                            if (longDescription) ...<Widget>[
+                              const SizedBox(height: AppSpacing.sm),
+                              Pressable(
+                                onTap: () => setState(
+                                  () => _expandedDescription = !_expandedDescription,
+                                ),
+                                child: Text(
+                                  _expandedDescription ? l10n.readLess : l10n.readMore,
+                                  style: context.texts.labelMedium?.copyWith(
+                                    color: AppColors.accent,
+                                  ),
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.all(12),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          GradientButton(
-                            label: l10n.send,
-                            icon: Icons.send_rounded,
-                            isLoading: _submitting,
-                            height: 48,
-                            onPressed: () => _submitReview(detail),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (detail.reviews.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        child: Center(
-                          child: Text(
-                            l10n.noReviews,
-                            textAlign: TextAlign.center,
-                            style: context.texts.bodySmall?.copyWith(
-                              color: p.muted,
-                            ),
-                          ),
+                            ],
+                          ],
                         ),
-                      )
-                    else
-                      for (final Review review in detail.reviews)
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      CompatReportCard(
+                        summary: detail.compat,
+                        onReport: () => _openCompatSheet(detail),
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _BlockTitle(title: l10n.infoTitle),
+                      const SizedBox(height: AppSpacing.md),
+                      _InfoPanel(game: game, ports: detail.ports.length),
+                      if (detail.ports.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xxl),
+                        _BlockTitle(
+                          title: l10n.portsTitle,
+                          trailing: l10n.portCount(detail.ports.length),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        for (final GamePort port in detail.ports)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                            child: _PortCard(port: port, onOpen: () => _openLink(port.url)),
+                          ),
+                      ],
+                      const SizedBox(height: AppSpacing.xxl),
+                      _BlockTitle(
+                        title: l10n.reviewsTitle,
+                        trailing: l10n.reviewCount(detail.reviews.length),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      GlassContainer(
+                        radius: AppRadii.lg,
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              l10n.yourRating,
+                              style: context.texts.labelMedium?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            StarPicker(
+                              value: _rating,
+                              onChanged: (int value) => setState(() => _rating = value),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            TextField(
+                              controller: _review,
+                              maxLines: 3,
+                              minLines: 2,
+                              maxLength: 1000,
+                              style: context.texts.bodyMedium,
+                              cursorColor: AppColors.accent,
+                              decoration: InputDecoration(
+                                hintText: l10n.reviewHint,
+                                hintStyle: context.texts.bodySmall?.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
+                                filled: true,
+                                fillColor: AppColors.glassStrong,
+                                counterText: '',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppRadii.md),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.all(AppSpacing.md),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            PrimaryButton(
+                              label: l10n.send,
+                              icon: Icons.send_rounded,
+                              isLoading: _submitting,
+                              height: AppSpacing.secondaryButtonHeight,
+                              onPressed: () => _submitReview(detail),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      if (detail.reviews.isEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _ReviewCard(review: review),
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                          child: Center(
+                            child: Text(
+                              l10n.noReviews,
+                              textAlign: TextAlign.center,
+                              style: context.texts.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        for (final Review review in detail.reviews)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                            child: _ReviewCard(review: review),
+                          ),
+                      if (detail.related.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.lg),
+                        _BlockTitle(title: l10n.relatedTitle),
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          height: 236,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: detail.related.length,
+                            separatorBuilder: (BuildContext context, int index) =>
+                                const SizedBox(width: AppSpacing.md),
+                            itemBuilder: (BuildContext context, int index) {
+                              final Game related = detail.related[index];
+                              return GameCard(
+                                game: related,
+                                width: 142,
+                                heroTag: 'detail-${game.id}-related-${related.id}',
+                              );
+                            },
+                          ),
                         ),
-                    if (detail.related.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 18),
-                      _BlockTitle(title: l10n.relatedTitle),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 250,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: detail.related.length,
-                          separatorBuilder:
-                              (BuildContext context, int index) =>
-                                  const SizedBox(width: 12),
-                          itemBuilder: (BuildContext context, int index) {
-                            final Game related = detail.related[index];
-                            return GameCard(
-                              game: related,
-                              width: 132,
-                              heroTag: 'detail-${game.id}-related-${related.id}',
-                            );
-                          },
-                        ),
-                      ),
+                      ],
+                      const SizedBox(height: AppSpacing.xxxl),
                     ],
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.game, this.heroTag});
+
+  final Game game;
+  final String? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final GameCover cover = GameCover(
+      imageUrl: game.coverUrl,
+      title: game.title,
+      memWidth: 360,
+      borderRadius: AppRadii.md,
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            boxShadow: AppShadows.glass,
+          ),
+          child: SizedBox(
+            width: 122,
+            height: 164,
+            child: heroTag == null ? cover : Hero(tag: heroTag!, child: cover),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                game.title,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1.08,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              if (game.hasRating)
+                RatingLine(rating: game.rating, count: game.ratingCount),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Chips extends StatelessWidget {
+  const _Chips({required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    final List<Widget> chips = <Widget>[
+      if (game.genre != null) InfoChip(label: game.genre!, icon: Icons.category_rounded),
+      if (game.primaryPlatform.isNotEmpty)
+        InfoChip(label: game.primaryPlatform, icon: Icons.layers_rounded),
+      if (game.year != null)
+        InfoChip(label: game.year.toString(), icon: Icons.event_rounded),
+      if (game.hasRating)
+        InfoChip(
+          label: formatPercent(game.rating / 5),
+          icon: Icons.star_rounded,
+          color: AppColors.warning,
+        ),
+      if (game.visitCount > 0)
+        InfoChip(
+          label: compactNumber(game.visitCount),
+          icon: Icons.visibility_rounded,
+          color: AppColors.accentAlt,
+        ),
+      if (game.isFree)
+        InfoChip(label: l10n.freeBadge, icon: Icons.bolt_rounded, color: AppColors.success),
+      if (game.needsRom)
+        InfoChip(label: l10n.needsFiles, icon: Icons.folder_rounded, color: AppColors.warning),
+    ];
+    return Wrap(spacing: 10, runSpacing: 10, children: chips);
   }
 }
 
@@ -715,24 +651,230 @@ class _BlockTitle extends StatelessWidget {
         if (trailing != null)
           Text(
             trailing!,
-            style: context.texts.labelSmall?.copyWith(
-              color: context.palette.muted,
-            ),
+            style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
           ),
       ],
     );
   }
 }
 
-class _RequirementsPanel extends StatelessWidget {
-  const _RequirementsPanel({required this.game, required this.ports});
+class CompatReportCard extends StatelessWidget {
+  const CompatReportCard({super.key, required this.summary, required this.onReport});
+
+  final CompatSummary summary;
+  final VoidCallback onReport;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    return GlassContainer(
+      radius: AppRadii.lg,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                  color: AppColors.accent.withValues(alpha: 0.14),
+                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.32)),
+                ),
+                child: const Icon(Icons.phone_android_rounded, color: AppColors.accent),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.compatTitle,
+                      style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.compatSubtitle,
+                      style: context.texts.labelSmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                l10n.compatReports(summary.total),
+                style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (summary.isEmpty)
+            Text(
+              l10n.notInformed,
+              style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+            )
+          else
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _CompatPill(
+                    label: l10n.compatWorks,
+                    count: summary.works,
+                    color: AppColors.success,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _CompatPill(
+                    label: l10n.compatPatch,
+                    count: summary.patch,
+                    color: AppColors.warning,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _CompatPill(
+                    label: l10n.compatBroken,
+                    count: summary.broken,
+                    color: AppColors.danger,
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: AppSpacing.lg),
+          SecondaryButton(
+            label: l10n.compatReport,
+            icon: Icons.add_rounded,
+            height: 44,
+            onPressed: onReport,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompatPill extends StatelessWidget {
+  const _CompatPill({required this.label, required this.count, required this.color});
+
+  final String label;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        color: color.withValues(alpha: 0.12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.texts.labelSmall?.copyWith(color: color),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            count.toString(),
+            style: context.texts.titleMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompatSheet extends StatelessWidget {
+  const _CompatSheet({
+    required this.title,
+    required this.works,
+    required this.patch,
+    required this.broken,
+  });
+
+  final String title;
+  final String works;
+  final String patch;
+  final String broken;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
+        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textTertiary,
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                title,
+                style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SecondaryButton(
+                label: works,
+                icon: Icons.check_circle_rounded,
+                active: true,
+                onPressed: () => Navigator.of(context).pop('works'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SecondaryButton(
+                label: patch,
+                icon: Icons.build_rounded,
+                onPressed: () => Navigator.of(context).pop('patch'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SecondaryButton(
+                label: broken,
+                icon: Icons.block_rounded,
+                onPressed: () => Navigator.of(context).pop('broken'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPanel extends StatelessWidget {
+  const _InfoPanel({required this.game, required this.ports});
 
   final Game game;
   final int ports;
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
     final List<List<String>> rows = <List<String>>[
       <String>[l10n.releaseYear, game.year?.toString() ?? l10n.notInformed],
@@ -749,25 +891,27 @@ class _RequirementsPanel extends StatelessWidget {
       ],
     ];
 
-    return GlassPanel(
-      radius: 20,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    return GlassContainer(
+      radius: AppRadii.lg,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
       child: Column(
         children: <Widget>[
           for (int index = 0; index < rows.length; index += 1) ...<Widget>[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 9),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   SizedBox(
-                    width: 108,
+                    width: 112,
                     child: Text(
                       rows[index][0],
-                      style: context.texts.bodySmall?.copyWith(color: p.muted),
+                      style: context.texts.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
                       rows[index][1],
@@ -780,7 +924,7 @@ class _RequirementsPanel extends StatelessWidget {
               ),
             ),
             if (index < rows.length - 1)
-              Divider(height: 1, color: p.line, thickness: 1),
+              const Divider(height: 1, color: AppColors.glassBorder),
           ],
         ],
       ),
@@ -796,116 +940,105 @@ class _PortCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
     final String? works = port.works;
     String worksLabel = l10n.worksUntested;
-    Color worksColor = p.muted;
+    Color worksColor = AppColors.textSecondary;
     if (works == 'yes') {
       worksLabel = l10n.worksYes;
-      worksColor = p.success;
+      worksColor = AppColors.success;
     } else if (works == 'no') {
       worksLabel = l10n.worksNo;
-      worksColor = p.danger;
+      worksColor = AppColors.danger;
     } else if (works == 'bug') {
       worksLabel = l10n.worksBug;
-      worksColor = p.warning;
+      worksColor = AppColors.warning;
     } else if (works == 'partial') {
       worksLabel = l10n.worksPartial;
-      worksColor = p.secondary;
+      worksColor = AppColors.accentAlt;
     }
 
-    return GlassPanel(
-      radius: 18,
-      padding: const EdgeInsets.all(14),
+    return GlassContainer(
+      radius: AppRadii.md,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              BadgeChip(
-                label: port.platformName,
-                color: p.secondary,
-                icon: Icons.layers_rounded,
-              ),
+              BadgeChip(label: port.platformName, color: AppColors.accent),
               const SizedBox(width: 6),
               BadgeChip(label: worksLabel, color: worksColor),
               const Spacer(),
               if (port.url == null)
-                BadgeChip(
-                  label: l10n.noLink,
-                  color: p.muted,
-                  icon: Icons.link_off_rounded,
-                ),
+                BadgeChip(label: l10n.noLink, color: AppColors.textSecondary),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           Text(
             port.project ?? port.platformName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.texts.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           if (port.developer != null || port.version != null) ...<Widget>[
             const SizedBox(height: 3),
             Text(
               <String>[
-                if (port.developer != null) port.developer!,
+                ?port.developer,
                 if (port.version != null) 'v${port.version!}',
               ].join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.texts.bodySmall?.copyWith(color: p.muted),
+              style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
           if (port.notes != null) ...<Widget>[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               port.notes!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: context.texts.bodySmall?.copyWith(
-                color: p.muted,
-                height: 1.4,
-              ),
+              style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
           if (port.needsGameFiles && port.needsGameFilesNote != null) ...<Widget>[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(Icons.folder_rounded, size: 13, color: p.warning),
+                const Icon(Icons.folder_rounded, size: 13, color: AppColors.warning),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     port.needsGameFilesNote!,
-                    style: context.texts.labelSmall?.copyWith(color: p.warning),
+                    style: context.texts.labelSmall?.copyWith(color: AppColors.warning),
                   ),
                 ),
               ],
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: <Widget>[
               if (port.url != null)
-                GhostButton(
+                SecondaryButton(
                   label: l10n.openSource,
                   icon: Icons.open_in_new_rounded,
                   height: 42,
+                  expand: false,
                   onPressed: onOpen,
                 ),
-              if (port.url != null) const SizedBox(width: 8),
+              if (port.url != null) const SizedBox(width: AppSpacing.sm),
               if (port.lastUpdate != null)
                 Flexible(
                   child: Text(
                     '${l10n.portUpdated} ${formatMonthYear(port.lastUpdate, en: l10n.isEn)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.texts.labelSmall?.copyWith(color: p.muted),
+                    style: context.texts.labelSmall?.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ),
             ],
@@ -923,11 +1056,10 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
-    return GlassPanel(
-      radius: 18,
-      padding: const EdgeInsets.all(14),
+    return GlassContainer(
+      radius: AppRadii.md,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -939,14 +1071,14 @@ class _ReviewCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: p.brandSoft,
-                  border: Border.all(color: p.line),
+                  color: AppColors.glassStrong,
+                  border: Border.all(color: AppColors.glassBorder),
                 ),
                 child: Text(
                   initialsOf(review.author),
                   style: context.texts.labelSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: p.primary,
+                    color: AppColors.accent,
                   ),
                 ),
               ),
@@ -972,13 +1104,15 @@ class _ReviewCard extends StatelessWidget {
                                 ? Icons.star_rounded
                                 : Icons.star_outline_rounded,
                             size: 12,
-                            color: index <= review.rating ? p.warning : p.muted,
+                            color: index <= review.rating
+                                ? AppColors.warning
+                                : AppColors.textTertiary,
                           ),
                         const SizedBox(width: 6),
                         Text(
                           formatDate(review.createdAt, en: l10n.isEn),
                           style: context.texts.labelSmall?.copyWith(
-                            color: p.muted,
+                            color: AppColors.textTertiary,
                           ),
                         ),
                       ],
@@ -989,12 +1123,11 @@ class _ReviewCard extends StatelessWidget {
             ],
           ),
           if (review.body.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.md),
             Text(
               review.body,
               style: context.texts.bodySmall?.copyWith(
-                color: p.text.withValues(alpha: 0.86),
-                height: 1.45,
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -1012,21 +1145,41 @@ class _DetailSkeleton extends StatelessWidget {
     return SkeletonPulse(
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 76, 20, 40),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          72,
+          AppSpacing.screen,
+          40,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const SkeletonBox(width: double.infinity, height: 250, radius: 24),
-            const SizedBox(height: 20),
-            const SkeletonBox(width: 240, height: 22),
-            const SizedBox(height: 10),
-            const SkeletonBox(width: 160, height: 12),
-            const SizedBox(height: 22),
-            const SkeletonBox(width: double.infinity, height: 54, radius: 18),
-            const SizedBox(height: 26),
-            const SkeletonBox(width: 140, height: 16),
-            const SizedBox(height: 12),
-            const SkeletonBox(width: double.infinity, height: 100, radius: 20),
+            Row(
+              children: <Widget>[
+                const SkeletonBox(width: 122, height: 164, radius: AppRadii.md),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const SkeletonBox(width: double.infinity, height: 24),
+                      const SizedBox(height: 10),
+                      const SkeletonBox(width: 140, height: 14),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            const SkeletonBox(width: 200, height: 32, radius: AppRadii.pill),
+            const SizedBox(height: AppSpacing.md),
+            const SkeletonBox(width: double.infinity, height: 52, radius: AppRadii.pill),
+            const SizedBox(height: AppSpacing.md),
+            const SkeletonBox(width: double.infinity, height: 48, radius: AppRadii.pill),
+            const SizedBox(height: AppSpacing.xxl),
+            const SkeletonBox(width: 140, height: 18),
+            const SizedBox(height: AppSpacing.md),
+            const SkeletonBox(width: double.infinity, height: 110, radius: AppRadii.lg),
           ],
         ),
       ),

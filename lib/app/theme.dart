@@ -1,120 +1,85 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:material_ui/material_ui.dart';
 
-// Tokens visuais do PORTIX. Nada de ThemeExtension: cores resolvidas por
-// brilho, o que mantém o tema leve e imune a mudanças de API de componente.
+import '../core/theme/tokens.dart';
+
+// ============================================================================
+// Tema do PORTIX — escuro único, montado a partir dos tokens "Aurora".
+// `AppPalette` expõe apelidos curtos (bg/text/muted/primary...) para o restante
+// do código, sempre derivados de AppColors. Nada de cor solta nas telas.
+// ============================================================================
 class AppPalette {
-  const AppPalette({
-    required this.dark,
-    required this.bg,
-    required this.bgSoft,
-    required this.surface,
-    required this.surfaceHigh,
-    required this.line,
-    required this.text,
-    required this.muted,
-    required this.primary,
-    required this.secondary,
-    required this.success,
-    required this.warning,
-    required this.danger,
-  });
+  const AppPalette();
 
-  final bool dark;
-  final Color bg;
-  final Color bgSoft;
-  final Color surface;
-  final Color surfaceHigh;
-  final Color line;
-  final Color text;
-  final Color muted;
-  final Color primary;
-  final Color secondary;
-  final Color success;
-  final Color warning;
-  final Color danger;
+  // ---- apelidos curtos ----
+  Color get bg => AppColors.bg;
+  Color get bgSoft => AppColors.bgElevated;
+  Color get surface => AppColors.glassStrong;
+  Color get surfaceHigh => AppColors.glass;
+  Color get line => AppColors.glassBorder;
+  Color get text => AppColors.textPrimary;
+  Color get muted => AppColors.textSecondary;
+  Color get faint => AppColors.textTertiary;
+  Color get primary => AppColors.accent;
+  Color get secondary => AppColors.accentAlt;
+  Color get danger => AppColors.danger;
+  Color get success => AppColors.success;
+  Color get warning => AppColors.warning;
+  Color get favorite => AppColors.favorite;
+  Color get onAccent => AppColors.onAccent;
+  bool get dark => true;
 
-  static const Color violet = Color(0xFF8B5CFF);
-  static const Color cyan = Color(0xFF22D3EE);
-  static const Color mint = Color(0xFF34D399);
-  static const Color amber = Color(0xFFFFC857);
-  static const Color rose = Color(0xFFFF5C8A);
-
-  static const AppPalette darkPalette = AppPalette(
-    dark: true,
-    bg: Color(0xFF06060C),
-    bgSoft: Color(0xFF0B0C15),
-    surface: Color(0xFF101220),
-    surfaceHigh: Color(0xFF191C2C),
-    line: Color(0x1FFFFFFF),
-    text: Color(0xFFF4F5FB),
-    muted: Color(0xFF9AA1B8),
-    primary: violet,
-    secondary: cyan,
-    success: mint,
-    warning: amber,
-    danger: rose,
-  );
-
-  static const AppPalette lightPalette = AppPalette(
-    dark: false,
-    bg: Color(0xFFF4F5FA),
-    bgSoft: Color(0xFFFFFFFF),
-    surface: Color(0xFFFFFFFF),
-    surfaceHigh: Color(0xFFEDEFF7),
-    line: Color(0x140F1227),
-    text: Color(0xFF11131F),
-    muted: Color(0xFF5E6479),
-    primary: Color(0xFF6D45F5),
-    secondary: Color(0xFF0891B2),
-    success: Color(0xFF0F9D6E),
-    warning: Color(0xFFB7791F),
-    danger: Color(0xFFD63A5F),
-  );
-
-  static AppPalette of(Brightness brightness) =>
-      brightness == Brightness.dark ? darkPalette : lightPalette;
-
-  LinearGradient get brand => const LinearGradient(
-        colors: <Color>[violet, cyan],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+  LinearGradient get brand => AppColors.accentGradient;
 
   LinearGradient get brandSoft => LinearGradient(
         colors: <Color>[
-          violet.withValues(alpha: dark ? 0.26 : 0.14),
-          cyan.withValues(alpha: dark ? 0.12 : 0.08),
+          AppColors.accent.withValues(alpha: 0.22),
+          AppColors.accentAlt.withValues(alpha: 0.08),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
 
-  LinearGradient get cardGradient => LinearGradient(
-        colors: <Color>[
-          surfaceHigh.withValues(alpha: dark ? 0.9 : 1),
-          surface.withValues(alpha: dark ? 0.7 : 1),
-        ],
+  LinearGradient get cardGradient => const LinearGradient(
+        colors: <Color>[AppColors.glass, Color(0x0AFFFFFF)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
 
-  LinearGradient get scrim => LinearGradient(
+  /// Escurecimento sobre capas para legibilidade de texto.
+  LinearGradient get coverScrim => const LinearGradient(
         colors: <Color>[
           Colors.transparent,
-          bg.withValues(alpha: 0.35),
-          bg.withValues(alpha: 0.92),
-          bg,
+          Color(0x00000000),
+          Color(0xA6000000),
+          Color(0xD9000000),
         ],
-        stops: const <double>[0, 0.46, 0.82, 1],
+        stops: <double>[0, 0.5, 0.82, 1],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       );
+
+  /// Transição do topo da tela de detalhes para o fundo.
+  LinearGradient get scrim => LinearGradient(
+        colors: <Color>[
+          Colors.transparent,
+          AppColors.bg.withValues(alpha: 0.55),
+          AppColors.bg.withValues(alpha: 0.94),
+          AppColors.bg,
+        ],
+        stops: const <double>[0, 0.42, 0.78, 1],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+
+  static const AppPalette darkPalette = AppPalette();
+
+  static AppPalette of(Brightness brightness) => darkPalette;
 }
 
 extension AppPaletteContext on BuildContext {
-  AppPalette get palette => AppPalette.of(Theme.of(this).brightness);
+  AppPalette get palette => AppPalette.darkPalette;
   TextTheme get texts => Theme.of(this).textTheme;
   ColorScheme get scheme => Theme.of(this).colorScheme;
 }
@@ -122,48 +87,93 @@ extension AppPaletteContext on BuildContext {
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData dark() => _build(AppPalette.darkPalette);
-
-  static ThemeData light() => _build(AppPalette.lightPalette);
-
-  static ThemeData _build(AppPalette p) {
-    final TextTheme display = GoogleFonts.spaceGroteskTextTheme();
-    final TextTheme base = GoogleFonts.interTextTheme();
+  static ThemeData dark() {
+    final TextTheme base = GoogleFonts.poppinsTextTheme();
     final TextTheme textTheme = base.copyWith(
-      displayLarge: display.displayLarge,
-      displayMedium: display.displayMedium,
-      displaySmall: display.displaySmall,
-      headlineLarge: display.headlineLarge,
-      headlineMedium: display.headlineMedium,
-      headlineSmall: display.headlineSmall,
-      titleLarge: display.titleLarge,
-      titleMedium: display.titleMedium,
+      // Títulos de tela grandes (~34–40).
+      displayLarge: base.displayLarge?.copyWith(
+        fontSize: 40,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.2,
+        height: 1.05,
+      ),
+      displayMedium: base.displayMedium?.copyWith(
+        fontSize: 36,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1,
+        height: 1.06,
+      ),
+      displaySmall: base.displaySmall?.copyWith(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.8,
+        height: 1.08,
+      ),
+      headlineLarge: base.headlineLarge?.copyWith(
+        fontSize: 34,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.9,
+      ),
+      headlineMedium: base.headlineMedium?.copyWith(
+        fontSize: 30,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.8,
+      ),
+      headlineSmall: base.headlineSmall?.copyWith(
+        fontSize: 26,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+        height: 1.1,
+      ),
+      // Título grande do jogo nos detalhes.
+      titleLarge: base.titleLarge?.copyWith(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.4,
+      ),
+      titleMedium: base.titleMedium?.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+      ),
+      titleSmall: base.titleSmall?.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: base.bodyLarge?.copyWith(fontSize: 15, height: 1.45),
+      bodyMedium: base.bodyMedium?.copyWith(fontSize: 15, height: 1.45),
+      bodySmall: base.bodySmall?.copyWith(fontSize: 13, height: 1.4),
+      labelLarge: base.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+      labelMedium: base.labelMedium?.copyWith(fontSize: 12.5, fontWeight: FontWeight.w600),
+      labelSmall: base.labelSmall?.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600),
     );
 
     final ColorScheme scheme = ColorScheme.fromSeed(
-      seedColor: AppPalette.violet,
-      brightness: p.dark ? Brightness.dark : Brightness.light,
+      seedColor: AppColors.accent,
+      brightness: Brightness.dark,
     ).copyWith(
-      primary: p.primary,
-      secondary: p.secondary,
-      surface: p.surface,
-      onSurface: p.text,
-      error: p.danger,
-      outline: p.line,
+      primary: AppColors.accent,
+      secondary: AppColors.accentAlt,
+      surface: AppColors.bg,
+      onSurface: AppColors.textPrimary,
+      error: AppColors.danger,
+      outline: AppColors.glassBorder,
     );
 
     return ThemeData(
+      brightness: Brightness.dark,
       colorScheme: scheme,
-      scaffoldBackgroundColor: p.bg,
-      textTheme: textTheme.apply(bodyColor: p.text, displayColor: p.text),
+      scaffoldBackgroundColor: AppColors.bg,
+      canvasColor: AppColors.bg,
+      textTheme: textTheme.apply(
+        bodyColor: AppColors.textPrimary,
+        displayColor: AppColors.textPrimary,
+      ),
       splashFactory: InkRipple.splashFactory,
       visualDensity: VisualDensity.standard,
     );
   }
 }
 
-// Temas resolvidos uma única vez por sessão: o MaterialApp apenas troca a
-// referência, sem reconstruir a tipografia a cada mudança de estado.
+// Tema resolvido uma única vez por sessão.
 final darkThemeProvider = Provider<ThemeData>((ref) => AppTheme.dark());
-
-final lightThemeProvider = Provider<ThemeData>((ref) => AppTheme.light());

@@ -1,19 +1,21 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
+import '../core/theme/tokens.dart';
 import '../features/details/game_detail_page.dart';
-import '../features/downloads/downloads_page.dart';
+import '../features/explore/explore_page.dart';
 import '../features/home/home_page.dart';
-import '../features/library/library_page.dart';
-import '../features/profile/profile_page.dart';
+import '../features/hub/hub_page.dart';
+import '../features/menu/menu_page.dart';
+import '../features/news/news_page.dart';
 import '../features/search/search_page.dart';
 import '../features/shell/main_shell.dart';
 import '../features/shell/not_found_page.dart';
-import '../features/wishlist/wishlist_page.dart';
 
-// Rotas com um único ponto de verdade. As abas vivem num StatefulShellRoute
-// (estado preservado ao alternar) e detalhes/wishlist são rotas de topo.
+// Rotas com um único ponto de verdade. As cinco abas vivem num
+// StatefulShellRoute (estado preservado); busca e detalhes são rotas de topo
+// (sem a barra de navegação).
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/home',
@@ -29,17 +31,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             MainShell(navigationShell: navigationShell),
         branches: <StatefulShellBranch>[
           _branch(<RouteBase>[GoRoute(path: '/home', builder: _home)]),
-          _branch(<RouteBase>[GoRoute(path: '/search', builder: _search)]),
-          _branch(<RouteBase>[GoRoute(path: '/library', builder: _library)]),
-          _branch(<RouteBase>[GoRoute(path: '/downloads', builder: _downloads)]),
-          _branch(<RouteBase>[GoRoute(path: '/profile', builder: _profile)]),
+          _branch(<RouteBase>[GoRoute(path: '/explore', builder: _explore)]),
+          _branch(<RouteBase>[GoRoute(path: '/news', builder: _news)]),
+          _branch(<RouteBase>[GoRoute(path: '/hub', builder: _hub)]),
+          _branch(<RouteBase>[GoRoute(path: '/menu', builder: _menu)]),
         ],
+      ),
+      GoRoute(
+        path: '/search',
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _expandPage(state, const SearchPage()),
       ),
       GoRoute(
         path: '/game/:slug',
         pageBuilder: (BuildContext context, GoRouterState state) {
           final Object? extra = state.extra;
-          return _fadeUpPage(
+          return _expandPage(
             state,
             GameDetailPage(
               slug: state.pathParameters['slug'] ?? '',
@@ -47,11 +54,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
-      ),
-      GoRoute(
-        path: '/wishlist',
-        pageBuilder: (BuildContext context, GoRouterState state) =>
-            _fadeUpPage(state, const WishlistPage()),
       ),
     ],
     errorBuilder: (BuildContext context, GoRouterState state) =>
@@ -64,39 +66,36 @@ StatefulShellBranch _branch(List<RouteBase> routes) =>
 
 Widget _home(BuildContext context, GoRouterState state) => const HomePage();
 
-Widget _search(BuildContext context, GoRouterState state) => const SearchPage();
+Widget _explore(BuildContext context, GoRouterState state) => const ExplorePage();
 
-Widget _library(BuildContext context, GoRouterState state) => const LibraryPage();
+Widget _news(BuildContext context, GoRouterState state) => const NewsPage();
 
-Widget _downloads(BuildContext context, GoRouterState state) =>
-    const DownloadsPage();
+Widget _hub(BuildContext context, GoRouterState state) => const HubPage();
 
-Widget _profile(BuildContext context, GoRouterState state) => const ProfilePage();
+Widget _menu(BuildContext context, GoRouterState state) => const MenuPage();
 
-CustomTransitionPage<void> _fadeUpPage(GoRouterState state, Widget child) {
+/// Transição de expansão (fade + leve escala) para busca e detalhes.
+CustomTransitionPage<void> _expandPage(GoRouterState state, Widget child) {
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: const Duration(milliseconds: 320),
-    reverseTransitionDuration: const Duration(milliseconds: 240),
+    transitionDuration: AppMotion.slow,
+    reverseTransitionDuration: AppMotion.base,
     transitionsBuilder: (
       BuildContext context,
       Animation<double> animation,
       Animation<double> secondaryAnimation,
       Widget child,
     ) {
-      final Animation<double> curve = CurvedAnimation(
+      final Animation<double> curved = CurvedAnimation(
         parent: animation,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
+        curve: AppMotion.emphasized,
+        reverseCurve: AppMotion.out,
       );
       return FadeTransition(
-        opacity: curve,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.035),
-            end: Offset.zero,
-          ).animate(curve),
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
           child: child,
         ),
       );

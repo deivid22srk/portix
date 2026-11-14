@@ -185,6 +185,68 @@ class L10n {
   String get close => _t('Fechar', 'Close');
   String get loading => _t('Carregando', 'Loading');
 
+  // -------------------------------------------------------------- navegação+
+  String get navExplore => _t('Explorar', 'Explore');
+  String get navNews => _t('Notícias', 'News');
+  String get navHub => _t('Meu Hub', 'My Hub');
+  String get navMenu => _t('Menu', 'Menu');
+
+  // ------------------------------------------------------------------ home+
+  String get homeIntroTitle => _t('Seu próximo jogo começa aqui.',
+      'Your next game starts here.');
+  String get homeIntroBody => _t(
+      'Um catálogo aberto de ports para Android, curado por popularidade e avaliado pela comunidade. Explore, favorite e acompanhe suas instalações.',
+      'An open catalog of Android ports, curated by popularity and rated by the community. Explore, favorite and track your installs.');
+  String get sectionExploreBy => _t('Explorar por seção', 'Explore by section');
+  String get sectionNews => _t('Novidades', 'What\'s new');
+  String get sectionTopRated => _t('Mais bem avaliados', 'Top rated');
+  String get sectionPopular => _t('Mais populares', 'Most popular');
+  String get tileAndroidPorts => _t('Ports Android', 'Android ports');
+  String get tileHandheld => _t('Portáteis', 'Handhelds');
+  String get tileMobile => _t('Mobile', 'Mobile');
+
+  // --------------------------------------------------------------- explore+
+  String get exploreTitle => _t('Explorar', 'Explore');
+
+  // ---------------------------------------------------------------- notícias
+  String get newsTitle => _t('Notícias', 'News');
+  String get newsSubtitle => _t('Novidades e atualizações do catálogo.',
+      'Catalog news and updates.');
+  String get newsAdded => _t('Adicionado', 'Added');
+  String get newsUpdated => _t('Atualizado', 'Updated');
+  String get newsEmpty => _t('Sem novidades por enquanto', 'No news yet');
+  String get newsEmptyBody => _t('Assim que o catálogo for atualizado, aparece aqui.',
+      'As soon as the catalog is updated, it shows up here.');
+
+  // ------------------------------------------------------------------- hub
+  String get hubTitle => _t('Meu Hub', 'My Hub');
+  String get hubFavorites => _t('Favoritos', 'Favorites');
+  String get hubInstalled => _t('Instalados', 'Installed');
+  String get hubDownloads => _t('Downloads', 'Downloads');
+
+  // ------------------------------------------------------------------ menu
+  String get menuTitle => _t('Menu', 'Menu');
+  String get account => _t('Conta', 'Account');
+  String get accentColor => _t('Cor de destaque', 'Accent color');
+  String get appearanceSection => _t('Preferências', 'Preferences');
+
+  // -------------------------------------------------------------- detalhes+
+  String get installedAction => _t('Marcar como instalado', 'Mark as installed');
+  String get uninstalledAction => _t('Marcar como não instalado', 'Mark as not installed');
+  String get infoTitle => _t('Informações', 'Information');
+  String get descriptionTitle => _t('Descrição', 'Description');
+  String get compatTitle => _t('Roda no seu celular?', 'Does it run on your phone?');
+  String get compatSubtitle => _t('Relatos da comunidade, aparelho por aparelho.',
+      'Community reports, device by device.');
+  String get compatWorks => _t('Funciona bem', 'Runs well');
+  String get compatPatch => _t('Precisa de patch', 'Needs a patch');
+  String get compatBroken => _t('Não roda', 'Does not run');
+  String get compatReport => _t('Relatar', 'Report');
+  String get compatSent => _t('Relato enviado. Obrigado!', 'Report sent. Thanks!');
+  String get compatReports(int n) =>
+      _t('$n ${n == 1 ? 'relato' : 'relatos'}', '$n ${n == 1 ? 'report' : 'reports'}');
+  String get downloadsLabel => _t('baixados', 'downloads');
+
   // -------------------------------------------------------------- contagens
   String gameCount(int n) => _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');
   String portCount(int n) => _t('$n ${n == 1 ? 'port' : 'ports'}', '$n ${n == 1 ? 'port' : 'ports'}');

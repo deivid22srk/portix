@@ -8,6 +8,7 @@ import '../models/collections.dart';
 import '../models/game.dart';
 import '../models/game_detail.dart';
 import '../models/home_feed.dart';
+import '../models/news.dart';
 import '../models/parsing.dart';
 import '../models/search.dart';
 import 'catalog_repository.dart';
@@ -92,6 +93,38 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return SearchPayload(
       items: asMapList(map['items']).map(Game.fromMap).toList(growable: false),
       total: asInt(map['total']),
+    );
+  }
+
+  @override
+  Future<NewsPayload> fetchNews({int offset = 0, int limit = 20}) async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc('news_feed', params: <String, dynamic>{
+        'p_limit': limit,
+        'p_offset': offset,
+      }),
+    );
+    final Map<String, dynamic> map = _map(response);
+    return NewsPayload(
+      items: asMapList(map['items']).map(NewsItem.fromMap).toList(growable: false),
+      total: asInt(map['total']),
+    );
+  }
+
+  @override
+  Future<void> submitCompatReport({
+    required String gameId,
+    required String status,
+  }) async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      throw const AppFailure(FailureKind.auth);
+    }
+    await _guard<bool>(
+      () => _client.rpc('submit_compat_report', params: <String, dynamic>{
+        'p_game': gameId,
+        'p_status': status,
+      }),
     );
   }
 

@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/env.dart';
 import '../../core/providers.dart';
+import '../../core/theme/tokens.dart';
 import '../../shared/widgets/app_mark.dart';
 import '../../shared/widgets/primitives.dart';
 
@@ -14,49 +14,38 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: AppBackdrop(
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const PortixMark(size: 112)
-                  .animate()
-                  .fadeIn(duration: 520.ms, curve: Curves.easeOut)
-                  .scale(
-                    begin: const Offset(0.86, 0.86),
-                    end: const Offset(1, 1),
-                    duration: 640.ms,
-                    curve: Curves.easeOutBack,
-                  ),
-              const SizedBox(height: 26),
+              const PortixMark(size: 116),
+              const SizedBox(height: AppSpacing.xl),
               Text(
                 'PORTIX',
                 style: context.texts.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 10,
-                  color: p.text,
+                  color: AppColors.textPrimary,
                 ),
-              ).animate().fadeIn(delay: 140.ms, duration: 420.ms),
-              const SizedBox(height: 10),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 context.l10n.tagline,
                 textAlign: TextAlign.center,
-                style: context.texts.bodyMedium?.copyWith(
-                  color: p.muted,
-                  letterSpacing: 0.3,
-                ),
-              ).animate().fadeIn(delay: 260.ms, duration: 420.ms),
-              const SizedBox(height: 42),
-              SizedBox(
+                style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.xxxl + AppSpacing.sm),
+              const SizedBox(
                 width: 26,
                 height: 26,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: p.primary.withValues(alpha: 0.9),
+                  color: AppColors.accent,
                 ),
-              ).animate().fadeIn(delay: 380.ms, duration: 320.ms),
+              ),
             ],
           ),
         ),
@@ -72,39 +61,33 @@ class BootstrapErrorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
     final Object failure = error;
-    final bool isConfig =
-        failure is AppFailure && failure.kind == FailureKind.config;
+    final bool isConfig = failure is AppFailure && failure.kind == FailureKind.config;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const PortixMark(size: 84),
-                const SizedBox(height: 28),
+                const PortixMark(size: 88),
+                const SizedBox(height: AppSpacing.xxl),
                 Text(
                   isConfig ? l10n.configTitle : l10n.errorGeneric,
                   textAlign: TextAlign.center,
-                  style: context.texts.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   isConfig ? l10n.configBody : context.failureText(error),
                   textAlign: TextAlign.center,
-                  style: context.texts.bodyMedium?.copyWith(
-                    color: p.muted,
-                    height: 1.5,
-                  ),
+                  style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
                 ),
-                const SizedBox(height: 26),
-                GradientButton(
+                const SizedBox(height: AppSpacing.xxl),
+                PrimaryButton(
                   label: l10n.tryAgain,
                   expand: false,
                   icon: Icons.refresh_rounded,

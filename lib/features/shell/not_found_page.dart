@@ -1,8 +1,9 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
+import '../../core/theme/tokens.dart';
 import '../../shared/widgets/app_mark.dart';
 import '../../shared/widgets/primitives.dart';
 
@@ -11,7 +12,6 @@ class NotFoundPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -19,43 +19,40 @@ class NotFoundPage extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const PortixMark(size: 76, glow: false),
-                  const SizedBox(height: 20),
+                  const PortixMark(size: 80, glow: false),
+                  const SizedBox(height: AppSpacing.xl),
                   Text(
                     '404',
                     style: context.texts.displayMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 6,
-                      color: p.primary,
+                      color: AppColors.accent,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     l10n.noResultsTitle,
                     textAlign: TextAlign.center,
-                    style: context.texts.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     l10n.errorNotFound,
                     textAlign: TextAlign.center,
                     style: context.texts.bodyMedium?.copyWith(
-                      color: p.muted,
-                      height: 1.45,
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  GradientButton(
+                  const SizedBox(height: AppSpacing.xxl),
+                  PrimaryButton(
                     label: l10n.navHome,
                     icon: Icons.home_rounded,
                     expand: false,
-                    height: 48,
+                    height: AppSpacing.secondaryButtonHeight,
                     onPressed: () => context.go('/home'),
                   ),
                 ],

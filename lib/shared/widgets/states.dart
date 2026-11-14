@@ -1,14 +1,18 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/theme.dart';
+import '../../core/theme/tokens.dart';
 import 'primitives.dart';
 
+// Estados de carregamento/vazio/erro no mesmo visual de vidro do app.
+
+/// Bloco cinza de vidro usado nos skeletons (o shimmer vem do [SkeletonPulse]).
 class SkeletonBox extends StatelessWidget {
   const SkeletonBox({
     super.key,
     this.width,
     this.height = 12,
-    this.radius = 8,
+    this.radius = AppRadii.sm,
   });
 
   final double? width;
@@ -17,19 +21,18 @@ class SkeletonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: p.surfaceHigh.withValues(alpha: p.dark ? 0.75 : 1),
+        color: AppColors.glassStrong,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
 }
 
-// Um único controlador para a página inteira: skeleton leve, sem custo por item.
+/// Um único controlador de shimmer para a página inteira (barato e suave).
 class SkeletonPulse extends StatefulWidget {
   const SkeletonPulse({super.key, required this.child});
 
@@ -43,11 +46,8 @@ class _SkeletonPulseState extends State<SkeletonPulse>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat(reverse: true);
-
-  late final Animation<double> _opacity = Tween<double>(begin: 0.55, end: 1)
-      .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
 
   @override
   void dispose() {
@@ -56,14 +56,37 @@ class _SkeletonPulseState extends State<SkeletonPulse>
   }
 
   @override
-  Widget build(BuildContext context) => FadeTransition(
-        opacity: _opacity,
-        child: widget.child,
-      );
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (BuildContext context, Widget? child) {
+        final double t = _controller.value;
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (Rect bounds) => LinearGradient(
+            colors: const <Color>[
+              AppColors.glassStrong,
+              AppColors.glass,
+              AppColors.glassStrong,
+            ],
+            stops: <double>[
+              (t - 0.3).clamp(0.0, 1.0),
+              t.clamp(0.0, 1.0),
+              (t + 0.3).clamp(0.0, 1.0),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
 }
 
 class GameCardSkeleton extends StatelessWidget {
-  const GameCardSkeleton({super.key, this.width = 156});
+  const GameCardSkeleton({super.key, this.width = 160});
 
   final double width;
 
@@ -77,7 +100,7 @@ class GameCardSkeleton extends StatelessWidget {
         children: <Widget>[
           AspectRatio(
             aspectRatio: 3 / 4,
-            child: SkeletonBox(height: double.infinity, radius: 18),
+            child: const SkeletonBox(height: double.infinity, radius: AppRadii.md),
           ),
           const SizedBox(height: 10),
           SkeletonBox(width: width * 0.86, height: 11),
@@ -96,54 +119,37 @@ class HomeSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SkeletonPulse(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          12,
+          AppSpacing.screen,
+          140,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              children: <Widget>[
-                const SkeletonBox(width: 44, height: 44, radius: 14),
-                const SizedBox(width: 12),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    SkeletonBox(width: 90, height: 10),
-                    SizedBox(height: 7),
-                    SkeletonBox(width: 150, height: 16),
-                  ],
-                ),
-                const Spacer(),
-                const SkeletonBox(width: 44, height: 44, radius: 999),
-              ],
-            ),
-            const SizedBox(height: 22),
-            const SkeletonBox(width: double.infinity, height: 300, radius: 26),
+            const SkeletonBox(width: 140, height: 34),
+            const SizedBox(height: 10),
+            const SkeletonBox(width: 220, height: 14),
+            const SizedBox(height: 20),
+            const SkeletonBox(width: double.infinity, height: 230, radius: AppRadii.lg),
             const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                for (int index = 0; index < 4; index += 1)
-                  const SkeletonBox(width: 72, height: 34, radius: 999),
-              ],
-            ),
-            const SizedBox(height: 28),
-            const SkeletonBox(width: 160, height: 18),
+            const SkeletonBox(width: 180, height: 22),
             const SizedBox(height: 14),
             const Row(
               children: <Widget>[
                 GameCardSkeleton(width: 150),
-                SizedBox(width: 14),
+                SizedBox(width: 12),
                 GameCardSkeleton(width: 150),
               ],
             ),
             const SizedBox(height: 28),
-            const SkeletonBox(width: 180, height: 18),
+            const SkeletonBox(width: 200, height: 22),
             const SizedBox(height: 14),
             const Row(
               children: <Widget>[
                 GameCardSkeleton(width: 150),
-                SizedBox(width: 14),
+                SizedBox(width: 12),
                 GameCardSkeleton(width: 150),
               ],
             ),
@@ -162,12 +168,17 @@ class SearchSkeleton extends StatelessWidget {
     return SkeletonPulse(
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          const double gap = 14;
-          final double itemWidth = (constraints.maxWidth - 40 - gap) / 2;
+          final double itemWidth =
+              (constraints.maxWidth - AppSpacing.screen * 2 - AppSpacing.gridGap) / 2;
           return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen,
+              8,
+              AppSpacing.screen,
+              140,
+            ),
             child: Wrap(
-              spacing: gap,
+              spacing: AppSpacing.gridGap,
               runSpacing: 22,
               children: <Widget>[
                 for (int index = 0; index < 6; index += 1)
@@ -181,6 +192,7 @@ class SearchSkeleton extends StatelessWidget {
   }
 }
 
+/// Estado vazio com ícone de traço, texto e ação opcional.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -189,6 +201,7 @@ class EmptyState extends StatelessWidget {
     required this.body,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.explore_rounded,
   });
 
   final IconData icon;
@@ -196,46 +209,46 @@ class EmptyState extends StatelessWidget {
   final String body;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final IconData actionIcon;
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl, vertical: 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              width: 84,
-              height: 84,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: p.brandSoft,
-                border: Border.all(color: p.line),
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                color: AppColors.glass,
+                border: Border.all(color: AppColors.glassBorder),
               ),
-              child: Icon(icon, size: 34, color: p.primary),
+              child: Icon(icon, size: 36, color: AppColors.accent),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               body,
               textAlign: TextAlign.center,
-              style: context.texts.bodyMedium?.copyWith(color: p.muted, height: 1.45),
+              style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             if (actionLabel != null && onAction != null) ...<Widget>[
-              const SizedBox(height: 22),
-              GradientButton(
+              const SizedBox(height: AppSpacing.xxl),
+              PrimaryButton(
                 label: actionLabel!,
                 expand: false,
-                height: 48,
+                height: AppSpacing.secondaryButtonHeight,
                 onPressed: onAction,
-                icon: Icons.explore_rounded,
+                icon: actionIcon,
               ),
             ],
           ],
@@ -245,6 +258,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
+/// Estado de erro com ação de tentar novamente.
 class ErrorStateView extends StatelessWidget {
   const ErrorStateView({
     super.key,
@@ -259,34 +273,34 @@ class ErrorStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppPalette p = context.palette;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl, vertical: 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              width: 84,
-              height: 84,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: p.danger.withValues(alpha: 0.12),
-                border: Border.all(color: p.danger.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                color: AppColors.danger.withValues(alpha: 0.12),
+                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
               ),
-              child: Icon(Icons.cloud_off_rounded, size: 34, color: p.danger),
+              child: const Icon(Icons.cloud_off_rounded, size: 36, color: AppColors.danger),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: context.texts.bodyMedium?.copyWith(color: p.muted, height: 1.45),
+              style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             if (onRetry != null) ...<Widget>[
-              const SizedBox(height: 22),
-              GhostButton(
+              const SizedBox(height: AppSpacing.xxl),
+              SecondaryButton(
                 label: retryLabel,
                 icon: Icons.refresh_rounded,
+                expand: false,
                 onPressed: onRetry,
               ),
             ],
