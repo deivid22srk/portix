@@ -75,7 +75,19 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
     return SafeArea(
       bottom: false,
-      child: RefreshIndicator(
+      child: GlassHeader(
+        title: l10n.exploreTitle,
+        actions: <Widget>[
+          GlassCircleButton(
+            icon: Icons.tune_rounded,
+            active: state.filters.activeCount > 0,
+            tooltip: l10n.filters,
+            badge: _FilterBadge(count: state.filters.activeCount),
+            onTap: () => _openFilters(state, facets),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+        ],
+        child: RefreshIndicator(
         color: context.palette.primary,
         backgroundColor: context.palette.surface,
         onRefresh: () => ref.read(searchControllerProvider.notifier).refresh(),
@@ -221,6 +233,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'game_detail.dart';
 import 'parsing.dart';
 
 /// Resumo de compatibilidade de um jogo (5 vereditos).

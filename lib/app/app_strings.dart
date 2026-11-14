@@ -286,6 +286,8 @@ class L10n {
   String get compatNoReports => _t('Ainda sem relatos da comunidade.', 'No community reports yet.');
   String get compatYourDevice => _t('Seu aparelho', 'Your device');
   String get compatSameSoc => _t('Mesmo processador', 'Same chipset');
+  String get chooseApk => _t('Escolha o APK', 'Choose the APK');
+  String get searchingRelease => _t('Buscando a release…', 'Looking up the release…');
 
   // -------------------------------------------------------------- contagens
   String gameCount(int n) => _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');

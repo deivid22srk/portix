@@ -27,8 +27,8 @@ class CompatReport {
   /// "Marca Modelo" (ou o que existir).
   String get deviceLabel {
     final List<String> parts = <String>[
-      if (brand != null) brand!,
-      if (model != null) model!,
+      ?brand,
+      ?model,
     ];
     return parts.isEmpty ? 'Aparelho' : parts.join(' ');
   }

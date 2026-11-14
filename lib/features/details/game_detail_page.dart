@@ -13,6 +13,7 @@ import '../../core/device_info.dart';
 import '../../core/download_source.dart';
 import '../../core/env.dart';
 import '../../core/formatters.dart';
+import '../../core/github_releases.dart';
 import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
@@ -133,6 +134,12 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       return;
     }
 
+    final GithubRepo? repo = githubRepoOf(url);
+    if (repo != null && !isDirectApkUrl(url)) {
+      await _installFromGithub(detail, port, url, repo);
+      return;
+    }
+
     final String direct = resolveDirectUrl(url);
     if (!isDirectApkUrl(direct)) {
       // A maioria dos ports é uma página de destino; abrimos a fonte.
@@ -243,6 +250,62 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       setState(() => _submitting = false);
       _showSnack(l10n.errorGeneric);
     }
+  }
+
+  Future<void> _installFromGithub(
+    GameDetail detail,
+    GamePort port,
+    String sourceUrl,
+    GithubRepo repo,
+  ) async {
+    final L10n l10n = context.l10n;
+    _showSnack(l10n.searchingRelease);
+    try {
+      final List<ApkAsset> assets = await fetchLatestApkAssets(repo);
+      if (!mounted) {
+        return;
+      }
+      if (assets.isEmpty) {
+        await _openLink(sourceUrl);
+        if (mounted) {
+          _showSnack(l10n.sourceOnly);
+        }
+        return;
+      }
+      final ApkAsset? chosen =
+          assets.length == 1 ? assets.first : await _pickApkAsset(assets);
+      if (chosen == null || !mounted) {
+        return;
+      }
+      ref.read(downloadsProvider.notifier).start(
+            detail.game,
+            port: port,
+            urlOverride: chosen.url,
+          );
+      _showSnack(
+        l10n.downloadStarted,
+        actionLabel: l10n.viewDownloads,
+        onAction: () => context.go('/hub'),
+      );
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      await _openLink(sourceUrl);
+      if (mounted) {
+        _showSnack(l10n.sourceOnly);
+      }
+    }
+  }
+
+  Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {
+    return showModalBottomSheet<ApkAsset>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (BuildContext context) => _ApkPickerSheet(assets: assets),
+    );
   }
 
   Future<void> _openCompatSheet(GameDetail detail) async {
@@ -1045,12 +1108,12 @@ class _CompatSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     final String device = <String>[
-      if (specs.brand != null) specs.brand!,
-      if (specs.model != null) specs.model!,
+      ?specs.brand,
+      ?specs.model,
     ].join(' ');
     final String details = <String>[
-      if (specs.soc != null) specs.soc!,
-      if (specs.gpu != null) specs.gpu!,
+      ?specs.soc,
+      ?specs.gpu,
       if (specs.ramGb != null) '${specs.ramGb} GB',
     ].join(' · ');
 
@@ -1168,6 +1231,63 @@ Color compatVerdictColor(String status) {
   }
 }
 
+class _ApkPickerSheet extends StatelessWidget {
+  const _ApkPickerSheet({required this.assets});
+
+  final List<ApkAsset> assets;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
+        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textTertiary,
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                l10n.chooseApk,
+                style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              for (final ApkAsset asset in assets)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: SecondaryButton(
+                    label: asset.sizeBytes > 0
+                        ? '${asset.name} · ${(asset.sizeBytes / 1048576).toStringAsFixed(1)} MB'
+                        : asset.name,
+                    icon: Icons.android_rounded,
+                    onPressed: () => Navigator.of(context).pop(asset),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CommunityReports extends ConsumerWidget {
   const _CommunityReports({required this.gameId});
 
@@ -1234,8 +1354,8 @@ class _CompatReportRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     final String specs = <String>[
-      if (report.soc != null) report.soc!,
-      if (report.gpu != null) report.gpu!,
+      ?report.soc,
+      ?report.gpu,
       if (report.ramGb != null) '${report.ramGb} GB',
     ].join(' · ');
 

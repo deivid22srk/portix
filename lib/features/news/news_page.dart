@@ -58,7 +58,9 @@ class _NewsPageState extends ConsumerState<NewsPage> {
 
     return SafeArea(
       bottom: false,
-      child: RefreshIndicator(
+      child: GlassHeader(
+        title: l10n.newsTitle,
+        child: RefreshIndicator(
         color: context.palette.primary,
         backgroundColor: context.palette.surface,
         onRefresh: () => ref.read(newsControllerProvider.notifier).refresh(),
@@ -118,6 +120,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
               ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -27,7 +27,9 @@ class HomePage extends ConsumerWidget {
 
     return SafeArea(
       bottom: false,
-      child: RefreshIndicator(
+      child: GlassHeader(
+        title: l10n.navHome,
+        child: RefreshIndicator(
         color: context.palette.primary,
         backgroundColor: context.palette.surface,
         onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
@@ -50,6 +52,7 @@ class HomePage extends ConsumerWidget {
               ),
             if (feed != null) ..._feedSlivers(context, ref, feed),
           ],
+        ),
         ),
       ),
     );
