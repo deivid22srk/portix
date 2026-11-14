@@ -71,7 +71,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
             GlassSliverAppBar(
               title: l10n.newsTitle,
               subtitle: l10n.newsSubtitle,
-              expandedHeight: 150,
+              expandedHeight: 140,
             ),
             if (state.isInitialLoading)
               const SliverToBoxAdapter(child: SearchSkeleton()),

@@ -5,22 +5,24 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 
-/// AppBar transparente que colapsa o título grande (sem fundo próprio).
+/// AppBar transparente com o título grande e a frase alinhados ao topo do
+/// cabeçalho (respeitando o inset da status bar via SafeArea da tela). Ao
+/// rolar, um [GlassTopBar] sobreposto aparece com o título pequeno.
 class GlassSliverAppBar extends StatelessWidget {
   const GlassSliverAppBar({
     super.key,
     required this.title,
     this.subtitle,
     this.actions,
-    this.expandedHeight = 150,
-    this.titlePaddingEnd = AppSpacing.screen,
+    this.expandedHeight = 148,
+    this.topPadding = 10,
   });
 
   final String title;
   final String? subtitle;
   final List<Widget>? actions;
   final double expandedHeight;
-  final double titlePaddingEnd;
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -36,38 +38,41 @@ class GlassSliverAppBar extends StatelessWidget {
       titleSpacing: AppSpacing.screen,
       actions: actions,
       flexibleSpace: FlexibleSpaceBar(
-        centerTitle: false,
-        titlePadding: EdgeInsetsDirectional.only(
-          start: AppSpacing.screen,
-          end: titlePaddingEnd,
-          bottom: 16,
-        ),
-        title: Text(
-          title,
-          style: context.texts.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.6,
+        collapseMode: CollapseMode.none,
+        background: Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.screen,
+            topPadding,
+            AppSpacing.screen,
+            0,
           ),
-        ),
-        background: subtitle == null
-            ? const SizedBox.shrink()
-            : Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
-                  0,
-                  AppSpacing.screen,
-                  42,
-                ),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Text(
-                    subtitle!,
-                    style: context.texts.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -1,
                 ),
               ),
+              if (subtitle != null) ...<Widget>[
+                const SizedBox(height: 6),
+                Text(
+                  subtitle!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              const Spacer(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -150,7 +155,7 @@ class _GlassHeaderState extends State<GlassHeader> {
   bool _visible = false;
 
   bool _onScroll(ScrollNotification notification) {
-    final bool next = notification.metrics.pixels > 120;
+    final bool next = notification.metrics.pixels > 80;
     if (next != _visible && mounted) {
       setState(() => _visible = next);
     }

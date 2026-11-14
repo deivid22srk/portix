@@ -377,7 +377,7 @@ class _HomeHeader extends StatelessWidget {
     return GlassSliverAppBar(
       title: l10n.navHome,
       subtitle: l10n.tagline,
-      expandedHeight: 176,
+      expandedHeight: 150,
     );
   }
 }

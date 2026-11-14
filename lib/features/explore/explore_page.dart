@@ -100,8 +100,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               subtitle: state.status == SearchStatus.loading && state.items.isEmpty
                   ? l10n.loading
                   : l10n.resultsCount(state.total),
-              expandedHeight: 150,
-              titlePaddingEnd: 68,
+              expandedHeight: 140,
               actions: <Widget>[
                 GlassCircleButton(
                   icon: Icons.tune_rounded,
