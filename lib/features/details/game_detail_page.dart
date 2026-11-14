@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -290,10 +292,14 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: AppBackdrop(
-        child: SafeArea(
-          bottom: false,
-          child: CustomScrollView(
+      body: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: _CoverBackdrop(coverUrl: game.coverUrl, title: game.title),
+          ),
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
             controller: _scroll,
             physics: const BouncingScrollPhysics(),
             slivers: <Widget>[
@@ -532,7 +538,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
               ),
             ],
           ),
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1183,6 +1190,96 @@ class _DetailSkeleton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Fundo da tela de detalhes: a própria capa ampliada e desfocada, com camada
+/// escura e gradiente para o fundo. Atualiza sozinho quando a capa muda.
+class _CoverBackdrop extends StatelessWidget {
+  const _CoverBackdrop({required this.coverUrl, required this.title});
+
+  final String? coverUrl;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final double height = MediaQuery.sizeOf(context).height * 0.52;
+    return Stack(
+      children: <Widget>[
+        const ColoredBox(color: AppColors.bg, child: SizedBox.expand()),
+        if (coverUrl != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: height,
+            child: ClipRect(
+              child: Opacity(
+                opacity: 0.55,
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 44, sigmaY: 44),
+                  child: Transform.scale(
+                    scale: 1.35,
+                    child: GameCover(
+                      imageUrl: coverUrl,
+                      title: title,
+                      memWidth: 1400,
+                      fit: BoxFit.cover,
+                      borderRadius: 0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          Positioned(
+            top: -120,
+            left: -80,
+            right: -80,
+            height: height,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: <Color>[
+                    AppColors.accent.withValues(alpha: 0.16),
+                    AppColors.accent.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        // Camada escura semitransparente por cima da imagem.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: height,
+          child: const ColoredBox(color: Color(0x99000000)),
+        ),
+        // Gradiente vertical que escurece em direção ao fundo.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: height + 80,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  AppColors.bg.withValues(alpha: 0.30),
+                  AppColors.bg.withValues(alpha: 0.70),
+                  AppColors.bg,
+                ],
+                stops: const <double>[0, 0.72, 1],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
