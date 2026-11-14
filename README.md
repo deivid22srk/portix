@@ -282,6 +282,15 @@ Secrets necessários no repositório:
 
 ---
 
+## Painel ADM (app separado)
+
+App **separado** em [`admin/`](admin/) (HTML/CSS/JS, sem build), publicado no
+GitHub Pages, com login, **estatísticas** e a **hierarquia de ADMs** (raiz
+`psvstore01@gmail.com` concede acesso e define permissões). Quem modera aparece
+com o selo **ADM** nos relatos do app. Detalhes em [`admin/README.md`](admin/README.md).
+
+---
+
 ## Segurança
 
 - `SUPA` (Management API) foi usado apenas no provisionamento e **nunca** entra

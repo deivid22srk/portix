@@ -296,6 +296,7 @@ class L10n {
   String get reportsTitle => _t('Relatos da comunidade', 'Community reports');
   String get reportsSearchHint => _t('Buscar por aparelho, chipset ou autor',
       'Search by device, chipset or author');
+  String get adminBadge => _t('ADM', 'ADM');
   String get chooseApk => _t('Escolha o APK', 'Choose the APK');
   String get searchingRelease => _t('Buscando a release…', 'Looking up the release…');
 

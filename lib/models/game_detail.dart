@@ -84,6 +84,7 @@ class Review {
     this.soc,
     this.gpu,
     this.ramGb,
+    this.authorRole,
   });
 
   final String id;
@@ -98,6 +99,9 @@ class Review {
   final String? soc;
   final String? gpu;
   final int? ramGb;
+
+  /// 'root' | 'admin' | 'moderator' quando o autor é administrador.
+  final String? authorRole;
 
   String get deviceLabel {
     final List<String> parts = <String>[?brand, ?model];
@@ -117,6 +121,7 @@ class Review {
         soc: asText(map['soc']),
         gpu: asText(map['gpu']),
         ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
+        authorRole: asText(map['author_role']),
       );
 }
 

@@ -131,6 +131,14 @@ class FeedbackReportRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                     ],
+                    if (report.authorRole != null) ...<Widget>[
+                      BadgeChip(
+                        label: l10n.adminBadge,
+                        color: AppColors.accent,
+                        icon: Icons.verified_rounded,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     Expanded(
                       child: Text(
                         '${report.author}${specs.isEmpty ? '' : ' · $specs'}',

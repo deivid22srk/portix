@@ -6,6 +6,7 @@ class CompatReport {
     required this.author,
     required this.status,
     this.authorCover,
+    this.authorRole,
     this.rating = 0,
     this.body = '',
     this.fps,
@@ -19,6 +20,7 @@ class CompatReport {
 
   final String author;
   final String? authorCover;
+  final String? authorRole;
   final String status;
   final int rating;
   final String body;
@@ -43,6 +45,7 @@ class CompatReport {
         author: asTextOr(map['author'], 'Jogador'),
         status: asTextOr(map['status'], 'good'),
         authorCover: asText(map['author_cover']),
+        authorRole: asText(map['author_role']),
         rating: asInt(map['rating']),
         body: asTextOr(map['body'], ''),
         fps: map['fps'] == null ? null : asInt(map['fps']),
