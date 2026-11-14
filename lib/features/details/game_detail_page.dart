@@ -1,4 +1,4 @@
-import 'dart:ui' show ImageFilter;
+import 'dart:ui' show BlendMode, ImageFilter;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1384,29 +1384,42 @@ class _CoverBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double height = MediaQuery.sizeOf(context).height * 0.56;
+    final double screenHeight = MediaQuery.sizeOf(context).height;
     return Stack(
       children: <Widget>[
         const ColoredBox(color: AppColors.bg, child: SizedBox.expand()),
         if (coverUrl != null)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: height,
-            child: ClipRect(
-              child: Opacity(
-                opacity: 0.78,
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-                  child: Transform.scale(
-                    scale: 1.2,
-                    child: GameCover(
-                      imageUrl: coverUrl,
-                      title: title,
-                      memWidth: 1400,
-                      fit: BoxFit.cover,
-                      borderRadius: 0,
+          // A capa ocupa a tela inteira e perde opacidade gradualmente por uma
+          // máscara de alfa vertical: nada de corte reto, some no fundo.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (Rect bounds) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    Color(0xFFFFFFFF),
+                    Color(0xE6FFFFFF),
+                    Color(0x99FFFFFF),
+                    Color(0x40FFFFFF),
+                    Color(0x00FFFFFF),
+                  ],
+                  stops: <double>[0.0, 0.28, 0.5, 0.72, 0.92],
+                ).createShader(bounds),
+                child: Opacity(
+                  opacity: 0.9,
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                    child: Transform.scale(
+                      scale: 1.25,
+                      child: GameCover(
+                        imageUrl: coverUrl,
+                        title: title,
+                        memWidth: 1400,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
                     ),
                   ),
                 ),
@@ -1415,10 +1428,10 @@ class _CoverBackdrop extends StatelessWidget {
           )
         else
           Positioned(
-            top: -120,
+            top: -140,
             left: -80,
             right: -80,
-            height: height,
+            height: screenHeight * 0.5,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
@@ -1430,31 +1443,21 @@ class _CoverBackdrop extends StatelessWidget {
               ),
             ),
           ),
-        // Camada escura leve, só para manter o contraste do texto.
+        // Vinheta bem leve no topo, só para manter o contraste do texto.
         Positioned(
           top: 0,
           left: 0,
           right: 0,
-          height: height,
-          child: const ColoredBox(color: Color(0x4D000000)),
-        ),
-        // Gradiente vertical suave até o fundo.
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: height + 80,
+          height: screenHeight * 0.4,
           child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: <Color>[
-                  AppColors.bg.withValues(alpha: 0.0),
-                  AppColors.bg.withValues(alpha: 0.28),
-                  AppColors.bg,
+                  Colors.black.withValues(alpha: 0.28),
+                  Colors.black.withValues(alpha: 0),
                 ],
-                stops: const <double>[0, 0.72, 1],
               ),
             ),
           ),
