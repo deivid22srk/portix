@@ -75,10 +75,16 @@ fn transfer(
 ) -> Result<(), String> {
     emit_progress(env, callback, 0, -1)?;
 
-    let response = ureq::get(url)
-        .set("User-Agent", "PORTIX/1.0 (Android)")
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(20))
+        .timeout_read(Duration::from_secs(60))
+        .timeout_write(Duration::from_secs(30))
+        .user_agent("PORTIX/1.0 (Android)")
+        .build();
+
+    let response = agent
+        .get(url)
         .set("Accept", "application/vnd.android.package-archive,*/*")
-        .timeout(Duration::from_secs(30))
         .call()
         .map_err(|error| format!("http: {error}"))?;
 

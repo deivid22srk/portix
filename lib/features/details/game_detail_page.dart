@@ -449,11 +449,43 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                       const SizedBox(height: AppSpacing.lg),
                       _Chips(game: game),
                       const SizedBox(height: AppSpacing.lg),
-                      PrimaryButton(
-                        label: installLabel,
-                        icon: installIcon,
-                        onPressed: () => _install(detail),
-                      ),
+                      if (task != null && task.status == DownloadStatus.downloading) ...<Widget>[
+                        GradientProgress(value: task.progress),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: SecondaryButton(
+                                label: l10n.pause,
+                                icon: Icons.pause_rounded,
+                                onPressed: () =>
+                                    ref.read(downloadsProvider.notifier).pause(game.id),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: SecondaryButton(
+                                label: l10n.cancel,
+                                icon: Icons.close_rounded,
+                                onPressed: () =>
+                                    ref.read(downloadsProvider.notifier).cancel(game.id),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (task != null && task.status == DownloadStatus.paused)
+                        PrimaryButton(
+                          label: l10n.continueAction,
+                          icon: Icons.play_arrow_rounded,
+                          onPressed: () =>
+                              ref.read(downloadsProvider.notifier).resume(game.id),
+                        )
+                      else
+                        PrimaryButton(
+                          label: installLabel,
+                          icon: installIcon,
+                          onPressed: () => _install(detail),
+                        ),
                       const SizedBox(height: AppSpacing.md),
                       SecondaryButton(
                         label: inLibrary ? l10n.inLibrary : l10n.installedAction,
@@ -480,22 +512,6 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                           ),
                         ],
                       ),
-                      if (task != null && !task.isDone) ...<Widget>[
-                        const SizedBox(height: AppSpacing.lg),
-                        Row(
-                          children: <Widget>[
-                            Expanded(child: GradientProgress(value: task.progress)),
-                            const SizedBox(width: AppSpacing.md),
-                            Text(
-                              l10n.progressPercent((task.progress * 100).round()),
-                              style: context.texts.labelSmall?.copyWith(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                       const SizedBox(height: AppSpacing.xxl),
                       _BlockTitle(title: l10n.descriptionTitle),
                       const SizedBox(height: AppSpacing.md),
