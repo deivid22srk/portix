@@ -282,6 +282,19 @@ class _AdminHomeState extends State<_AdminHome> {
     }
   }
 
+  Future<void> _deleteUpdate(String id) async {
+    try {
+      await Supabase.instance.client.rpc('admin_delete_update', params: <String, dynamic>{
+        'p_id': id,
+      });
+      await _loadUpdates();
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() => _updatesError = _pretty(error));
+      }
+    }
+  }
+
   Future<bool> _grant(String email, String level, Map<String, bool> permissions) async {
     try {
       await Supabase.instance.client.rpc('admin_grant', params: <String, dynamic>{
@@ -362,6 +375,7 @@ class _AdminHomeState extends State<_AdminHome> {
                   error: _updatesError,
                   isRoot: _role!['level'] == 'root',
                   onPublish: _publishUpdate,
+                  onDelete: _deleteUpdate,
                   onRefresh: _loadUpdates,
                 )
               : _AdminsView(
@@ -1033,6 +1047,7 @@ class _UpdatesView extends StatefulWidget {
     required this.updates,
     required this.isRoot,
     required this.onPublish,
+    required this.onDelete,
     required this.onRefresh,
     this.error,
   });
@@ -1041,6 +1056,7 @@ class _UpdatesView extends StatefulWidget {
   final bool isRoot;
   final String? error;
   final Future<bool> Function(String version, String message, String? url) onPublish;
+  final Future<void> Function(String id) onDelete;
   final Future<void> Function() onRefresh;
 
   @override
@@ -1130,8 +1146,14 @@ class _UpdatesViewState extends State<_UpdatesView> {
                           const SizedBox(width: 8),
                           Text('v${item['version'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.w700)),
                           const Spacer(),
-                          if (item['active'] == true)
-                            const _RoleChip(level: 'ativa'),
+                          if (item['active'] == true) const _RoleChip(level: 'ativa'),
+                          if (widget.isRoot) ...<Widget>[
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () => widget.onDelete((item['id'] ?? '').toString()),
+                              child: const Text('Remover', style: TextStyle(color: _C.danger)),
+                            ),
+                          ],
                         ],
                       ),
                       if ((item['message'] ?? '').toString().isNotEmpty) ...<Widget>[

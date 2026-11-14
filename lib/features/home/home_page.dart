@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/env.dart';
 import '../../core/theme/tokens.dart';
-import '../../models/app_update.dart';
 import '../../models/game.dart';
 import '../../models/home_feed.dart';
 import '../../shared/widgets/game_media.dart';
@@ -39,7 +37,6 @@ class HomePage extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: <Widget>[
             const _HomeHeader(),
-            const SliverToBoxAdapter(child: _UpdateBanner()),
             if (feed == null && async.isLoading)
               const SliverToBoxAdapter(child: HomeSkeleton()),
             if (feed == null && async.hasError)
@@ -456,92 +453,3 @@ class _StatDivider extends StatelessWidget {
   }
 }
 
-/// Aviso de atualização publicado pelo ADM raiz.
-class _UpdateBanner extends ConsumerStatefulWidget {
-  const _UpdateBanner();
-
-  @override
-  ConsumerState<_UpdateBanner> createState() => _UpdateBannerState();
-}
-
-class _UpdateBannerState extends ConsumerState<_UpdateBanner> {
-  bool _dismissed = false;
-
-  Future<void> _open(String? url) async {
-    if (url == null) {
-      return;
-    }
-    final Uri? uri = Uri.tryParse(url);
-    if (uri == null) {
-      return;
-    }
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } on Object {
-      // sem app que trate o link
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final L10n l10n = context.l10n;
-    final AppUpdate? update = ref.watch(latestUpdateProvider).value;
-    if (_dismissed || update == null || update.version == kAppVersion) {
-      return const SizedBox.shrink();
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screen,
-        AppSpacing.sm,
-        AppSpacing.screen,
-        0,
-      ),
-      child: GlassContainer(
-        radius: AppRadii.lg,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
-          children: <Widget>[
-            const Icon(Icons.system_update_alt_rounded, color: AppColors.accent),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    '${l10n.updateAvailable} · v${update.version}',
-                    style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  if (update.message.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 3),
-                    Text(
-                      update.message,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (update.url != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              SecondaryButton(
-                label: l10n.updateNow,
-                expand: false,
-                height: 40,
-                onPressed: () => _open(update.url),
-              ),
-            ],
-            Pressable(
-              onTap: () => setState(() => _dismissed = true),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(Icons.close_rounded, size: 18, color: AppColors.textTertiary),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

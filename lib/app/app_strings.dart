@@ -302,6 +302,7 @@ class L10n {
   String get admModLabel => _t('Moderador', 'Moderator');
   String get updateAvailable => _t('Atualização disponível', 'Update available');
   String get updateNow => _t('Atualizar', 'Update now');
+  String get later => _t('Depois', 'Later');
   String get chooseApk => _t('Escolha o APK', 'Choose the APK');
   String get searchingRelease => _t('Buscando a release…', 'Looking up the release…');
 

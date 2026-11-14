@@ -5,6 +5,7 @@ import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../shared/widgets/primitives.dart';
+import '../home/update_dialog.dart';
 
 // Casca principal: mantém as cinco abas vivas e desenha a barra de navegação
 // de vidro flutuante + botão de busca circular.
@@ -55,7 +56,14 @@ class MainShell extends StatelessWidget {
     return Scaffold(
       extendBody: true,
       backgroundColor: Colors.transparent,
-      body: AppBackdrop(child: navigationShell),
+      body: AppBackdrop(
+        child: Stack(
+          children: <Widget>[
+            navigationShell,
+            const UpdateGate(),
+          ],
+        ),
+      ),
       bottomNavigationBar: Padding(
         padding: EdgeInsets.fromLTRB(
           AppSpacing.screen,
