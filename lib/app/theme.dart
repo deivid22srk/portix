@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -41,7 +41,7 @@ class AppPalette {
   static const Color amber = Color(0xFFFFC857);
   static const Color rose = Color(0xFFFF5C8A);
 
-  static const AppPalette dark = AppPalette(
+  static const AppPalette darkPalette = AppPalette(
     dark: true,
     bg: Color(0xFF06060C),
     bgSoft: Color(0xFF0B0C15),
@@ -57,7 +57,7 @@ class AppPalette {
     danger: rose,
   );
 
-  static const AppPalette light = AppPalette(
+  static const AppPalette lightPalette = AppPalette(
     dark: false,
     bg: Color(0xFFF4F5FA),
     bgSoft: Color(0xFFFFFFFF),
@@ -74,7 +74,7 @@ class AppPalette {
   );
 
   static AppPalette of(Brightness brightness) =>
-      brightness == Brightness.dark ? dark : light;
+      brightness == Brightness.dark ? darkPalette : lightPalette;
 
   LinearGradient get brand => const LinearGradient(
         colors: <Color>[violet, cyan],
@@ -122,9 +122,9 @@ extension AppPaletteContext on BuildContext {
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData dark() => _build(AppPalette.dark);
+  static ThemeData dark() => _build(AppPalette.darkPalette);
 
-  static ThemeData light() => _build(AppPalette.light);
+  static ThemeData light() => _build(AppPalette.lightPalette);
 
   static ThemeData _build(AppPalette p) {
     final TextTheme display = GoogleFonts.spaceGroteskTextTheme();

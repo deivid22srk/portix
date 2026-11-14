@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -74,8 +74,9 @@ class BootstrapErrorPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppPalette p = context.palette;
     final L10n l10n = context.l10n;
+    final Object failure = error;
     final bool isConfig =
-        error is AppFailure && error.kind == FailureKind.config;
+        failure is AppFailure && failure.kind == FailureKind.config;
     return Scaffold(
       body: AppBackdrop(
         child: SafeArea(

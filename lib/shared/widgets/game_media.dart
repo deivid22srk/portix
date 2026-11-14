@@ -1,5 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/app_strings.dart';
@@ -368,7 +368,7 @@ class GameRow extends StatelessWidget {
                           style: context.texts.labelSmall?.copyWith(color: p.muted),
                         ),
                       const Spacer(),
-                      if (trailing != null) trailing!,
+                      ?trailing,
                     ],
                   ),
                 ],

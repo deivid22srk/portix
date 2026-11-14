@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/env.dart';
@@ -14,12 +13,10 @@ import 'theme.dart';
 class PortixApp extends ConsumerWidget {
   const PortixApp({super.key});
 
+  // `GlobalMaterialLocalizations.delegates` já reúne Material, Widgets e
+  // Cupertino, então um único delegate cobre os três.
   static const List<LocalizationsDelegate<dynamic>> _delegates =
-      <LocalizationsDelegate<dynamic>>[
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ];
+      GlobalMaterialLocalizations.delegates;
 
   static const List<Locale> _locales = <Locale>[Locale('pt', 'BR'), Locale('en')];
 
