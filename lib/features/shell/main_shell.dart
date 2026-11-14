@@ -24,15 +24,31 @@ class MainShell extends StatelessWidget {
     final L10n l10n = context.l10n;
     final double bottomInset = MediaQuery.of(context).padding.bottom;
     final List<GlassNavItem> items = <GlassNavItem>[
-      GlassNavItem(Icons.home_outlined, Icons.home_rounded, l10n.navHome),
       GlassNavItem(
-        Icons.sports_esports_outlined,
-        Icons.sports_esports_rounded,
-        l10n.navExplore,
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+        label: l10n.navHome,
       ),
-      GlassNavItem(Icons.article_outlined, Icons.article_rounded, l10n.navNews),
-      GlassNavItem(Icons.layers_outlined, Icons.layers_rounded, l10n.navHub),
-      GlassNavItem(Icons.menu_rounded, Icons.menu_rounded, l10n.navMenu),
+      GlassNavItem(
+        icon: Icons.sports_esports_outlined,
+        activeIcon: Icons.sports_esports_rounded,
+        label: l10n.navExplore,
+      ),
+      GlassNavItem(
+        icon: Icons.article_outlined,
+        activeIcon: Icons.article_rounded,
+        label: l10n.navNews,
+      ),
+      GlassNavItem(
+        icon: Icons.layers_outlined,
+        activeIcon: Icons.layers_rounded,
+        label: l10n.navHub,
+      ),
+      GlassNavItem(
+        icon: Icons.menu_rounded,
+        activeIcon: Icons.menu_rounded,
+        label: l10n.navMenu,
+      ),
     ];
 
     return Scaffold(

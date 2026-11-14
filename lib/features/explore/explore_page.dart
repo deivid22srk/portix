@@ -14,7 +14,7 @@ import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
 import '../home/home_controller.dart';
-import 'search_controller.dart';
+import '../search/search_controller.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});

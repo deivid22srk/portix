@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
