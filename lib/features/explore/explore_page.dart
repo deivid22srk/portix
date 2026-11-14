@@ -90,10 +90,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               scrolledUnderElevation: 0,
               automaticallyImplyLeading: false,
               titleSpacing: AppSpacing.screen,
-              title: Text(
-                l10n.exploreTitle,
-                style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
               actions: <Widget>[
                 GlassCircleButton(
                   icon: Icons.tune_rounded,
@@ -108,14 +104,14 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 centerTitle: false,
                 titlePadding: const EdgeInsetsDirectional.only(
                   start: AppSpacing.screen,
-                  end: AppSpacing.screen,
+                  end: 68,
                   bottom: 16,
                 ),
                 title: Text(
                   l10n.exploreTitle,
-                  style: context.texts.displaySmall?.copyWith(
+                  style: context.texts.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -1,
+                    letterSpacing: -0.6,
                   ),
                 ),
                 background: Padding(
@@ -128,7 +124,9 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   child: Align(
                     alignment: Alignment.bottomLeft,
                     child: Text(
-                      l10n.resultsCount(state.total),
+                      state.status == SearchStatus.loading && state.items.isEmpty
+                          ? l10n.loading
+                          : l10n.resultsCount(state.total),
                       style: context.texts.bodyMedium?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -137,6 +135,54 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 ),
               ),
             ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  children: <Widget>[
+                    AppPill(
+                      label: l10n.all,
+                      dense: true,
+                      selected: state.filters.platform == null && !state.filters.freeOnly,
+                      onTap: () => ref
+                          .read(searchControllerProvider.notifier)
+                          .applyFilters(
+                            state.filters.copyWith(clearPlatform: true, freeOnly: false),
+                          ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppPill(
+                      label: l10n.filterFree,
+                      dense: true,
+                      selected: state.filters.freeOnly,
+                      onTap: () => ref
+                          .read(searchControllerProvider.notifier)
+                          .applyFilters(
+                            state.filters.copyWith(freeOnly: !state.filters.freeOnly),
+                          ),
+                    ),
+                    for (final PlatformInfo platform in facets.platforms.take(10)) ...<Widget>[
+                      const SizedBox(width: AppSpacing.sm),
+                      AppPill(
+                        label: platform.name,
+                        dense: true,
+                        selected: state.filters.platform == platform.slug,
+                        onTap: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .applyFilters(
+                              state.filters.platform == platform.slug
+                                  ? state.filters.copyWith(clearPlatform: true)
+                                  : state.filters.copyWith(platform: platform.slug),
+                            ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
             if (state.isInitialLoading)
               const SliverToBoxAdapter(child: SearchSkeleton()),
             if (state.status == SearchStatus.error && state.items.isEmpty)

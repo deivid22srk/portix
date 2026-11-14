@@ -105,6 +105,36 @@ class HomePage extends ConsumerWidget {
       ),
     );
 
+    // Faixa de plataformas (atalho).
+    if (platforms.isNotEmpty) {
+      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
+      slivers.add(
+        SliverToBoxAdapter(child: SectionHeader(title: l10n.sectionPlatforms)),
+      );
+      slivers.add(
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+              itemCount: platforms.length,
+              separatorBuilder: (BuildContext context, int index) =>
+                  const SizedBox(width: AppSpacing.sm),
+              itemBuilder: (BuildContext context, int index) {
+                final PlatformInfo platform = platforms[index];
+                return AppPill(
+                  label: platform.name,
+                  dense: true,
+                  onTap: () => _browse(context, ref, platform: platform.slug),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
     // Explorar por seção (tiles de vidro).
     final List<_BrowseTarget> tiles = _sectionTiles(context, feed);
     if (tiles.isNotEmpty) {
@@ -334,10 +364,6 @@ class _HomeHeader extends StatelessWidget {
       elevation: 0,
       automaticallyImplyLeading: false,
       titleSpacing: AppSpacing.screen,
-      title: Text(
-        l10n.navHome,
-        style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-      ),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
         titlePadding: const EdgeInsetsDirectional.only(
@@ -349,7 +375,7 @@ class _HomeHeader extends StatelessWidget {
           l10n.navHome,
           style: context.texts.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.8,
+            letterSpacing: -0.6,
           ),
         ),
         background: Padding(

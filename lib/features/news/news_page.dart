@@ -73,10 +73,6 @@ class _NewsPageState extends ConsumerState<NewsPage> {
               scrolledUnderElevation: 0,
               automaticallyImplyLeading: false,
               titleSpacing: AppSpacing.screen,
-              title: Text(
-                l10n.newsTitle,
-                style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
               flexibleSpace: FlexibleSpaceBar(
                 centerTitle: false,
                 titlePadding: const EdgeInsetsDirectional.only(
@@ -86,9 +82,9 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                 ),
                 title: Text(
                   l10n.newsTitle,
-                  style: context.texts.displaySmall?.copyWith(
+                  style: context.texts.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -1,
+                    letterSpacing: -0.6,
                   ),
                 ),
                 background: Padding(
