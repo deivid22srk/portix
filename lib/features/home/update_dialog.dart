@@ -55,6 +55,7 @@ class _UpdateGateState extends ConsumerState<UpdateGate> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.72),
       builder: (BuildContext context) => UpdateDialog(update: update),
     );
   }
@@ -176,8 +177,13 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-      child: GlassContainer(
-        radius: AppRadii.lg,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bgElevated,
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          border: Border.all(color: AppColors.glassBorder),
+          boxShadow: AppShadows.floating,
+        ),
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
