@@ -1,0 +1,22 @@
+name: portix_admin
+description: "PORTIX ADM — app separado de administração (estatísticas e hierarquia de ADMs)."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_ui: ^1.11.0
+  supabase_flutter: ^2.18.3
+  shared_preferences: ^2.5.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

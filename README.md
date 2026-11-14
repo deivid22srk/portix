@@ -284,10 +284,11 @@ Secrets necessários no repositório:
 
 ## Painel ADM (app separado)
 
-App **separado** em [`admin/`](admin/) (HTML/CSS/JS, sem build), publicado no
-GitHub Pages, com login, **estatísticas** e a **hierarquia de ADMs** (raiz
-`psvstore01@gmail.com` concede acesso e define permissões). Quem modera aparece
-com o selo **ADM** nos relatos do app. Detalhes em [`admin/README.md`](admin/README.md).
+Segundo app Flutter, **independente** do PORTIX, em [`admin_app/`](admin_app/):
+login, **estatísticas** e a **hierarquia de ADMs** (raiz `psvstore01@gmail.com`
+concede acesso e define permissões). Quem modera aparece com o selo **ADM** nos
+relatos do app. APK próprio gerado pelo workflow `admin-app.yml`
+(artefato `portix-admin-apk`). Detalhes em [`admin_app/README.md`](admin_app/README.md).
 
 ---
 
