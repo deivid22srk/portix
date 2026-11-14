@@ -118,7 +118,7 @@ class GlassTopBar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (actions != null) ...actions!,
+                  ...?actions,
                 ],
               ),
             ),
