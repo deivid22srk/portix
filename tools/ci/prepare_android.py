@@ -43,6 +43,39 @@ def patch_manifest(android: Path) -> None:
     _write(manifest, text)
 
 
+def patch_lint(android: Path) -> None:
+    """Desabilita o lint de release do AGP em todos os módulos.
+
+    O `lintVitalAnalyzeRelease` do AGP quebra ao analisar alguns plugins
+    (por exemplo `url_launcher_android`) na combinação atual de AGP/JDK. A
+    qualidade do Dart já é garantida por `flutter analyze` no CI, então as
+    tarefas `lintVital*` — que só existem no empacotamento Android — são
+    desativadas para não derrubar o build de release.
+    """
+    root_kts = android / "build.gradle.kts"
+    root_groovy = android / "build.gradle"
+    if root_kts.exists():
+        root = root_kts
+    elif root_groovy.exists():
+        root = root_groovy
+    else:
+        raise SystemExit("build.gradle(.kts) raiz não encontrado no scaffold")
+
+    text = _read(root)
+    if "lintVital" in text:
+        return
+    text += (
+        "\n// PORTIX: o lint de release do AGP quebra em alguns plugins;\n"
+        "// a análise do Dart já é feita por `flutter analyze` no CI.\n"
+        "subprojects {\n"
+        '    tasks.matching { it.name.startsWith("lintVital") }.configureEach {\n'
+        "        enabled = false\n"
+        "    }\n"
+        "}\n"
+    )
+    _write(root, text)
+
+
 def patch_gradle(android: Path) -> None:
     kts = android / "app" / "build.gradle.kts"
     groovy = android / "app" / "build.gradle"
@@ -114,6 +147,7 @@ def main() -> None:
     patch_manifest(android)
     patch_gradle(android)
     patch_gradle_properties(android)
+    patch_lint(android)
     print("Scaffold Android ajustado para release.")
 
 
