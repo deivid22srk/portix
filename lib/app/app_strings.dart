@@ -243,7 +243,7 @@ class L10n {
   String get compatBroken => _t('Não roda', 'Does not run');
   String get compatReport => _t('Relatar', 'Report');
   String get compatSent => _t('Relato enviado. Obrigado!', 'Report sent. Thanks!');
-  String get compatReports(int n) =>
+  String compatReports(int n) =>
       _t('$n ${n == 1 ? 'relato' : 'relatos'}', '$n ${n == 1 ? 'report' : 'reports'}');
   String get downloadsLabel => _t('baixados', 'downloads');
   String get sourceOnly => _t(
