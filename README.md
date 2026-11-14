@@ -273,4 +273,9 @@ Secrets necessários no repositório:
   no app, no repositório ou nos logs.
 - Apenas URL + chave anônima pública vão para o build.
 - RLS ativo em todas as tabelas de usuário; catálogo somente leitura.
+- `0005_security_hardening.sql`: least privilege por role (sem TRUNCATE etc.),
+  `EXECUTE` revogado de `PUBLIC`, agregados de compatibilidade via
+  `SECURITY DEFINER` (sem vazar linhas) e o canal `breach_signal`.
 - `.env*`, JSON bruto, ZIPs e keystores estão no `.gitignore`.
+
+Auditoria e monitor em [`tools/security/`](tools/security/).
