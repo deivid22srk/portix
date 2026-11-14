@@ -53,9 +53,8 @@ fn emit_progress(env: &mut JNIEnv, callback: &GlobalRef, done: i64, total: i64) 
 }
 
 fn emit_complete(env: &mut JNIEnv, callback: &GlobalRef, ok: bool, error: &str) {
-    let text = env.new_string(error).ok();
-    let value = match &text {
-        Some(handle) => JObject::from(handle.clone()),
+    let value = match env.new_string(error).ok() {
+        Some(handle) => JObject::from(handle),
         None => JObject::null(),
     };
     let _ = env.call_method(
