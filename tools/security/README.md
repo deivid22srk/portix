@@ -30,9 +30,14 @@ python3 tools/security/monitor.py
 | 3 | `compat_public_read` `USING(true)` valia para `authenticated` | 0006: policy pública removida; leitura só do dono; agregado via `compat_summary` |
 | 4 | `profiles`/`reviews` com SELECT público listavam PII | 0008: leitura direta revogada; `game_detail` vira definer e entrega reviews+autor |
 | 5 | cadastro anônimo sem limite | 0008: rate limit por usuário (triggers) + constraints únicas |
+| 6 | `created_at` gravável pelo cliente → bypass do rate limit por retrodatação | 0009: triggers `a_*` carimbam `created_at`/`updated_at` no servidor antes do rate limit |
 
 Migrations: `0005_security_hardening`, `0006_fix_compat_read`,
-`0007_breach_signal_integrity`, `0008_privacy_and_rate_limit`.
+`0007_breach_signal_integrity`, `0008_privacy_and_rate_limit`,
+`0009_server_timestamps`, `0010_input_hardening`.
+
+Extras proativos (0010): termo de busca limitado a 120 caracteres e
+`display_name` limitado a 80.
 
 ### Verificação (anon e sessão anônima)
 
