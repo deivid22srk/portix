@@ -192,7 +192,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ),
             if (state.items.isNotEmpty)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
+                padding: EdgeInsets.fromLTRB(
                   AppSpacing.screen,
                   AppSpacing.md,
                   AppSpacing.screen,
@@ -219,11 +219,11 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
+                padding: EdgeInsets.fromLTRB(
                   AppSpacing.screen,
                   0,
                   AppSpacing.screen,
-                  180,
+                  context.bottomChromePadding,
                 ),
                 child: _ResultsFooter(
                   state: state,

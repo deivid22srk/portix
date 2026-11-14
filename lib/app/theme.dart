@@ -84,6 +84,15 @@ extension AppPaletteContext on BuildContext {
   ColorScheme get scheme => Theme.of(this).colorScheme;
 }
 
+// Áreas seguras do sistema (edge-to-edge). `viewPadding` reflete a barra de
+// navegação real do aparelho (gestos/3 botões), que varia por modelo.
+extension SystemInsets on BuildContext {
+  double get systemBottomInset => MediaQuery.viewPaddingOf(this).bottom;
+
+  /// Espaço extra para o conteúdo não ficar sob a barra de navegação flutuante.
+  double get bottomChromePadding => systemBottomInset + 140;
+}
+
 class AppTheme {
   const AppTheme._();
 

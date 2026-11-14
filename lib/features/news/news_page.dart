@@ -99,11 +99,11 @@ class _NewsPageState extends ConsumerState<NewsPage> {
               ),
             if (state.items.isNotEmpty)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
+                padding: EdgeInsets.fromLTRB(
                   AppSpacing.screen,
                   AppSpacing.md,
                   AppSpacing.screen,
-                  180,
+                  context.bottomChromePadding,
                 ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(

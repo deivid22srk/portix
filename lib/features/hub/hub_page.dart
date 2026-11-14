@@ -46,7 +46,7 @@ class _HubPageState extends ConsumerState<HubPage> {
           slivers: <Widget>[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
+                padding: EdgeInsets.fromLTRB(
                   AppSpacing.screen,
                   AppSpacing.lg,
                   AppSpacing.screen,
@@ -145,11 +145,11 @@ class _HubPageState extends ConsumerState<HubPage> {
         }
         return <Widget>[
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               AppSpacing.screen,
               0,
               AppSpacing.screen,
-              180,
+              context.bottomChromePadding,
             ),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
@@ -191,11 +191,11 @@ class _HubPageState extends ConsumerState<HubPage> {
     }
     return <Widget>[
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSpacing.screen,
           0,
           AppSpacing.screen,
-          180,
+          context.bottomChromePadding,
         ),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

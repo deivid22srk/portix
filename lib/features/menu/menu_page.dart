@@ -30,7 +30,7 @@ class MenuPage extends ConsumerWidget {
         content: Text(message),
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.bgElevated,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
       ),
     );
@@ -76,11 +76,11 @@ class MenuPage extends ConsumerWidget {
         slivers: <Widget>[
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.screen,
                 AppSpacing.lg,
                 AppSpacing.screen,
-                180,
+                context.bottomChromePadding,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

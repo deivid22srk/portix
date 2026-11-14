@@ -4,7 +4,10 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Bundle
 import androidx.core.content.FileProvider
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.deivid22srk.portix.device.PortixDeviceInfo
 import com.deivid22srk.portix.downloader.DownloadService
 import com.deivid22srk.portix.downloader.DownloaderBridge
@@ -23,6 +26,21 @@ class MainActivity : FlutterActivity() {
     private val methodsChannelName = "portix/downloader"
     private val eventsChannelName = "portix/downloader/events"
     private val deviceChannelName = "portix/device"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Edge-to-edge: deixa o Flutter receber os insets reais da barra de
+        // navegação (gestos ou 3 botões) em todos os aparelhos.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

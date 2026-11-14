@@ -578,7 +578,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                           ),
                         ),
                       ],
-                      const SizedBox(height: AppSpacing.xxxl),
+                      SizedBox(height: context.systemBottomInset + AppSpacing.xxxl),
                     ],
                   ),
                 ),

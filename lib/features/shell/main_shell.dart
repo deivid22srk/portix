@@ -22,7 +22,7 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    final double bottomInset = MediaQuery.of(context).padding.bottom;
+    final double bottomInset = context.systemBottomInset;
     final List<GlassNavItem> items = <GlassNavItem>[
       GlassNavItem(
         icon: Icons.home_outlined,
@@ -60,7 +60,7 @@ class MainShell extends StatelessWidget {
           AppSpacing.screen,
           0,
           AppSpacing.screen,
-          bottomInset > 0 ? 10 : AppSpacing.lg,
+          bottomInset + 12,
         ),
         child: Row(
           children: <Widget>[

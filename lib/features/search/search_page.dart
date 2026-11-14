@@ -117,7 +117,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             slivers: <Widget>[
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     AppSpacing.screen,
                     AppSpacing.md,
                     AppSpacing.screen,
@@ -328,7 +328,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               if (state.items.isNotEmpty) ...<Widget>[
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       AppSpacing.screen + 2,
                       0,
                       AppSpacing.screen,
@@ -365,11 +365,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       AppSpacing.screen,
                       AppSpacing.xl,
                       AppSpacing.screen,
-                      40,
+                      context.systemBottomInset + AppSpacing.xxl,
                     ),
                     child: Center(
                       child: state.isLoadingMore

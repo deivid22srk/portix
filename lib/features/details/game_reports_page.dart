@@ -223,11 +223,11 @@ class _ReportsList extends ConsumerWidget {
       builder: (BuildContext context, AsyncSnapshot<DeviceSpecs> snapshot) {
         final String? soc = snapshot.data?.soc;
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             AppSpacing.screen,
             0,
             AppSpacing.screen,
-            AppSpacing.xxl,
+            context.systemBottomInset + AppSpacing.xxl,
           ),
           itemCount: filtered.length,
           separatorBuilder: (BuildContext context, int index) =>

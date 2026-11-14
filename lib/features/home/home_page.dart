@@ -255,7 +255,7 @@ class HomePage extends ConsumerWidget {
 
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
     slivers.add(SliverToBoxAdapter(child: _StatsPanel(stats: feed.stats)));
-    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 180)));
+    slivers.add(SliverToBoxAdapter(child: SizedBox(height: context.bottomChromePadding)));
     return slivers;
   }
 
