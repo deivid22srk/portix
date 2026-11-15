@@ -131,3 +131,30 @@ jobs:
               --notes "APKs mais recentes do PORTIX (build automático a partir de ${{ github.sha }})."
           fi
           gh release upload apk-latest build/app/outputs/flutter-apk/*.apk --repo "$REPO" --clobber
+
+      - name: Publicar release versionada na landing
+        env:
+          LANDING_TOKEN: ${{ secrets.LANDING_GH_TOKEN }}
+        run: |
+          set -e
+          export GH_TOKEN="$LANDING_TOKEN"
+          REPO="deivid22srk/portix-landing"
+          VERSION="$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          if [ -z "$VERSION" ]; then
+            echo "não encontrei a versão no pubspec.yaml"
+            exit 1
+          fi
+          if ! gh release view "v$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "v$VERSION" --repo "$REPO" \
+              --title "PORTIX $VERSION" \
+              --latest=false \
+              --notes "APKs assinados da versão $VERSION (build automático a partir de ${{ github.sha }}).
+
+O app PORTIX é um catálogo de ports de terceiros e não hospeda jogos.
+
+- Termos de uso: https://deivid22srk.github.io/portix-landing/termos.html
+- Política de privacidade: https://deivid22srk.github.io/portix-landing/privacidade.html
+- Site e instruções de instalação: https://deivid22srk.github.io/portix-landing/"
+          fi
+          # Reforça os APKs sempre que a versão já existir (rebuild da mesma versão).
+          gh release upload "v$VERSION" build/app/outputs/flutter-apk/*.apk --repo "$REPO" --clobber
