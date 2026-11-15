@@ -94,6 +94,9 @@ class AppSpacing {
 
   /// Altura reservada do estado vazio dentro do viewport do Hub.
   static const double emptyStateViewport = 360;
+
+  /// Folga da snackbar flutuante acima da barra de navegação de vidro.
+  static const double snackbarBottomGap = 96;
 }
 
 /// Durações e curvas de animação.

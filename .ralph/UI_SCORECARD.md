@@ -12,7 +12,7 @@
 
 | # | Tela | Cons | Hier | Esp | Cor | Est | Mov | Fdb | A11y | Resp | Perf | i18n | Média |
 |---|------|------|------|-----|-----|-----|-----|-----|------|------|------|------|-------|
-| 1 | Downloads (tile no Hub) | 4 | 3 | 3 | 4 | 4 | 4 | 3 | 4 | 2 | 3 | 4 | 3,5 |
+| 1 | Downloads (tile no Hub) | 4 | 3 | 3 | 4 | 4 | 4 | 4 | 4 | 2 | 3 | 4 | 3,5 |
 | 2 | Hub (favoritos/instalados) | 4 | 3 | 4 | 4 | 4 | 3 | 3 | 3 | 2 | 3 | 4 | 3,4 |
 | 3 | Home | 4 | 4 | 3 | 4 | 3 | 4 | 3 | 3 | 2 | 3 | 4 | 3,4 |
 | 4 | Explorar | 4 | 3 | 3 | 4 | 3 | 3 | 3 | 3 | 2 | 3 | 4 | 3,2 |
@@ -62,7 +62,9 @@
 - **Est 4** — 7 estados com rótulo/cor/ação; erro humanizado; filtros na fila (U3).
 - **Mov 4** — `AnimatedSize`+`AnimatedSwitcher` com chave por grupo de estado (U3) — progresso
   nunca pisca em connecting→downloading; barra anima via `TweenAnimationBuilder`.
-- **Fdb 3** — ripple/haptics via `Pressable`; sem snackbar com desfazer (U4).
+- **Fdb 4** — remover/cancelar com `AppSnackbar` + **Desfazer** (2 testes: concluída volta
+  como done, ativa volta como paused); haptics do `Pressable`; componente padronizado
+  (`app_snackbar.dart`) com posição acima da barra de vidro.
 - **A11y 4** — botões 48dp; `GradientProgress` com `Semantics(container: true, label)`
   (anuncia “32%” — teste `find.bySemanticsLabel`); `Pressable` marca `Semantics(button)`
   (TalkBack enxerga os chips/pílulas); guidelines verdes nos 4 estados (teste).
@@ -128,3 +130,4 @@
 | U1 | Auditoria inicial + gates + helper de teste a11y/overflow | 3,2 | `test/ui/downloads_tile_test.dart` (guidelines + overflow), `tool/ui_gates.sh` |
 | U2 | Poppins embutida (assets/fonts + OFL), google_fonts removido | 3,2 | `pubspec.yaml` fonts:, DECISIONS D-UI2 — base para goldens |
 | U3 | Downloads: filtros + limpar concluídos + grid + AnimatedSwitcher + Semantics; Pressable button | 3,3 | `download_filter.dart` + 4 testes de filtro; `find.bySemanticsLabel('32%')`; allowlist −3 linhas |
+| U4 | AppSnackbar + desfazer no remover/cancelar; RepaintBoundary no progresso | 3,3 | `app_snackbar.dart`; 2 testes de undo (done→done, ativa→paused) |

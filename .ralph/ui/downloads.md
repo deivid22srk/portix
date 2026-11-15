@@ -33,8 +33,21 @@
 - Testes: conteúdo (160 MB / 500 MB · 2,0 MB/s · 3:14 · 32%), erro humanizado sem string crua,
   guidelines nos 4 estados, overflow × 6 dispositivos — `test/ui/downloads_tile_test.dart`.
 
+## Pendente para U5
+
+- Escopo de rebuild (`select`) nos ticks; grade adaptativa no Hub; goldens dos estados.
+
+## U4 — snackbar com desfazer (2026-11-15)
+
+- `AppSnackbar` (`lib/shared/widgets/app_snackbar.dart`): vidro elevado, raio do tema,
+  flutuante acima da barra de navegação (token `snackbarBottomGap`), ação opcional.
+- Remover **e** cancelar agora têm **Desfazer** — `DownloadsController.restore(task)`:
+  concluída volta como done; ativa volta como **paused** (nunca retoma sem gesto);
+  id duplicado → versão atual vence.
+- `RepaintBoundary` na barra de progresso — o tick (~10/s) repinta só a barra.
+- 2 testes novos (undo done / undo ativa→paused); suíte 41/41.
+
 ## Pendente para U4
 
-- Snackbar com desfazer no remover/cancelar; estados offline/sem espaço diferenciados.
-- Escopo de rebuild (`select`) nos ticks; `RepaintBoundary` na barra animada.
+- Escopo de rebuild (`select`) nos ticks; `RepaintBoundary` na barra animada (feito U4).
 - Goldens dos estados × escala 1.0/1.5 (fonte já embutida).

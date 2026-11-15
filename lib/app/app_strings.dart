@@ -123,6 +123,8 @@ class L10n {
     'Ajuste os filtros para ver outros downloads.',
     'Adjust the filters to see other downloads.',
   );
+  String get downloadRemoved => _t('Download removido', 'Download removed');
+  String get undo => _t('Desfazer', 'Undo');
 
   /// Rótulo composto "Seção · N" com o separador no dicionário de i18n.
   String segmentCount(String label, int count) =>

@@ -12,7 +12,15 @@
   analyze/test/gates rodam localmente. Token: arquivo 600 em `/home/z/my-project/scripts/.gh_token`
   (nunca commitar; **rotacionar ao fim**).
 
-## Loop v2 (UI) — iterações U1–U3 (2026-11-15)
+## Loop v2 (UI) — iterações U1–U4 (2026-11-15)
+
+### U4 — AppSnackbar + desfazer (`feat(ui): snackbar com desfazer e AppSnackbar padrão`)
+- `lib/shared/widgets/app_snackbar.dart` (posição acima da barra de vidro via token
+  `snackbarBottomGap`, ação opcional); remover/cancelar do tile com **Desfazer**;
+  `DownloadsController.restore(task)` — concluída volta como done, ativa volta como
+  **paused** (nunca retoma sem gesto), id duplicado não regride; `RepaintBoundary` na barra.
+- 2 testes de undo; suíte **41/41**; gates verdes. Armadilha: snackbar em animação de
+  entrada usa `IgnorePointer` — nos testes, `pumpAndSettle()` antes de tocar a ação.
 
 ### U2 — Poppins embutida (`feat(ui): fonte Poppins embutida em assets`) — commit `5eccecd`
 - `google_fonts` removido (D-UI2): Poppins 400/500/600/700 + OFL em `assets/fonts`;
@@ -36,10 +44,11 @@
   `Override`; `flutter_test` assume plataforma android (helper sobrescreve p/ linux).
 - **Validação local:** analyze limpo · 39/39 testes (31 base + 4 tile + 4 filtro) · gates verdes.
 
-**CI:** dispatch após o push deste commit; conferir na próxima iteração (junto com 43739293617).
+**CI:** U3 run `43740093875` em andamento no momento do push do U4 (concorrência cancela o anterior;
+conferir o run mais recente na próxima iteração).
 
-**Próximo passo:** U4 — snackbar com desfazer (remover/cancelar) + `AppSnackbar` padrão +
-`RepaintBoundary`/`select` nos ticks; depois U2-R responsivo (grades adaptativas).
+**Próximo passo:** U5 — rebuild com `select` nos ticks + grades adaptativas (U2-R) + goldens
+dos estados; depois Detalhe (U1-T).
 
 **Bloqueios:** nenhum.
 

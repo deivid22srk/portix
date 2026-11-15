@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:portix/core/providers.dart';
+import 'package:portix/features/downloads/downloads_controller.dart';
 import 'package:portix/features/downloads/downloads_tile.dart';
 import 'package:portix/models/download_task.dart';
 
@@ -120,6 +121,58 @@ void main() {
           ],
         ),
         wrap: wrap,
+      );
+    },
+  );
+
+  testWidgets('Remover com desfazer: snackbar restaura a tarefa concluída', (
+    WidgetTester tester,
+  ) async {
+    final wrap = await _withPrefs();
+    await pumpUi(
+      tester,
+      child: DownloadTile(task: _task(DownloadStatus.done)),
+      wrap: wrap,
+    );
+    final BuildContext context = tester.element(find.byType(DownloadTile));
+    final ProviderContainer container = ProviderScope.containerOf(context);
+
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Download removido'), findsOneWidget);
+    expect(container.read(downloadsProvider), isEmpty);
+
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+    expect(container.read(downloadsProvider), hasLength(1));
+    // Tarefa concluída volta como concluída (nunca regride para ativa).
+    expect(
+      container.read(downloadsProvider).single.status,
+      DownloadStatus.done,
+    );
+  });
+
+  testWidgets(
+    'Restaurar tarefa ativa volta como pausada (nunca retoma sozinha)',
+    (WidgetTester tester) async {
+      final wrap = await _withPrefs();
+      await pumpUi(
+        tester,
+        child: DownloadTile(task: _task(DownloadStatus.downloading)),
+        wrap: wrap,
+      );
+      final BuildContext context = tester.element(find.byType(DownloadTile));
+      final ProviderContainer container = ProviderScope.containerOf(context);
+
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+      expect(container.read(downloadsProvider), isEmpty);
+
+      await tester.tap(find.text('Desfazer'));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(downloadsProvider).single.status,
+        DownloadStatus.paused,
       );
     },
   );

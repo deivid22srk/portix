@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/download_task.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import 'downloads_controller.dart';
@@ -73,6 +74,21 @@ class DownloadTile extends ConsumerWidget {
   }
 
   String _etaOrEmpty() => formatEta(task.etaSecs) ?? '';
+
+  /// Remove/cancela com snackbar e desfazer — destrutivo nunca é sem volta.
+  void _removeWithUndo(
+    BuildContext context,
+    L10n l10n,
+    DownloadsController controller,
+  ) {
+    controller.remove(task.gameId);
+    showAppSnackBar(
+      context,
+      message: l10n.downloadRemoved,
+      actionLabel: l10n.undo,
+      onAction: () => controller.restore(task),
+    );
+  }
 
   Future<void> _openSource(String? url) async {
     if (url == null) {
@@ -240,7 +256,7 @@ class DownloadTile extends ConsumerWidget {
                 icon: Icons.close_rounded,
                 size: 48,
                 tooltip: l10n.cancel,
-                onTap: () => controller.cancel(task.gameId),
+                onTap: () => _removeWithUndo(context, l10n, controller),
               ),
             ],
           ),
@@ -253,10 +269,14 @@ class DownloadTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const SizedBox(height: AppSpacing.sm),
-          GradientProgress(
-            value: task.progress,
-            height: AppSpacing.sm,
-            semanticLabel: _statusLabel(l10n),
+          // RepaintBoundary: o tick do progresso (~10/s) repinta só a barra,
+          // não o tile inteiro.
+          RepaintBoundary(
+            child: GradientProgress(
+              value: task.progress,
+              height: AppSpacing.sm,
+              semanticLabel: _statusLabel(l10n),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Row(
@@ -302,7 +322,7 @@ class DownloadTile extends ConsumerWidget {
                 icon: Icons.close_rounded,
                 size: 48,
                 tooltip: l10n.cancel,
-                onTap: () => controller.cancel(task.gameId),
+                onTap: () => _removeWithUndo(context, l10n, controller),
               ),
               const Spacer(),
               if (task.startedAt != null)
@@ -342,7 +362,7 @@ class DownloadTile extends ConsumerWidget {
               icon: Icons.delete_outline_rounded,
               size: 48,
               tooltip: l10n.remove,
-              onTap: () => controller.remove(task.gameId),
+              onTap: () => _removeWithUndo(context, l10n, controller),
             ),
           ],
         ),

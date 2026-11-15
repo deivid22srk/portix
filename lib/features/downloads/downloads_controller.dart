@@ -296,6 +296,20 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
 
   void remove(String gameId) => cancel(gameId);
 
+  /// Reinsere uma tarefa removida (ação "Desfazer" do snackbar). Tarefas
+  /// ativas voltam como pausadas — nada é retomado sem gesto do usuário;
+  /// se o id já existe de novo, a versão atual vence (nunca regredir estado).
+  void restore(DownloadTask task) {
+    if (taskFor(task.gameId) != null) {
+      return;
+    }
+    final DownloadTask safe = task.isActive
+        ? task.copyWith(status: DownloadStatus.paused)
+        : task;
+    state = <DownloadTask>[...state, safe];
+    _persist();
+  }
+
   void clearCompleted() {
     state = state
         .where((DownloadTask task) => !task.isDone)
