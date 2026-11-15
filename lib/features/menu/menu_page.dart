@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../app/settings.dart';
 import '../../core/auth.dart';
+import '../../core/env.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
@@ -55,6 +57,19 @@ class MenuPage extends ConsumerWidget {
       return;
     }
     _snack(context, context.l10n.cacheCleared);
+  }
+
+  /// Abre um documento legal da landing page no navegador.
+  Future<void> _openLegal(BuildContext context, String url) async {
+    final Uri? uri = Uri.tryParse(url);
+    if (uri == null) {
+      return;
+    }
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on Object {
+      // Sem navegador disponível: o usuário ainda pode acessar pelo site.
+    }
   }
 
   @override
@@ -337,7 +352,7 @@ class MenuPage extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              'v1.0.0',
+                              'v$kAppVersion',
                               style: context.texts.labelSmall?.copyWith(
                                 color: AppColors.textTertiary,
                               ),
@@ -368,6 +383,20 @@ class MenuPage extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _SectionLabel(l10n.legalSection),
+                  const SizedBox(height: AppSpacing.md),
+                  SectionTile(
+                    icon: Icons.description_outlined,
+                    label: l10n.termsOfUse,
+                    onTap: () => _openLegal(context, kTermsUrl),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SectionTile(
+                    icon: Icons.privacy_tip_outlined,
+                    label: l10n.privacyPolicy,
+                    onTap: () => _openLegal(context, kPrivacyUrl),
                   ),
                 ],
               ),

@@ -9,6 +9,10 @@ const String kAppVersion = '1.0.2';
 const String kLandingUrl = 'https://deivid22srk.github.io/portix-landing/';
 const String kReleasesUrl = 'https://github.com/deivid22srk/portix-landing/releases/latest';
 
+/// Documentos legais publicados na landing page.
+const String kTermsUrl = '${kLandingUrl}termos.html';
+const String kPrivacyUrl = '${kLandingUrl}privacidade.html';
+
 class Env {
   const Env._();
 

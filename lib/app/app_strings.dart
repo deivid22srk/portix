@@ -165,6 +165,9 @@ class L10n {
       'Public port catalog (fe2rr) with covers from LaunchBox Games Database. All credits to the original projects.');
   String get versionLabel => _t('Versão', 'Version');
   String get dataSection => _t('Dados', 'Data');
+  String get legalSection => _t('Legal', 'Legal');
+  String get termsOfUse => _t('Termos de uso', 'Terms of use');
+  String get privacyPolicy => _t('Política de privacidade', 'Privacy policy');
   String get reloadCatalog => _t('Recarregar catálogo', 'Reload catalog');
   String get catalogReloaded => _t('Catálogo atualizado', 'Catalog refreshed');
   String get clearCache => _t('Limpar cache local', 'Clear local cache');
