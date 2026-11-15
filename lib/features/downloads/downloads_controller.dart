@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -175,48 +176,61 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     }
     final DownloadTask task = state[index];
     switch (event.status) {
-      case 'connecting':
-        _update(
-          task.gameId,
-          (DownloadTask current) =>
-              current.copyWith(status: DownloadStatus.connecting),
-        );
-      case 'downloading':
-        final double? progress = event.progress;
-        _update(
-          task.gameId,
-          (DownloadTask current) => current.copyWith(
-            status: DownloadStatus.downloading,
-            progress: progress ?? current.progress,
-            speedBps: event.speedBps,
-            etaSecs: event.etaSecs,
-            doneBytes: event.done,
-            totalBytes: event.total,
-          ),
-        );
-      case 'verifying':
-        _update(
-          task.gameId,
-          (DownloadTask current) => current.copyWith(
-            status: DownloadStatus.verifying,
-            progress: event.progress ?? current.progress,
-          ),
-        );
       case 'done':
         unawaited(_finishNative(task, event.path));
       case 'failed':
         _update(
           task.gameId,
-          (DownloadTask current) => current.copyWith(
-            status: DownloadStatus.failed,
-            error: event.error ?? 'internal|',
-            speedBps: 0,
-            etaSecs: -1,
-          ),
+          (DownloadTask current) => applyNativeEvent(current, event),
         );
         _persist();
       default:
-        break;
+        _update(
+          task.gameId,
+          (DownloadTask current) => applyNativeEvent(current, event),
+        );
+    }
+  }
+
+  /// Fusão pura de um evento nativo no estado atual da tarefa (visível para
+  /// testes). Ponto crítico do contrato: o motor emite DOIS tipos de evento
+  /// `downloading` — o rico (~10/s, com velocidade/ETA) e o legado de
+  /// notificação (~3/s, sem `speed`/`eta`). O legado chega aqui com
+  /// `speedBps`/`etaSecs` nulos e NÃO rebaixa a última estatística válida:
+  /// antes ele chegava como 0/-1 e sobrescrevia os valores, fazendo a
+  /// velocidade e o tempo restante piscarem na fila do Meu Hub.
+  @visibleForTesting
+  static DownloadTask applyNativeEvent(
+    DownloadTask current,
+    NativeDownloadEvent event,
+  ) {
+    switch (event.status) {
+      case 'connecting':
+        return current.copyWith(status: DownloadStatus.connecting);
+      case 'downloading':
+        return current.copyWith(
+          status: DownloadStatus.downloading,
+          progress: event.progress ?? current.progress,
+          // null = evento sem estatística → copyWith mantém o valor anterior.
+          speedBps: event.speedBps,
+          etaSecs: event.etaSecs,
+          doneBytes: event.done,
+          totalBytes: event.total,
+        );
+      case 'verifying':
+        return current.copyWith(
+          status: DownloadStatus.verifying,
+          progress: event.progress ?? current.progress,
+        );
+      case 'failed':
+        return current.copyWith(
+          status: DownloadStatus.failed,
+          error: event.error ?? 'internal|',
+          speedBps: 0,
+          etaSecs: -1,
+        );
+      default:
+        return current;
     }
   }
 
