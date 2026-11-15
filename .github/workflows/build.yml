@@ -119,6 +119,9 @@ jobs:
           retention-days: 30
 
       - name: Publicar APKs na landing (releases)
+        # Somente a main publica em produção (landing). Branches de trabalho
+        # validam analyze/test/build sem efeito colateral externo.
+        if: github.ref == 'refs/heads/main'
         env:
           LANDING_TOKEN: ${{ secrets.LANDING_GH_TOKEN }}
         run: |
@@ -133,6 +136,9 @@ jobs:
           gh release upload apk-latest build/app/outputs/flutter-apk/*.apk --repo "$REPO" --clobber
 
       - name: Publicar release versionada na landing
+        # Somente a main publica em produção (landing). Branches de trabalho
+        # validam analyze/test/build sem efeito colateral externo.
+        if: github.ref == 'refs/heads/main'
         env:
           LANDING_TOKEN: ${{ secrets.LANDING_GH_TOKEN }}
         run: |
