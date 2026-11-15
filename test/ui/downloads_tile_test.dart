@@ -39,9 +39,10 @@ Future<Widget Function(Widget app)> _withPrefs() async {
 
 void main() {
   testWidgets(
-    'DownloadTile em download: título, badge de progresso, bytes, velocidade e ETA',
+    'DownloadTile em download: título, badge, bytes, velocidade, ETA e Semantics',
     (WidgetTester tester) async {
       final wrap = await _withPrefs();
+      final SemanticsHandle semantics = tester.ensureSemantics();
       await pumpUi(
         tester,
         child: DownloadTile(task: _task(DownloadStatus.downloading)),
@@ -54,6 +55,9 @@ void main() {
       expect(find.textContaining('160,0 MB / 500,0 MB'), findsOneWidget);
       expect(find.textContaining('2,0 MB/s'), findsOneWidget);
       expect(find.textContaining('3:14'), findsOneWidget);
+      // TalkBack anuncia o estado da barra de progresso.
+      expect(find.bySemanticsLabel('32%'), findsOneWidget);
+      semantics.dispose();
     },
   );
 

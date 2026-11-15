@@ -175,11 +175,16 @@ class _PressableState extends State<Pressable> {
               }
               widget.onTap?.call();
             },
-      child: AnimatedScale(
-        scale: _pressed ? widget.scale : 1,
-        duration: AppMotion.fast,
-        curve: AppMotion.out,
-        child: widget.child,
+      child: Semantics(
+        // GestureDetector puro é invisível para o TalkBack: marcar como
+        // botão expõe o gesto (o rótulo vem do texto filho mesclado).
+        button: enabled,
+        child: AnimatedScale(
+          scale: _pressed ? widget.scale : 1,
+          duration: AppMotion.fast,
+          curve: AppMotion.out,
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -212,7 +217,8 @@ class GlassCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = color ?? (active ? AppColors.accent : AppColors.textPrimary);
+    final Color tone =
+        color ?? (active ? AppColors.accent : AppColors.textPrimary);
     final Widget button = Pressable(
       onTap: onTap,
       child: SizedBox(
@@ -221,9 +227,12 @@ class GlassCircleButton extends StatelessWidget {
         child: GlassContainer(
           radius: AppRadii.pill,
           blur: blur,
-          color: active ? AppColors.accent.withValues(alpha: 0.18) : AppColors.glassStrong,
-          borderColor:
-              active ? AppColors.accent.withValues(alpha: 0.5) : AppColors.glassBorder,
+          color: active
+              ? AppColors.accent.withValues(alpha: 0.18)
+              : AppColors.glassStrong,
+          borderColor: active
+              ? AppColors.accent.withValues(alpha: 0.5)
+              : AppColors.glassBorder,
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
@@ -299,7 +308,11 @@ class PrimaryButton extends StatelessWidget {
               ),
             )
           else if (icon != null)
-            Icon(icon, size: 20, color: enabled ? AppColors.onAccent : AppColors.textTertiary),
+            Icon(
+              icon,
+              size: 20,
+              color: enabled ? AppColors.onAccent : AppColors.textTertiary,
+            ),
           if (isLoading || icon != null) const SizedBox(width: 10),
           Flexible(
             child: Text(
@@ -312,13 +325,18 @@ class PrimaryButton extends StatelessWidget {
               ),
             ),
           ),
-          if (trailing != null) ...<Widget>[const SizedBox(width: 10), trailing!],
+          if (trailing != null) ...<Widget>[
+            const SizedBox(width: 10),
+            trailing!,
+          ],
         ],
       ),
     );
     return Pressable(
       onTap: enabled ? onPressed : null,
-      child: expand ? SizedBox(width: double.infinity, child: content) : content,
+      child: expand
+          ? SizedBox(width: double.infinity, child: content)
+          : content,
     );
   }
 }
@@ -353,9 +371,13 @@ class SecondaryButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: active ? AppColors.accent.withValues(alpha: 0.16) : AppColors.glass,
+          color: active
+              ? AppColors.accent.withValues(alpha: 0.16)
+              : AppColors.glass,
           border: Border.all(
-            color: active ? AppColors.accent.withValues(alpha: 0.5) : AppColors.glassBorder,
+            color: active
+                ? AppColors.accent.withValues(alpha: 0.5)
+                : AppColors.glassBorder,
           ),
         ),
         child: Row(
@@ -366,7 +388,9 @@ class SecondaryButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 19,
-                color: iconColor ?? (active ? AppColors.accent : AppColors.textPrimary),
+                color:
+                    iconColor ??
+                    (active ? AppColors.accent : AppColors.textPrimary),
               ),
               const SizedBox(width: 8),
             ],
@@ -479,7 +503,11 @@ class StatBadge extends StatelessWidget {
               ),
             ),
           if (downloads > 0) ...<Widget>[
-            const Icon(Icons.download_rounded, size: 13, color: AppColors.accentAlt),
+            const Icon(
+              Icons.download_rounded,
+              size: 13,
+              color: AppColors.accentAlt,
+            ),
             const SizedBox(width: 3),
             Text(
               compactNumber(downloads),
@@ -497,12 +525,7 @@ class StatBadge extends StatelessWidget {
 
 /// Chip/badge simples com tonalidade opcional.
 class BadgeChip extends StatelessWidget {
-  const BadgeChip({
-    super.key,
-    required this.label,
-    this.color,
-    this.icon,
-  });
+  const BadgeChip({super.key, required this.label, this.color, this.icon});
 
   final String label;
   final Color? color;
@@ -570,23 +593,35 @@ class AppPill extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: selected ? AppColors.accent.withValues(alpha: 0.18) : AppColors.glass,
+          color: selected
+              ? AppColors.accent.withValues(alpha: 0.18)
+              : AppColors.glass,
           border: Border.all(
-            color: selected ? AppColors.accent.withValues(alpha: 0.55) : AppColors.glassBorder,
+            color: selected
+                ? AppColors.accent.withValues(alpha: 0.55)
+                : AppColors.glassBorder,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            if (leading != null) ...<Widget>[leading!, const SizedBox(width: 6)],
+            if (leading != null) ...<Widget>[
+              leading!,
+              const SizedBox(width: 6),
+            ],
             Text(
               label,
               style: context.texts.labelMedium?.copyWith(
-                color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+                color: selected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
-            if (trailing != null) ...<Widget>[const SizedBox(width: 6), trailing!],
+            if (trailing != null) ...<Widget>[
+              const SizedBox(width: 6),
+              trailing!,
+            ],
           ],
         ),
       ),
@@ -612,7 +647,12 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0, AppSpacing.md, AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screen,
+        0,
+        AppSpacing.md,
+        AppSpacing.md,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
@@ -632,7 +672,9 @@ class SectionHeader extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                    style: context.texts.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ],
@@ -652,7 +694,11 @@ class SectionHeader extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.accent),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.accent,
+                    ),
                   ],
                 ),
               ),
@@ -683,7 +729,10 @@ class SectionTile extends StatelessWidget {
     return GlassContainer(
       radius: AppRadii.md,
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: 14,
+      ),
       child: Row(
         children: <Widget>[
           Icon(icon, size: 20, color: AppColors.accent),
@@ -693,11 +742,17 @@ class SectionTile extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: context.texts.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           trailing ??
-              const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textTertiary),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppColors.textTertiary,
+              ),
         ],
       ),
     );
@@ -724,7 +779,11 @@ class SearchFab extends StatelessWidget {
           color: const Color(0x66090B12),
           shadow: AppShadows.floating,
           child: const Center(
-            child: Icon(Icons.search_rounded, size: 30, color: AppColors.textPrimary),
+            child: Icon(
+              Icons.search_rounded,
+              size: 30,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ),
@@ -819,7 +878,11 @@ class GlassNavBar extends StatelessWidget {
 }
 
 class _NavTap extends StatelessWidget {
-  const _NavTap({required this.item, required this.active, required this.onTap});
+  const _NavTap({
+    required this.item,
+    required this.active,
+    required this.onTap,
+  });
 
   final GlassNavItem item;
   final bool active;
@@ -870,13 +933,19 @@ class RatingLine extends StatelessWidget {
     if (rating <= 0) {
       return Text(
         '—',
-        style: context.texts.labelMedium?.copyWith(color: AppColors.textSecondary),
+        style: context.texts.labelMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
       );
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(Icons.star_rounded, size: compact ? 14 : 16, color: AppColors.warning),
+        Icon(
+          Icons.star_rounded,
+          size: compact ? 14 : 16,
+          color: AppColors.warning,
+        ),
         const SizedBox(width: 3),
         Text(
           formatRating(rating),
@@ -889,7 +958,9 @@ class RatingLine extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             '($count)',
-            style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+            style: context.texts.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ],
@@ -921,9 +992,13 @@ class StarPicker extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: size * 0.08),
               child: Icon(
-                index <= value ? Icons.star_rounded : Icons.star_outline_rounded,
+                index <= value
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
                 size: size,
-                color: index <= value ? AppColors.warning : AppColors.textTertiary,
+                color: index <= value
+                    ? AppColors.warning
+                    : AppColors.textTertiary,
               ),
             ),
           ),
@@ -934,11 +1009,7 @@ class StarPicker extends StatelessWidget {
 
 /// Interruptor customizado (não usa `Switch` do Material).
 class AppToggle extends StatelessWidget {
-  const AppToggle({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const AppToggle({super.key, required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -959,7 +1030,9 @@ class AppToggle extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
           color: value ? AppColors.accent : AppColors.glassStrong,
-          border: Border.all(color: value ? AppColors.accent : AppColors.glassBorder),
+          border: Border.all(
+            color: value ? AppColors.accent : AppColors.glassBorder,
+          ),
         ),
         child: AnimatedAlign(
           duration: AppMotion.base,
@@ -985,14 +1058,19 @@ class GradientProgress extends StatelessWidget {
     super.key,
     required this.value,
     this.height = 8,
+    this.semanticLabel,
   });
 
   final double value;
   final double height;
 
+  /// Rótulo para leitores de tela (ex.: “32%” ou “Pausado”). Sem ele a barra
+  /// é invisível para o TalkBack — progresso nunca deve ser só visual.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
+    final Widget bar = TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: value.clamp(0, 1)),
       duration: AppMotion.slow,
       curve: AppMotion.out,
@@ -1009,7 +1087,9 @@ class GradientProgress extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   widthFactor: animated,
                   child: const DecoratedBox(
-                    decoration: BoxDecoration(gradient: AppColors.accentGradient),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.accentGradient,
+                    ),
                   ),
                 ),
               ],
@@ -1018,6 +1098,13 @@ class GradientProgress extends StatelessWidget {
         );
       },
     );
+    if (semanticLabel == null) {
+      return bar;
+    }
+    // container: true — nó próprio no TalkBack; sem isso o rótulo é
+    // absorvido pelo ancestral mesclado (botão do tile) e o progresso
+    // volta a ser invisível para leitores de tela.
+    return Semantics(container: true, label: semanticLabel, child: bar);
   }
 }
 
@@ -1059,7 +1146,9 @@ class SegmentedControl<T> extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadii.sm),
-                    color: item.value == value ? AppColors.glassStrong : Colors.transparent,
+                    color: item.value == value
+                        ? AppColors.glassStrong
+                        : Colors.transparent,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1084,8 +1173,9 @@ class SegmentedControl<T> extends StatelessWidget {
                             color: item.value == value
                                 ? AppColors.textPrimary
                                 : AppColors.textTertiary,
-                            fontWeight:
-                                item.value == value ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight: item.value == value
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
                       ),

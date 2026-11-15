@@ -12,8 +12,8 @@
 
 | # | Tela | Cons | Hier | Esp | Cor | Est | Mov | Fdb | A11y | Resp | Perf | i18n | Média |
 |---|------|------|------|-----|-----|-----|-----|-----|------|------|------|------|-------|
-| 1 | Downloads (tile no Hub) | 4 | 3 | 2 | 4 | 4 | 3 | 3 | 3 | 2 | 3 | 4 | 3,2 |
-| 2 | Hub (favoritos/instalados) | 4 | 3 | 3 | 4 | 4 | 3 | 3 | 3 | 2 | 3 | 4 | 3,3 |
+| 1 | Downloads (tile no Hub) | 4 | 3 | 3 | 4 | 4 | 4 | 3 | 4 | 2 | 3 | 4 | 3,5 |
+| 2 | Hub (favoritos/instalados) | 4 | 3 | 4 | 4 | 4 | 3 | 3 | 3 | 2 | 3 | 4 | 3,4 |
 | 3 | Home | 4 | 4 | 3 | 4 | 3 | 4 | 3 | 3 | 2 | 3 | 4 | 3,4 |
 | 4 | Explorar | 4 | 3 | 3 | 4 | 3 | 3 | 3 | 3 | 2 | 3 | 4 | 3,2 |
 | 5 | Notícias + matéria | 4 | 3 | 3 | 4 | 3 | 3 | 3 | 3 | 2 | 3 | 4 | 3,2 |
@@ -27,7 +27,7 @@
 | 13 | Rota não encontrada | 4 | 3 | 3 | 4 | 3 | 2 | 2 | 3 | 3 | 3 | 4 | 3,1 |
 | 14 | Diálogos, sheets, snackbars | 4 | 3 | 3 | 4 | 3 | 2 | 3 | 3 | 2 | 3 | 4 | 3,1 |
 
-**Média geral: 3,2** · Meta: ≥ 4,5 com todas ≥ 4.
+**Média geral: 3,3** · Meta: ≥ 4,5 com todas ≥ 4.
 
 ## Lacunas transversais (bloqueiam nota 4+ em todas as telas)
 
@@ -52,28 +52,31 @@
 
 ## Notas por tela (evidência e caminho para 4+)
 
-### 1. Downloads (DownloadTile) — 3,2
-- **Cons 4** — usa `GlassContainer`/`BadgeChip`/`GradientProgress`/tokens (downloads_tile.dart:100-199).
-  Débito: `EdgeInsets`/`SizedBox` mágicos (3, 5, 9, 58, 78) — 7 ocorrências.
+### 1. Downloads (DownloadTile) — 3,5
+- **Cons 4** — GlassContainer/BadgeChip/GradientProgress/tokens; capa 58×78 virou token
+  (`tileCoverWidth/Height`); allowlist de `tok_size` drenada para este arquivo (gates verdes).
 - **Hier 3** — título+badge ok; linha de stats e ETA competem com mesmo peso (labelSmall todas).
-- **Esp 2** — valores fora do grid 4/8: `height: 3` (:140), `5` (:157), `9` (:148, :198).
-- **Cor 4** — só `AppColors` (verificado por rg). Contraste AA a confirmar com teste.
-- **Est 4** — 7 estados com rótulo, cor e ação próprios; erro humanizado via `downloadErrorLabel`
-  (:160). Falta estado offline/sem espaço distinto visualmente (hoje caem em `failed`).
-- **Mov 3** — barra anima (TweenAnimationBuilder); mudanças de estado sem transição.
-- **Fdb 3** — ripple via `Pressable`; haptics só no controller. Sem snackbar com desfazer no cancelar/remover.
-- **A11y 3** — botões 48dp (:184-194); sem `Semantics` no progresso; percentual só visível quando
-  status=downloading (badge), não anunciado.
-- **Resp 2** — linha fixa 58×78 sem adaptativo; landscape/teste de overflow inexistente.
-- **Perf 3** — `ConsumerWidget`; tile inteira reconstrói a cada tick de progresso (sem `select`).
-- **i18n 4** — todo texto via `L10n`; formatadores pt/en (`formatters.dart`).
+- **Esp 3** — 3/5/9 → grid 4/8 (AppSpacing.xs/sm); barra 6→8 (`AppSpacing.sm`); zero mágicos
+  (gate `tok_size` sem allowlist para o arquivo).
+- **Cor 4** — só `AppColors`; `textTertiary` 55% AA (U1).
+- **Est 4** — 7 estados com rótulo/cor/ação; erro humanizado; filtros na fila (U3).
+- **Mov 4** — `AnimatedSize`+`AnimatedSwitcher` com chave por grupo de estado (U3) — progresso
+  nunca pisca em connecting→downloading; barra anima via `TweenAnimationBuilder`.
+- **Fdb 3** — ripple/haptics via `Pressable`; sem snackbar com desfazer (U4).
+- **A11y 4** — botões 48dp; `GradientProgress` com `Semantics(container: true, label)`
+  (anuncia “32%” — teste `find.bySemanticsLabel`); `Pressable` marca `Semantics(button)`
+  (TalkBack enxerga os chips/pílulas); guidelines verdes nos 4 estados (teste).
+- **Resp 2** — capa fixa; sem breakpoint (U2-R); overflow × 6 dispositivos verdes (teste).
+- **Perf 3** — `ConsumerWidget`; tile inteira reconstrói por tick (sem `select` — U2-Perf).
+- **i18n 4** — todo texto via `L10n`; formatadores pt/en.
 
-### 2. Hub — 3,3
-- Evidência: `hub_page.dart`. **Est 4** (vazio com EmptyState + ação, contadores por segmento),
-  **Esp 3** (`height: 360` mágico :136, :180), **Mov 3** (troca de segmento sem animação),
-  **Resp 2** (grade fixa 2 colunas — em tablet 800×1280 deveria ter 3-4).
-- Downloads sem filtros (ativos/concluídos/falhos), sem ações em lote, sem reordenação — peça
-  central do loop v2 (UI_PLAN U1-D).
+### 2. Hub — 3,4
+- Evidência: `hub_page.dart`. **Est 4** (vazio com EmptyState + ação, contadores por segmento,
+  **filtros Todos/Ativos/Concluídos/Falhos + Limpar concluídos** — U3, com estado vazio do filtro
+  e testes em `download_filter_test.dart`), **Esp 4** (360→`emptyStateViewport`, 6→`sm`; allowlist
+  `tok_size` drenada), **Mov 3** (troca de segmento sem animação), **Resp 2** (grade fixa 2 colunas).
+- Rótulos compostos via `l10n.segmentCount` (separador no i18n) — allowlist `raw_text` drenada.
+- Restante para nota 4+: reordenação da fila e ações em lote além de limpar concluídos (U4).
 
 ### 3. Home — 3,4
 - Evidência: `home_page.dart` + `hero_carousel.dart`. **Hier 4** (displaySmall + seções),
@@ -123,3 +126,5 @@
 | Iteração | Ação | Média | Evidência nova |
 | --- | --- | --- | --- |
 | U1 | Auditoria inicial + gates + helper de teste a11y/overflow | 3,2 | `test/ui/downloads_tile_test.dart` (guidelines + overflow), `tool/ui_gates.sh` |
+| U2 | Poppins embutida (assets/fonts + OFL), google_fonts removido | 3,2 | `pubspec.yaml` fonts:, DECISIONS D-UI2 — base para goldens |
+| U3 | Downloads: filtros + limpar concluídos + grid + AnimatedSwitcher + Semantics; Pressable button | 3,3 | `download_filter.dart` + 4 testes de filtro; `find.bySemanticsLabel('32%')`; allowlist −3 linhas |

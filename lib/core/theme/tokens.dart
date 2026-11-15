@@ -87,6 +87,13 @@ class AppSpacing {
   static const double secondaryButtonHeight = 48;
   static const double circleButton = 46;
   static const double searchFab = 68;
+
+  /// Capa compacta na linha de download (proporção ~3:4 de pôster).
+  static const double tileCoverWidth = 58;
+  static const double tileCoverHeight = 78;
+
+  /// Altura reservada do estado vazio dentro do viewport do Hub.
+  static const double emptyStateViewport = 360;
 }
 
 /// Durações e curvas de animação.

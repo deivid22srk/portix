@@ -16,7 +16,7 @@
 - Capa 58×78 fixa; em telas grandes sobra hierarquia.
 - Erro com ícone 15px + texto labelSmall — densidade baixa de leitura em falha (informação crítica).
 
-## Depois (iteração U1 — fundação + correções com evidência de teste)
+## Depois (iterações U1 + U3)
 
 - Botão "Abrir fonte" 38 → **48dp** (`AppSpacing.secondaryButtonHeight`) — alvo de toque AA
   (verificado por `androidTapTargetGuideline`).
@@ -24,11 +24,17 @@
   e fonte 2.0) capturado por `expectNoOverflow` — agora quebra de linha em vez de estourar.
 - `textTertiary` 42% → **55% branco**: contraste do ETA 3,9 → 6,0:1 sobre o vidro
   (verificado por `textContrastGuideline`).
+- Espaçamentos 3/5/9 → grid 4/8 (`AppSpacing.xs/sm`); barra 6→8; capa 58×78 → tokens
+  (`tileCoverWidth/Height`) — allowlist `tok_size` drenada para o arquivo.
+- Corpo do tile por grupo de estado (progresso/falha/concluído) com `AnimatedSize` +
+  `AnimatedSwitcher` — conecting→downloading não pisca mais.
+- `GradientProgress.semanticLabel` com `Semantics(container: true)` — TalkBack anuncia o
+  estado/percentual ("32%"); verificado com `find.bySemanticsLabel` no teste.
 - Testes: conteúdo (160 MB / 500 MB · 2,0 MB/s · 3:14 · 32%), erro humanizado sem string crua,
   guidelines nos 4 estados, overflow × 6 dispositivos — `test/ui/downloads_tile_test.dart`.
 
-## Pendente para U1-D (tarefa dedicada)
+## Pendente para U4
 
-- Filtros (ativos/concluídos/falhos), ações em lote, reordenação simples.
-- Transição de estado com `AnimatedSwitcher`; `Semantics` no progresso; snackbar com desfazer.
-- Espaçamentos fora do grid (3, 5, 9) → tokens; escopo de rebuild (`select`) nos ticks.
+- Snackbar com desfazer no remover/cancelar; estados offline/sem espaço diferenciados.
+- Escopo de rebuild (`select`) nos ticks; `RepaintBoundary` na barra animada.
+- Goldens dos estados × escala 1.0/1.5 (fonte já embutida).

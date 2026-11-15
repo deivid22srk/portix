@@ -12,7 +12,39 @@
   analyze/test/gates rodam localmente. Token: arquivo 600 em `/home/z/my-project/scripts/.gh_token`
   (nunca commitar; **rotacionar ao fim**).
 
-## Loop v2 (UI) — iteração U1 — Fundação de UI: auditoria + portões + testes (2026-11-15)
+## Loop v2 (UI) — iterações U1–U3 (2026-11-15)
+
+### U2 — Poppins embutida (`feat(ui): fonte Poppins embutida em assets`) — commit `5eccecd`
+- `google_fonts` removido (D-UI2): Poppins 400/500/600/700 + OFL em `assets/fonts`;
+  `Typography.material2021().black` com fontFamily — as 15 variantes já tinham
+  tamanho/peso explícitos. Base dos goldens.
+- **CI:** run `43739293617` (dispatch no `5eccecd`) — conferir na próxima iteração.
+  (O run do U1, `43739064815`, foi **cancelado pela concorrência** — o workflow usa
+  `cancel-in-progress` por ref; o run mais recente valida U1+U2 juntos. Comportamento desejado.)
+
+### U3 — Downloads: filtros, lote, grid, movimento, Semantics (`feat(ui): fila de downloads com filtros, animação e acessibilidade`)
+- **Filtros** Todos/Ativos/Concluídos/Falhos no Hub (`AppPill` dense) + **Limpar concluídos**
+  (só quando existem) + estado vazio do filtro; lógica pura em
+  `lib/features/downloads/download_filter.dart` com 4 testes.
+- **Tile**: espaçamentos no grid 4/8 (3/5/9→tokens), capa 58×78 → `tileCoverWidth/Height`,
+  barra 6→8; corpo por GRUPO de estado com `AnimatedSize`+`AnimatedSwitcher` (conecting→
+  downloading não pisca); allowlist `tok_size` e `raw_text` do Hub drenadas (−3 linhas).
+- **A11y**: `GradientProgress.semanticLabel` com `Semantics(container: true)` — TalkBack
+  anuncia "32%" (teste `find.bySemanticsLabel`); `Pressable` marca `Semantics(button)`.
+- Notas de armadilha descobertas: `SemanticsHandle` deve ser descartado DENTRO do corpo do
+  teste (verificação do framework roda antes dos tearDowns); Riverpod 3.5 não exporta o tipo
+  `Override`; `flutter_test` assume plataforma android (helper sobrescreve p/ linux).
+- **Validação local:** analyze limpo · 39/39 testes (31 base + 4 tile + 4 filtro) · gates verdes.
+
+**CI:** dispatch após o push deste commit; conferir na próxima iteração (junto com 43739293617).
+
+**Próximo passo:** U4 — snackbar com desfazer (remover/cancelar) + `AppSnackbar` padrão +
+`RepaintBoundary`/`select` nos ticks; depois U2-R responsivo (grades adaptativas).
+
+**Bloqueios:** nenhum.
+
+---
+## Loop v2 — iteração U1 (fundação) — commit `edca093`
 
 **Feito (`test(ui): portões de UI, testes de acessibilidade e auditoria das telas`):**
 - **Flutter 3.50.0 instalado no sandbox** (SDK intacto verificado por `git status` do próprio SDK).
@@ -39,9 +71,9 @@
 - **Validação local:** analyze limpo · `dart format` nos arquivos tocados · **35/35 testes** ·
   gates verdes.
 
-**CI:** dispatch após o push; conferir resultado no início da próxima iteração.
+**CI:** run `43739064815` (cancelado pela concorrência, ver U2 acima) — validação coberta pelo run do U2.
 
-**Próximo passo:** U0-D (design system: fonte Poppins embutida em assets + ThemeExtension) ou,
+**Próximo passo (histórico):** U0-D (design system: fonte Poppins embutida em assets + ThemeExtension) ou,
 se o CI vermelhar, corrigir primeiro. Depois U1-D (Downloads: filtros/lote/animação/Semantics).
 
 **Bloqueios:** nenhum.
