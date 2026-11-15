@@ -31,9 +31,13 @@ Ajustado à stack real: Flutter + motor Rust (`ureq`/JNI) + Kotlin service. Ver 
       (zero deps), espera interrompível (≤100 ms) e cada retry retoma do disco.
       Testes: retry após queda (retoma), retry após 500, `Retry-After: 1` do 429 respeitado,
       404 sem retry, cancelamento durante o backoff.
-- [ ] Motor: progresso enriquecido no contrato (núcleo já produz done/total/velocidade EWMA/ETA;
-      expor no JNI/Kotlin/Dart de forma compatível no mesmo commit das 3 camadas).
-- [ ] Dart/Kotlin: novos estados e erros mapeados para mensagens localizadas pt/en (sem texto cru do motor).
+- [x] Motor: progresso enriquecido no contrato — `onStats(done,total,speed,eta)` a ~10/s e
+      `onState(código)` no `DownloadCallback` (JNI), propagados pelo `DownloadService` no
+      EventChannel (`speed`/`eta`/status `connecting`/`verifying`), consumidos no Dart.
+      Legado `onProgress` mantido a ~3/s para a notificação.
+- [x] Dart/Kotlin: novos estados e erros mapeados para mensagens localizadas pt/en
+      (`downloadErrorLabel` traduz `code|detalhe`; nunca mostra texto cru do motor);
+      `DownloadStatus` ganhou `connecting`/`verifying`; tile mostra bytes, velocidade e ETA.
 
 ## P1 — Produto
 
@@ -54,7 +58,7 @@ Ajustado à stack real: Flutter + motor Rust (`ureq`/JNI) + Kotlin service. Ver 
 
 ## P2 — Polimento
 
-- [ ] Alvos de toque ≥ 48 dp em toda a fila de downloads (hoje 32 dp nos botões do tile).
+- [x] Alvos de toque ≥ 48 dp no tile de downloads (32 → 48 dp; fail ganhou botão tentar de novo).
 - [ ] Animações: progresso suave (sem pulos), transições coerentes, haptics sutis revisados.
 - [ ] Acessibilidade: Semantics no tile de download, contraste AA em `textTertiary`.
 - [ ] Layouts adaptativos (tablet/paisagem) para downloads e detalhes.

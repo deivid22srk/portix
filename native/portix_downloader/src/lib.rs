@@ -77,6 +77,42 @@ fn emit_progress(env: &mut JNIEnv, callback: &GlobalRef, done: i64, total: i64) 
     );
 }
 
+/// Estatísticas ricas (10/s): bytes, total, velocidade (B/s) e ETA (s;
+/// -1 quando desconhecido).
+fn emit_stats(
+    env: &mut JNIEnv,
+    callback: &GlobalRef,
+    done: i64,
+    total: i64,
+    speed_bps: f64,
+    eta_secs: i64,
+) {
+    let _ = env.call_method(
+        callback.as_obj(),
+        "onStats",
+        "(JJDJ)V",
+        &[
+            JValue::Long(done),
+            JValue::Long(total),
+            JValue::Double(speed_bps),
+            JValue::Long(eta_secs),
+        ],
+    );
+}
+
+/// Transição de estado (códigos estáveis — ver `DownloadCallback` no Kotlin).
+fn emit_state(env: &mut JNIEnv, callback: &GlobalRef, state: crate::engine::state::DownloadState) {
+    let code = match state {
+        crate::engine::state::DownloadState::Connecting => 0,
+        crate::engine::state::DownloadState::Downloading => 1,
+        crate::engine::state::DownloadState::Verifying => 2,
+        crate::engine::state::DownloadState::Completed => 3,
+        crate::engine::state::DownloadState::Failed => 4,
+        crate::engine::state::DownloadState::Cancelled => 5,
+    };
+    let _ = env.call_method(callback.as_obj(), "onState", "(I)V", &[JValue::Int(code)]);
+}
+
 fn emit_complete(env: &mut JNIEnv, callback: &GlobalRef, ok: bool, error: &str) {
     let value = match env.new_string(error).ok() {
         Some(handle) => JObject::from(handle),
@@ -105,14 +141,33 @@ fn run_download(
             .map_err(|error| DownloadError::Internal(error.to_string()))?;
 
         emit_progress(&mut env, &callback, 0, -1);
+        emit_state(
+            &mut env,
+            &callback,
+            crate::engine::state::DownloadState::Connecting,
+        );
 
+        // Dois callbacks precisam do `JNIEnv`: `RefCell` divide o acesso na
+        // mesma thread (o motor chama um por vez, nunca simultâneo).
+        let env_cell = std::cell::RefCell::new(env);
         let agent = http::agent();
         let mut last_notify = Instant::now() - NOTIFY_INTERVAL;
-        let mut on_state = |_state: crate::engine::state::DownloadState| {
-            // Contrato enriquecido (estados visíveis na UI) chega na
-            // iteração de contrato; hoje o Kotlin só conhece progresso/fim.
+        let mut on_state = |state: crate::engine::state::DownloadState| {
+            let mut env = env_cell.borrow_mut();
+            emit_state(&mut env, &callback, state);
         };
         let mut on_progress = |event: ProgressEvent| {
+            let mut env = env_cell.borrow_mut();
+            // Contrato rico a ~10/s para a UI (velocidade/ETA).
+            emit_stats(
+                &mut env,
+                &callback,
+                event.done,
+                event.total,
+                event.speed_bps,
+                event.eta_secs.map_or(-1, |s| s as i64),
+            );
+            // Legado: notificação a ~3/s (economia de bateria).
             let is_final = event.total > 0 && event.done >= event.total;
             if is_final || last_notify.elapsed() >= NOTIFY_INTERVAL {
                 last_notify = Instant::now();

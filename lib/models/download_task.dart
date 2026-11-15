@@ -1,6 +1,14 @@
 import 'parsing.dart';
 
-enum DownloadStatus { queued, downloading, paused, done, failed }
+enum DownloadStatus {
+  queued,
+  connecting,
+  downloading,
+  verifying,
+  paused,
+  done,
+  failed,
+}
 
 class DownloadTask {
   const DownloadTask({
@@ -21,6 +29,10 @@ class DownloadTask {
     this.versionName,
     this.versionCode,
     this.error,
+    this.speedBps = 0,
+    this.etaSecs = -1,
+    this.doneBytes = 0,
+    this.totalBytes = 0,
   });
 
   final String gameId;
@@ -55,9 +67,31 @@ class DownloadTask {
   /// Mensagem de erro quando o download falha.
   final String? error;
 
-  bool get isActive => status == DownloadStatus.queued || status == DownloadStatus.downloading;
+  /// Velocidade suavizada (bytes/s) reportada pelo motor. Transiente —
+  /// não é persistida (ao reabrir o app começa em 0).
+  final double speedBps;
+
+  /// ETA em segundos (-1 = desconhecido). Transiente.
+  final int etaSecs;
+
+  /// Bytes baixados no instante (para exibir "X de Y"). Transiente.
+  final int doneBytes;
+
+  /// Tamanho total conhecido (0 = desconhecido). Transiente.
+  final int totalBytes;
+
+  bool get isActive =>
+      status == DownloadStatus.queued ||
+      status == DownloadStatus.connecting ||
+      status == DownloadStatus.downloading ||
+      status == DownloadStatus.verifying;
 
   bool get isDone => status == DownloadStatus.done;
+
+  bool get isTransferring =>
+      status == DownloadStatus.connecting ||
+      status == DownloadStatus.downloading ||
+      status == DownloadStatus.verifying;
 
   DownloadTask copyWith({
     DownloadStatus? status,
@@ -70,6 +104,10 @@ class DownloadTask {
     String? versionName,
     int? versionCode,
     String? error,
+    double? speedBps,
+    int? etaSecs,
+    int? doneBytes,
+    int? totalBytes,
   }) =>
       DownloadTask(
         gameId: gameId,
@@ -89,6 +127,10 @@ class DownloadTask {
         versionName: versionName ?? this.versionName,
         versionCode: versionCode ?? this.versionCode,
         error: error ?? this.error,
+        speedBps: speedBps ?? this.speedBps,
+        etaSecs: etaSecs ?? this.etaSecs,
+        doneBytes: doneBytes ?? this.doneBytes,
+        totalBytes: totalBytes ?? this.totalBytes,
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{

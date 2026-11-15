@@ -167,6 +167,11 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     }
     final DownloadTask task = state[index];
     switch (event.status) {
+      case 'connecting':
+        _update(
+          task.gameId,
+          (DownloadTask current) => current.copyWith(status: DownloadStatus.connecting),
+        );
       case 'downloading':
         final double? progress = event.progress;
         _update(
@@ -174,6 +179,18 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
           (DownloadTask current) => current.copyWith(
             status: DownloadStatus.downloading,
             progress: progress ?? current.progress,
+            speedBps: event.speedBps,
+            etaSecs: event.etaSecs,
+            doneBytes: event.done,
+            totalBytes: event.total,
+          ),
+        );
+      case 'verifying':
+        _update(
+          task.gameId,
+          (DownloadTask current) => current.copyWith(
+            status: DownloadStatus.verifying,
+            progress: event.progress ?? current.progress,
           ),
         );
       case 'done':
@@ -183,7 +200,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
           task.gameId,
           (DownloadTask current) => current.copyWith(
             status: DownloadStatus.failed,
-            error: event.error ?? 'falha',
+            error: event.error ?? 'internal|',
+            speedBps: 0,
+            etaSecs: -1,
           ),
         );
         _persist();

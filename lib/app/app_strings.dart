@@ -97,9 +97,71 @@ class L10n {
   String get downloadStarted => _t('Download iniciado', 'Download started');
   String get viewDownloads => _t('Ver downloads', 'View downloads');
   String get statusQueued => _t('Na fila', 'Queued');
+  String get statusConnecting => _t('Conectando', 'Connecting');
+  String get statusVerifying => _t('Verificando', 'Verifying');
   String get statusPaused => _t('Pausado', 'Paused');
   String get statusDone => _t('Concluído', 'Done');
   String get statusFailed => _t('Falhou', 'Failed');
+
+  // Mensagens humanas para os códigos estáveis do motor (ver engine::error).
+  String get dlErrNetwork => _t(
+      'A conexão caiu. Toque em retomar para continuar de onde parou.',
+      'Connection lost. Tap resume to continue where it stopped.');
+  String get dlErrHttp => _t('O servidor recusou o download agora. Tente novamente mais tarde.',
+      'The server refused the download. Try again later.');
+  String get dlErrDiskFull => _t('Espaço insuficiente no celular. Libere espaço e toque em retomar.',
+      'Not enough storage. Free up space and tap resume.');
+  String get dlErrNotApk => _t('O link não apontava para um arquivo válido. Tente abrir a fonte.',
+      "The link did not point to a valid file. Try opening the source.");
+  String get dlErrTruncated => _t('O download foi interrompido no meio. Toque em retomar.',
+      'The download was cut off. Tap resume.');
+  String get dlErrIo => _t('Erro de leitura ou escrita no armazenamento.',
+      'Storage read or write error.');
+  String get dlErrCancelled => _t('Download cancelado.', 'Download cancelled.');
+  String get dlErrGeneric => _t('Não foi possível baixar agora. Tente novamente.',
+      'Could not download now. Try again.');
+
+  /// ETA no formato relógio: “restam 3:14” / “3:14 left”.
+  String timeLeft(String clock) => clock.isEmpty
+      ? ''
+      : isEn
+          ? '$clock left'
+          : 'restam $clock';
+
+  /// Traduz a mensagem do motor (`"<code>|<detalhe>"`) para texto humano.
+  /// Códigos desconhecidos caem no texto genérico — nunca mostramos o cru.
+  String downloadErrorLabel(String? raw) {
+    if (raw == null || raw.isEmpty) {
+      return dlErrGeneric;
+    }
+    final int sep = raw.indexOf('|');
+    final String code = sep > 0 ? raw.substring(0, sep) : raw;
+    switch (code) {
+      case 'network':
+      case 'truncated':
+        if (code == 'network') {
+          return dlErrNetwork;
+        }
+        return dlErrTruncated;
+      case 'http_status':
+        return dlErrHttp;
+      case 'disk_full':
+        return dlErrDiskFull;
+      case 'not_apk':
+        return dlErrNotApk;
+      case 'io':
+        return dlErrIo;
+      case 'cancelled':
+        return dlErrCancelled;
+      case 'invalid_url':
+      case 'invalid_destination':
+      case 'file_changed':
+      case 'range_not_satisfiable':
+      case 'internal':
+      default:
+        return dlErrGeneric;
+    }
+  }
 
   // ------------------------------------------------------------- biblioteca
   String get addedToLibrary => _t('Adicionado à biblioteca', 'Added to library');
@@ -136,7 +198,7 @@ class L10n {
   String get cacheCleared => _t('Cache limpo', 'Cache cleared');
   String get madeWith => _t('Feito com Flutter · dados abertos', 'Built with Flutter · open data');
 
-  // ---------------------------------------------------------------- estados
+  // ------------------------------------------------------------- estados
   String get errorGeneric => _t('Algo deu errado.', 'Something went wrong.');
   String get errorNetwork => _t('Sem conexão com o catálogo. Verifique sua internet.',
       'No connection to the catalog. Check your internet.');

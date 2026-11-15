@@ -90,6 +90,30 @@ class DownloadService : Service(), DownloadCallback {
         )
     }
 
+    override fun onStats(done: Long, total: Long, speedBps: Double, etaSecs: Long) {
+        DownloaderBridge.emit(
+            mapOf(
+                "id" to downloadId,
+                "status" to "downloading",
+                "done" to done,
+                "total" to total,
+                "speed" to speedBps,
+                "eta" to etaSecs,
+            ),
+        )
+    }
+
+    override fun onState(state: Int) {
+        val status = when (state) {
+            DownloadCallback.STATE_CONNECTING -> "connecting"
+            DownloadCallback.STATE_DOWNLOADING -> "downloading"
+            DownloadCallback.STATE_VERIFYING -> "verifying"
+            // Estados terminais chegam por onComplete (done/failed/cancelled).
+            else -> return
+        }
+        DownloaderBridge.emit(mapOf("id" to downloadId, "status" to status))
+    }
+
     override fun onComplete(ok: Boolean, error: String?) {
         currentHandle = 0
         DownloaderBridge.emit(

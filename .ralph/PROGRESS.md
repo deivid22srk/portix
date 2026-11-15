@@ -114,4 +114,27 @@ mensagens de erro localizadas) — fatia vertical nas 3 camadas.
 
 **Bloqueios:** nenhum.
 
+## Iterações 6+7 — Contrato rico ponta a ponta (Rust → Kotlin → Dart) (2026-11-15)
+
+**Feito (`feat(download): contrato rico de estados, velocidade e ETA nas 3 camadas`):**
+- Rust: ponte JNI emite `onState(código estável 0–5)` e `onStats(done,total,speed,eta)` a ~10/s;
+  `RefCell` para dividir o `JNIEnv` entre os dois callbacks (mesma thread, chamadas sequenciais).
+- Kotlin: `DownloadCallback` ganha `onStats`/`onState` com constantes documentadas;
+  `DownloadService` propõe ao EventChannel os status `connecting`/`downloading`/`verifying` + `speed`/`eta`;
+  `onProgress` legado (notificação a ~3/s) preservado.
+- Dart: `NativeDownloadEvent` parseia `speed`/`eta`; `DownloadStatus` ganha `connecting`/`verifying`
+  (transientes, não persistidos); `DownloadTask` ganha `speedBps/etaSecs/doneBytes/totalBytes`;
+  tile mostra `X de Y · velocidade` e “restam m:ss”, botão **tentar de novo** no falho
+  (usa a retomada do motor), erros viram texto humano pt/en via `downloadErrorLabel` —
+  nunca mais string crua do motor; alvos de toque 32 → 48 dp.
+- Formatadores novos: `formatBytes`, `formatSpeed`, `formatEta` (+ testes).
+- **Validação:** Rust fmt/clippy/test 49/49 local; Dart/Kotlin dependem do CI (flutter não há no sandbox).
+
+**CI:** dispatch após este commit; conferir na próxima iteração.
+
+**Próximo passo:** iteração 8 → corrigir o que o CI apontar; depois fila no serviço Kotlin
+(N simultâneos) + notificação com ações, ou segmentação paralela no motor.
+
+**Bloqueios:** nenhum.
+
 ---

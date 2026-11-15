@@ -12,6 +12,8 @@ class NativeDownloadEvent {
     this.total = 0,
     this.path,
     this.error,
+    this.speedBps = 0,
+    this.etaSecs = -1,
   });
 
   final int id;
@@ -21,11 +23,18 @@ class NativeDownloadEvent {
   final String? path;
   final String? error;
 
+  /// Velocidade suavizada (bytes/s) — presente em eventos `downloading`.
+  final double speedBps;
+
+  /// ETA em segundos (-1 = desconhecido).
+  final int etaSecs;
+
   double? get progress =>
       total > 0 ? (done / total).clamp(0.0, 1.0).toDouble() : null;
 
   factory NativeDownloadEvent.fromMap(Map<Object?, Object?> map) {
     int asInt(Object? value) => value is num ? value.toInt() : 0;
+    double asDouble(Object? value) => value is num ? value.toDouble() : 0.0;
     String? asText(Object? value) {
       final String text = value?.toString() ?? '';
       return text.isEmpty ? null : text;
@@ -38,6 +47,8 @@ class NativeDownloadEvent {
       total: asInt(map['total']),
       path: asText(map['path']),
       error: asText(map['error']),
+      speedBps: asDouble(map['speed']),
+      etaSecs: map['eta'] is num ? (map['eta'] as num).toInt() : -1,
     );
   }
 }

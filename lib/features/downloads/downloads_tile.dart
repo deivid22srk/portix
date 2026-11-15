@@ -22,8 +22,12 @@ class DownloadTile extends ConsumerWidget {
     switch (task.status) {
       case DownloadStatus.queued:
         return l10n.statusQueued;
+      case DownloadStatus.connecting:
+        return l10n.statusConnecting;
       case DownloadStatus.downloading:
         return l10n.progressPercent((task.progress * 100).round());
+      case DownloadStatus.verifying:
+        return l10n.statusVerifying;
       case DownloadStatus.paused:
         return l10n.statusPaused;
       case DownloadStatus.done:
@@ -37,8 +41,12 @@ class DownloadTile extends ConsumerWidget {
     switch (task.status) {
       case DownloadStatus.queued:
         return AppColors.warning;
+      case DownloadStatus.connecting:
+        return AppColors.textSecondary;
       case DownloadStatus.downloading:
         return AppColors.accent;
+      case DownloadStatus.verifying:
+        return AppColors.accentAlt;
       case DownloadStatus.paused:
         return AppColors.textSecondary;
       case DownloadStatus.done:
@@ -47,6 +55,22 @@ class DownloadTile extends ConsumerWidget {
         return AppColors.danger;
     }
   }
+
+  /// Linha de estatísticas: bytes baixados + velocidade (quando o motor
+  /// informa) — nunca “solta” números sem contexto.
+  String _statsLine(L10n l10n) {
+    final List<String> parts = <String>[
+      if (task.totalBytes > 0)
+        '${formatBytes(task.doneBytes)} / ${formatBytes(task.totalBytes)}',
+      if (task.speedBps > 0) formatSpeed(task.speedBps),
+    ];
+    if (parts.isEmpty) {
+      return task.status == DownloadStatus.connecting ? l10n.statusConnecting : '';
+    }
+    return parts.join(' · ');
+  }
+
+  String _etaOrEmpty() => formatEta(task.etaSecs) ?? '';
 
   Future<void> _openSource(String? url) async {
     if (url == null) {
@@ -133,7 +157,7 @@ class DownloadTile extends ConsumerWidget {
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          task.error ?? l10n.errorGeneric,
+                          l10n.downloadErrorLabel(task.error),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: context.texts.labelSmall?.copyWith(
@@ -156,8 +180,15 @@ class DownloadTile extends ConsumerWidget {
                         ),
                       const Spacer(),
                       GlassCircleButton(
+                        icon: Icons.refresh_rounded,
+                        size: 48,
+                        tooltip: l10n.tryAgain,
+                        onTap: () => controller.resume(task.gameId),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      GlassCircleButton(
                         icon: Icons.close_rounded,
-                        size: 32,
+                        size: 48,
                         tooltip: l10n.cancel,
                         onTap: () => controller.cancel(task.gameId),
                       ),
@@ -166,27 +197,49 @@ class DownloadTile extends ConsumerWidget {
                 ] else if (!task.isDone) ...<Widget>[
                   const SizedBox(height: 9),
                   GradientProgress(value: task.progress, height: 6),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          _statsLine(l10n),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.labelSmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      if (task.isTransferring && task.etaSecs >= 0)
+                        Text(
+                          l10n.timeLeft(_etaOrEmpty()),
+                          style: context.texts.labelSmall?.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: <Widget>[
-                      if (task.status == DownloadStatus.downloading)
+                      if (task.isTransferring)
                         GlassCircleButton(
                           icon: Icons.pause_rounded,
-                          size: 32,
+                          size: 48,
                           tooltip: l10n.pause,
                           onTap: () => controller.pause(task.gameId),
                         )
                       else
                         GlassCircleButton(
                           icon: Icons.play_arrow_rounded,
-                          size: 32,
+                          size: 48,
                           tooltip: l10n.resume,
                           onTap: () => controller.resume(task.gameId),
                         ),
                       const SizedBox(width: AppSpacing.sm),
                       GlassCircleButton(
                         icon: Icons.close_rounded,
-                        size: 32,
+                        size: 48,
                         tooltip: l10n.cancel,
                         onTap: () => controller.cancel(task.gameId),
                       ),
@@ -220,7 +273,7 @@ class DownloadTile extends ConsumerWidget {
                       ),
                       GlassCircleButton(
                         icon: Icons.delete_outline_rounded,
-                        size: 32,
+                        size: 48,
                         tooltip: l10n.remove,
                         onTap: () => controller.remove(task.gameId),
                       ),

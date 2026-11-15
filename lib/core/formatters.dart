@@ -109,6 +109,48 @@ String formatRating(double value) {
 
 String formatPercent(double value) => '${(value.clamp(0, 1) * 100).round()}%';
 
+/// Bytes legíveis: `131072` → `128,0 KB`, `0` → `0 B`.
+String formatBytes(int bytes) {
+  final int safe = bytes < 0 ? 0 : bytes;
+  const List<String> units = <String>['B', 'KB', 'MB', 'GB', 'TB'];
+  double value = safe.toDouble();
+  int unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  if (unit == 0) {
+    return '${value.round()} B';
+  }
+  return '${_decimal(value)} ${units[unit]}';
+}
+
+/// Velocidade legível: `1048576` → `1,0 MB/s`.
+String formatSpeed(double bytesPerSecond) {
+  if (bytesPerSecond <= 0) {
+    return '0 B/s';
+  }
+  return '${formatBytes(bytesPerSecond.round())}/s';
+}
+
+/// ETA como relógio: `194` → `3:14`, `4500` → `1:15:00`. Entrada negativa
+/// (desconhecida) devolve `null` — o chamador esconde o campo.
+String? formatEta(int seconds) {
+  if (seconds < 0) {
+    return null;
+  }
+  final int total = seconds;
+  final int hours = total ~/ 3600;
+  final int minutes = (total % 3600) ~/ 60;
+  final int secs = total % 60;
+  final String mm = minutes.toString().padLeft(2, '0');
+  final String ss = secs.toString().padLeft(2, '0');
+  if (hours > 0) {
+    return '$hours:$mm:$ss';
+  }
+  return '$minutes:$ss';
+}
+
 String truncate(String input, int maxChars) {
   if (input.length <= maxChars) {
     return input;
