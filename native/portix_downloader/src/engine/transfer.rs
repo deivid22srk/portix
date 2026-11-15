@@ -1,17 +1,22 @@
-//! Transferência única e correta: stream → `.part` → validar → `rename`.
+//! Transferência correta e retomável: stream → `.part` → validar → `rename`.
 //!
-//! Garantias desta fatia:
+//! Garantias:
 //! - **Escrita atômica**: o destino final só aparece via `rename` após
 //!   validação (magic APK, tamanho completo, `fsync`). Crash no meio deixa
 //!   apenas um `.part`, nunca um APK corrompido com nome final.
-//! - **Truncamento detectado**: `done != Content-Length` é erro, não sucesso.
-//! - **Pré-checagem de espaço**: compara `Content-Length` com `statvfs`.
-//! - **Cancelamento cooperativo**: verificado a cada buffer; cancelar limpa
-//!   o `.part`.
-//! - **Caminho sanitizado** (defesa em profundidade).
+//! - **Retomada real**: `.part.meta` guarda URL, `ETag`/`Last-Modified`,
+//!   total e progresso. Retomada usa `Range` + `If-Range`; se o servidor
+//!   responder `200` (mudou) ou `416`, recomeça do zero com segurança
+//!   (`.ralph/DECISIONS.md` e `resume.rs`).
+//! - **Truncamento detectado**: fim de stream antes do `Content-Length`
+//!   é erro retentável, nunca sucesso.
+//! - **Pré-checagem de espaço**: `statvfs` com margem (restante, na retomada).
+//! - **Cancelamento cooperativo** a cada buffer; pausa **mantém** o
+//!   `.part`/`.meta` para retomar (descartar de vez é decisão da camada
+//!   de serviço). Erros de rede/truncamento também preservam o progresso.
 
-use std::fs::File;
-use std::io::{Read, Write};
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
@@ -20,6 +25,7 @@ use super::error::DownloadError;
 use super::fsutil::{io_error, part_path, remove_if_exists, sanitize_destination, usable_space};
 use super::http::{map_ureq_error, validate_url};
 use super::progress::{ProgressEvent, ProgressTracker};
+use super::resume::ResumeMeta;
 use super::state::{DownloadState, StateTracker};
 
 /// Magic de ZIP/APK (`PK\x03\x04`).
@@ -30,6 +36,8 @@ const MAGIC_LEN: usize = 4;
 const PROGRESS_INTERVAL: Duration = Duration::from_millis(100);
 /// Margem de segurança sobre o tamanho remoto na checagem de disco.
 const DISK_MARGIN_BYTES: i64 = 1024 * 1024;
+/// Intervalo de persistência do progresso no `.meta`.
+const META_FLUSH_BYTES: i64 = 1024 * 1024;
 
 /// Resultado de uma transferência concluída.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,14 +46,11 @@ pub struct TransferResult {
     pub total: i64,
 }
 
-/// Executa um download HTTP único de `url` para `dest`.
+/// Executa o download de `url` para `dest`, retomando um `.part` válido.
 ///
-/// Callbacks:
-/// - `on_state`: transições (`Connecting`/`Downloading`/`Verifying`/`Completed`).
-/// - `on_progress`: amostras throttled com velocidade/ETA.
-///
-/// Em erro ou cancelamento, o `.part` é removido e o destino final
-/// permanece intocado (inclusive um APK bom de um download anterior).
+/// Callbacks: `on_state` (transições) e `on_progress` (amostras throttled
+/// com velocidade/ETA). Em cancelamento/erro retentável o progresso fica
+/// no disco para a próxima tentativa; em erro fatal o `.part` é limpo.
 pub fn download(
     agent: &ureq::Agent,
     url: &str,
@@ -60,14 +65,45 @@ pub fn download(
     sanitize_destination(dest)?;
     validate_url(url)?;
 
-    let mut states = StateTracker::new();
+    let saved = ResumeMeta::load(dest).filter(|meta| meta.can_resume(url));
+    match saved {
+        Some(meta) => match attempt(agent, url, dest, Some(meta), cancel, on_state, on_progress) {
+            // Servidor não honrou Range/If-Range: recomeço seguro, uma vez.
+            Err(_error @ (DownloadError::RangeNotSatisfiable | DownloadError::FileChanged)) => {
+                remove_if_exists(&part_path(dest));
+                ResumeMeta::remove(dest);
+                attempt(agent, url, dest, None, cancel, on_state, on_progress)
+            }
+            other => other,
+        },
+        None => attempt(agent, url, dest, None, cancel, on_state, on_progress),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn attempt(
+    agent: &ureq::Agent,
+    url: &str,
+    dest: &Path,
+    resume: Option<ResumeMeta>,
+    cancel: &AtomicBool,
+    on_state: &mut dyn FnMut(DownloadState),
+    on_progress: &mut dyn FnMut(ProgressEvent),
+) -> Result<TransferResult, DownloadError> {
     on_state(DownloadState::Connecting);
 
-    let response = agent
+    let mut request = agent
         .get(url)
-        .set("Accept", "application/vnd.android.package-archive,*/*")
-        .call()
-        .map_err(map_ureq_error)?;
+        .set("Accept", "application/vnd.android.package-archive,*/*");
+    if let Some(meta) = &resume {
+        request = request.set("Range", &format!("bytes={}-{}", meta.done, meta.total - 1));
+        if let Some(etag) = &meta.etag {
+            request = request.set("If-Range", etag);
+        } else if let Some(last_modified) = &meta.last_modified {
+            request = request.set("If-Range", last_modified);
+        }
+    }
+    let response = request.call().map_err(map_ureq_error)?;
 
     let content_type = response
         .header("Content-Type")
@@ -77,38 +113,95 @@ pub fn download(
         return Err(DownloadError::NotAnApk("content_type"));
     }
 
+    // Retomada: 200 significa "arquivo mudou ou Range ignorado" → recomeço.
+    if let Some(meta) = &resume {
+        if response.status() == 200 {
+            return Err(DownloadError::FileChanged);
+        }
+        let content_range = response.header("Content-Range").unwrap_or("");
+        let (start, range_total) = parse_content_range(content_range);
+        if start != Some(meta.done) || range_total != Some(meta.total) {
+            return Err(DownloadError::FileChanged);
+        }
+    }
+
     let total: i64 = response
         .header("Content-Length")
         .and_then(|value| value.trim().parse::<i64>().ok())
         .unwrap_or(-1);
+    let total = if resume.is_some() {
+        // Validado pelo Content-Range acima.
+        resume.as_ref().map_or(total, |meta| meta.total)
+    } else {
+        total
+    };
 
+    // Espaço necessário: o que ainda falta baixar + margem.
+    let start_done = resume.as_ref().map_or(0, |meta| meta.done);
     if total >= 0 {
+        let remaining = total - start_done;
         if let Some(parent) = dest.parent() {
             if let Some(space) = usable_space(parent) {
-                if (space as i64) < total + DISK_MARGIN_BYTES {
+                if (space as i64) < remaining + DISK_MARGIN_BYTES {
                     return Err(DownloadError::DiskFull);
                 }
             }
         }
     }
 
+    let mut states = StateTracker::new();
     states
         .transition(DownloadState::Downloading)
         .map_err(|t| DownloadError::Internal(format!("transição inválida {t:?}")))?;
     on_state(DownloadState::Downloading);
 
     let part = part_path(dest);
-    let mut file = File::create(&part).map_err(io_error)?;
-    // Pré-alocação esparsa: reduz fragmentação sem custo de escrita.
-    if total > 0 {
-        let _ = file.set_len(total as u64);
+    let mut file = match &resume {
+        Some(_) => OpenOptions::new()
+            .write(true)
+            .open(&part)
+            .map_err(io_error)?,
+        None => {
+            let file = File::create(&part).map_err(io_error)?;
+            if total > 0 {
+                let _ = file.set_len(total as u64);
+            }
+            file
+        }
+    };
+    if start_done > 0 {
+        file.seek(SeekFrom::Start(start_done as u64))
+            .map_err(io_error)?;
+    }
+
+    // Meta da sessão: na retomada é a mesma; em sessão nova registra os
+    // validadores da resposta e acompanha o progresso para retomada futura.
+    let mut live_meta = match &resume {
+        Some(meta) => Some(meta.clone()),
+        None if total > 0 => {
+            let fresh = ResumeMeta::fresh(
+                url,
+                total,
+                response.header("ETag"),
+                response.header("Last-Modified"),
+            );
+            if fresh.etag.is_some() || fresh.last_modified.is_some() {
+                fresh.save(dest);
+                Some(fresh)
+            } else {
+                None
+            }
+        }
+        None => None,
+    };
+    if let Some(meta) = &mut live_meta {
+        meta.done = start_done;
     }
 
     let mut reader = response.into_reader();
     let mut buffer = vec![0u8; BUFFER_SIZE];
-    let mut head = [0u8; MAGIC_LEN];
-    let mut head_len = 0usize;
-    let mut done: i64 = 0;
+    let mut done: i64 = start_done;
+    let mut since_meta_flush: i64 = 0;
     let mut tracker = ProgressTracker::new(PROGRESS_INTERVAL);
 
     let outcome: Result<(), DownloadError> = loop {
@@ -118,15 +211,18 @@ pub fn download(
         match reader.read(&mut buffer) {
             Ok(0) => break Ok(()),
             Ok(n) => {
-                if head_len < MAGIC_LEN {
-                    let take = (MAGIC_LEN - head_len).min(n);
-                    head[head_len..head_len + take].copy_from_slice(&buffer[..take]);
-                    head_len += take;
-                }
                 if let Err(e) = file.write_all(&buffer[..n]) {
                     break Err(io_error(e));
                 }
                 done += n as i64;
+                since_meta_flush += n as i64;
+                if since_meta_flush >= META_FLUSH_BYTES {
+                    since_meta_flush = 0;
+                    if let Some(meta) = &mut live_meta {
+                        meta.done = done;
+                        meta.save(dest);
+                    }
+                }
                 if let Some(event) = tracker.sample(done, total, Instant::now(), false) {
                     on_progress(event);
                 }
@@ -138,10 +234,32 @@ pub fn download(
     match outcome {
         Err(error) => {
             drop(file);
-            remove_if_exists(&part);
-            let _ = states
-                .transition(DownloadState::Cancelled)
-                .or_else(|_| states.transition(DownloadState::Failed));
+            match error {
+                // Fatal de conteúdo: retomada não resolve, limpa tudo.
+                DownloadError::NotAnApk(_) => {
+                    remove_if_exists(&part);
+                    ResumeMeta::remove(dest);
+                }
+                // Cancelamento e falhas de rede/disco preservam o progresso;
+                // sem meta (sem validador) não há retomada possível — limpa.
+                _ => match &mut live_meta {
+                    Some(meta) => {
+                        meta.done = done;
+                        if meta.done > 0 && meta.done < meta.total {
+                            meta.save(dest);
+                        } else {
+                            remove_if_exists(&part);
+                            ResumeMeta::remove(dest);
+                        }
+                    }
+                    None => remove_if_exists(&part),
+                },
+            }
+            let _ = if matches!(error, DownloadError::Cancelled) {
+                states.transition(DownloadState::Cancelled)
+            } else {
+                states.transition(DownloadState::Failed)
+            };
             Err(error)
         }
         Ok(()) => {
@@ -153,26 +271,41 @@ pub fn download(
             if let Err(e) = file.sync_all() {
                 drop(file);
                 remove_if_exists(&part);
+                ResumeMeta::remove(dest);
                 return Err(io_error(e));
             }
             drop(file);
 
-            // Validação de conteúdo (destino .apk exige magic ZIP).
-            if is_apk_dest(dest) && (done < MAGIC_LEN as i64 || head != APK_MAGIC) {
-                remove_if_exists(&part);
-                return Err(DownloadError::NotAnApk("magic"));
+            // Validação de conteúdo: os 4 primeiros bytes do ARQUIVO precisam
+            // ser o magic ZIP — lidos do disco (na retomada a stream da
+            // sessão começa no meio do arquivo, então bytes da stream não
+            // servem).
+            if is_apk_dest(dest) {
+                let mut magic = [0u8; MAGIC_LEN];
+                let magic_ok = File::open(&part)
+                    .and_then(|mut f| f.read_exact(&mut magic))
+                    .map(|_| magic == APK_MAGIC)
+                    .unwrap_or(false);
+                if !magic_ok {
+                    remove_if_exists(&part);
+                    ResumeMeta::remove(dest);
+                    return Err(DownloadError::NotAnApk("magic"));
+                }
             }
             // Validação de completude (truncamento não é sucesso).
             if total >= 0 && done != total {
                 remove_if_exists(&part);
+                ResumeMeta::remove(dest);
                 return Err(DownloadError::Truncated { done, total });
             }
 
             // Concluído: promove o `.part` ao destino final (atômico).
             if let Err(e) = std::fs::rename(&part, dest) {
                 remove_if_exists(&part);
+                ResumeMeta::remove(dest);
                 return Err(io_error(e));
             }
+            ResumeMeta::remove(dest);
 
             let _ = states.transition(DownloadState::Completed);
             on_state(DownloadState::Completed);
@@ -182,6 +315,22 @@ pub fn download(
             Ok(TransferResult { bytes: done, total })
         }
     }
+}
+
+/// `bytes 100-999/1234` → `(Some(100), Some(1234))`.
+fn parse_content_range(value: &str) -> (Option<i64>, Option<i64>) {
+    let rest = value
+        .trim()
+        .strip_prefix("bytes")
+        .map(str::trim)
+        .unwrap_or("");
+    let (range_part, total_part) = rest.split_once('/').unwrap_or(("", ""));
+    let start = range_part
+        .split('-')
+        .next()
+        .and_then(|s| s.trim().parse().ok());
+    let total = total_part.trim().parse().ok();
+    (start, total)
 }
 
 fn is_apk_dest(dest: &Path) -> bool {

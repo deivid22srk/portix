@@ -37,12 +37,18 @@ pub fn validate_url(url: &str) -> Result<(), DownloadError> {
 /// Traduz um erro do ureq para o erro tipado do motor.
 pub fn map_ureq_error(error: ureq::Error) -> DownloadError {
     match error {
-        ureq::Error::Status(status, response) => DownloadError::Http {
-            status,
-            retry_after_secs: response
-                .header("Retry-After")
-                .and_then(|value| value.trim().parse::<u64>().ok()),
-        },
+        ureq::Error::Status(status, response) => {
+            // 416 durante retomada = intervalo recusado → recomeço seguro.
+            if status == 416 {
+                return DownloadError::RangeNotSatisfiable;
+            }
+            DownloadError::Http {
+                status,
+                retry_after_secs: response
+                    .header("Retry-After")
+                    .and_then(|value| value.trim().parse::<u64>().ok()),
+            }
+        }
         ureq::Error::Transport(transport) => DownloadError::Network(transport.to_string()),
     }
 }

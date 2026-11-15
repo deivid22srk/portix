@@ -65,4 +65,29 @@ de teste 206/416/ETag/429/redirect/queda no meio.
 
 **Bloqueios:** nenhum.
 
+## Iteração 4 — Motor fatia 2: retomada real (2026-11-15)
+
+**Feito (`feat(download): retomada real com Range, If-Range e estado persistido`):**
+- `engine/resume.rs`: `.part.meta` atomicamente persistido (tmp+rename) com URL, ETag,
+  Last-Modified, total e done; `can_resume` exige validador (sem ETag/Last-Modified →
+  recomeço do zero — nunca concatena arquivos possivelmente diferentes).
+- `attempt()` com `Range: bytes=<done>-<fim>` + `If-Range`; Content-Range validado contra a meta;
+  200-em-resposta-à-retomada ou 416 → limpa e recomeça do zero (1 vez). Espaço em disco verificado
+  contra o que **falta** (não o total).
+- Cancelamento (pausa) e quedas de rede **preservam** `.part`+`.meta`; erros fatais de conteúdo
+  (NotAnApk) limpam. Magic APK validado **do arquivo** (na retomada a stream começa no meio).
+- Cenários novos de integração: retomada 206 completa o arquivo; ETag mudou → arquivo novo
+  (não concatenação); 416 → recomeço; sem validador → sem Range; meta corrompida → fresh;
+  redirect 302; cancelamento no meio preserva progresso e retoma.
+- Nota: notificações de retomada no Kotlin/Dart (botão retomar de verdade) chegam na iteração de
+  contrato/fila — o motor já está pronto para retomar em nova chamada `startDownload`.
+- **Validação local:** fmt ok, clippy -D warnings ok, 39/39 testes (22 unit + 17 integração), release ok.
+
+**CI:** dispatch do run após este commit; conferir resultado na próxima iteração.
+
+**Próximo passo:** iteração 5 → retry com backoff exponencial + jitter + `Retry-After`
+(classificação retentável já existe).
+
+**Bloqueios:** nenhum.
+
 ---

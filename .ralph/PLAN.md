@@ -22,8 +22,10 @@ Ajustado à stack real: Flutter + motor Rust (`ureq`/JNI) + Kotlin service. Ver 
 - [x] Testes unitários do núcleo (estados, erros, progresso EWMA/ETA, sanitize) — 18 verdes no host.
 - [x] Testes de integração parte 1 com servidor HTTP local (`std::net`, zero deps):
       200 completo, truncamento, HTML, não-APK, 404, 500, cancelamento, preservação do APK anterior.
-- [ ] Motor: detecção de capacidade (`Accept-Ranges`, `ETag`, `Last-Modified`) + retomada com estado
-      persistido por download (`.part.meta`) + `If-Range` (416/ETag mudou → recomeço seguro).
+- [x] Motor: detecção de capacidade e retomada real (`.part.meta` com URL/ETag/Last-Modified/total/done,
+      `Range` + `If-Range`). Política: sem validador não retoma; 200-ao-invés-de-206 ou 416 → recomeço
+      seguro uma vez. Progresso preservado em cancelamento/queda (pausa = retomável).
+      Testes: 206, ETag mudou, 416, sem validador, meta corrompida, redirect 302, cancel no meio.
 - [ ] Motor: retry com backoff exponencial + jitter + `Retry-After` (429/503).
 - [ ] Motor: progresso enriquecido no contrato (núcleo já produz done/total/velocidade EWMA/ETA;
       expor no JNI/Kotlin/Dart de forma compatível no mesmo commit das 3 camadas).
