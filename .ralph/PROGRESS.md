@@ -31,4 +31,38 @@
 
 **Bloqueios:** nenhum.
 
+## Iteração 2 — CI acionável na branch (2026-11-15)
+
+**Feito:**
+- `build.yml`: `if: github.ref == 'refs/heads/main'` nos 2 passos de publicação na landing
+  (`4a91c30`). Jobs da `main` intocados; branch não pode mais sobrescrever APKs de produção.
+- `workflow_dispatch` na branch: run **43731447123 → success** (analyze+test+scaffold+Rust+APK).
+  CI da branch é acionável e o guard funciona.
+
+**CI:** run 43731447123 (success). **Próximo passo:** motor fatia 1 (núcleo/estados/erros/escrita atômica).
+
+## Iteração 3 — Motor fatia 1: núcleo correto e seguro (2026-11-15)
+
+**Feito (`feat(download): núcleo com máquina de estados, erros tipados e escrita atômica`):**
+- Crate dividido: `engine/` agnóstico (`error`, `state`, `progress`, `fsutil`, `http`, `transfer`)
+  + ponte JNI fina em `lib.rs`. Contrato JNI **preservado** (`onProgress`/`onComplete`); mensagem de
+  erro agora é `"<code>|<detalhe>"` com códigos estáveis (Dart mapeia/localiza na iteração de contrato).
+- Estados com transições validadas; erros tipados com `is_retryable()` (base do retry P1).
+- Escrita atômica: `.part` pré-alocado → `fsync` → validação (magic PK, truncamento) → `rename`.
+  Destino final nunca mais recebe arquivo corrompido; APK bom anterior sobrevive a tentativa falha
+  (bug antigo: `remove_file(dest)` em erro).
+- Pré-checagem de espaço (`statvfs` + margem 1 MiB), sanitize de caminho (anti-traversal),
+  cancelamento cooperativo a cada buffer, `gzip` removido do ureq, locks tolerantes a poisoning,
+  falha de callback não aborta mais o download.
+- Progresso: EWMA + ETA + throttle 100 ms no núcleo (exposição no contrato vem depois).
+- **Validação local:** `cargo fmt --check` ok, `clippy -D warnings` ok, `cargo test` 28/28
+  (18 unitários + 10 de integração com servidor HTTP local em `std::net`), `cargo build --release` ok.
+
+**CI:** dispatch pendente para esta fatia (será acionado no push; conferir na próxima iteração).
+
+**Próximo passo:** iteração 4 → retomada real (probe de Range, `.part.meta`, `If-Range`) + cenários
+de teste 206/416/ETag/429/redirect/queda no meio.
+
+**Bloqueios:** nenhum.
+
 ---

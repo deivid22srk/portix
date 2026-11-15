@@ -8,19 +8,25 @@ Ajustado à stack real: Flutter + motor Rust (`ureq`/JNI) + Kotlin service. Ver 
 - [x] Setup: branch `feat/ui-ux-pro-download-engine`, hook pre-push, push inicial, `MAIN_SHA=305eb58` registrado.
 - [x] Baseline: build da `main` **verde** (run de `305eb58`, 2026-11-15).
 - [x] `AUDIT.md` completo (UI/UX + motor + CI).
-- [ ] CI: `if: github.ref == 'refs/heads/main'` nos 2 passos de publicação na landing (proteção) + dispatch na branch.
-- [ ] Motor: núcleo agnóstico de JNI (separação core/ponte) + máquina de estados explícita
-      (`Queued→Connecting→Downloading→Verifying→Completed|Failed|Cancelled`) com transições testadas.
-- [ ] Motor: erros tipados com códigos estáveis + classificação retentável/fatal; sem `unwrap` em produção.
-- [ ] Motor: escrita atômica (`.part` pré-alocado + `fsync` + `rename`) + validação de truncamento
-      (`done == Content-Length`) + sanitize de caminho.
+- [x] CI: `if: github.ref == 'refs/heads/main'` nos 2 passos de publicação na landing (proteção) + dispatch na branch
+      (run `43731447123`: **success**).
+- [x] Motor: núcleo agnóstico de JNI (`engine/`) + máquina de estados explícita
+      (`Connecting→Downloading→Verifying→Completed|Failed|Cancelled`) com transições testadas.
+- [x] Motor: erros tipados com códigos estáveis (`invalid_url`, `network`, `http_status`, `truncated`, …)
+      + classificação retentável/fatal + formato de fio `code|detalhe`; locks tolerantes a poisoning
+      (sem `unwrap` em produção).
+- [x] Motor: escrita atômica (`.part` pré-alocado + `fsync` + `rename`) + validação de truncamento
+      (`done == Content-Length`, com detecção dupla junto ao ureq) + sanitize de caminho.
+- [x] Motor: pré-checagem de espaço em disco (`statvfs` + margem) antes de transferir.
+- [x] Cargo.toml: remover feature `gzip` do ureq (D2) + `libc` para statvfs (D5) + `rlib` para testes.
+- [x] Testes unitários do núcleo (estados, erros, progresso EWMA/ETA, sanitize) — 18 verdes no host.
+- [x] Testes de integração parte 1 com servidor HTTP local (`std::net`, zero deps):
+      200 completo, truncamento, HTML, não-APK, 404, 500, cancelamento, preservação do APK anterior.
 - [ ] Motor: detecção de capacidade (`Accept-Ranges`, `ETag`, `Last-Modified`) + retomada com estado
-      persistido por download (`.part.meta`) + `If-Range`.
-- [ ] Motor: progresso enriquecido (done/total/velocidade EWMA/ETA) com throttle ~100 ms; callback
-      JNI/Kotlin/Dart atualizado de forma compatível (mesmo commit nas 3 camadas).
-- [ ] Motor: pré-checagem de espaço em disco (`statvfs`) antes de iniciar/retomar.
-- [ ] Cargo.toml: remover feature `gzip` do ureq.
-- [ ] Testes unitários (estados, backoff, formatação, retomada) — `cargo test` no host.
+      persistido por download (`.part.meta`) + `If-Range` (416/ETag mudou → recomeço seguro).
+- [ ] Motor: retry com backoff exponencial + jitter + `Retry-After` (429/503).
+- [ ] Motor: progresso enriquecido no contrato (núcleo já produz done/total/velocidade EWMA/ETA;
+      expor no JNI/Kotlin/Dart de forma compatível no mesmo commit das 3 camadas).
 - [ ] Dart/Kotlin: novos estados e erros mapeados para mensagens localizadas pt/en (sem texto cru do motor).
 
 ## P1 — Produto

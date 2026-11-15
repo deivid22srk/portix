@@ -2,7 +2,15 @@
 //!
 //! Exposto ao Android via JNI. A classe Kotlin `NativeDownloader` chama
 //! `startDownload` (assíncrono, roda numa thread própria) e `cancelDownload`.
-//! O progresso é reportado de volta ao Kotlin pelo `DownloadCallback`.
+//! O progresso é reportado ao `DownloadCallback` (contrato atual preservado:
+//! `onProgress(done, total)` e `onComplete(ok, erro)`).
+//!
+//! Toda a lógica vive em [`engine`], agnóstica de plataforma e testável no
+//! host (`cargo test`). Esta ponte apenas adapta: nada de lógica aqui.
+//!
+//! Contrato de erro em `onComplete(ok = false, erro)`:
+//!   `"<code>|<detalhe legível>"` — códigos estáveis em [`engine::error`].
+//!   Ex.: `"network|falha de rede: timeout"`, `"not_apk|…"`, `"cancelled|…"`.
 //!
 //! Assinaturas JNI:
 //!   Java_com_deivid22srk_portix_downloader_NativeDownloader_startDownload
@@ -10,9 +18,12 @@
 
 #![allow(non_snake_case)]
 
+/// Núcleo do motor (sem JNI). Público para os testes de integração.
+pub mod engine;
+
 use std::collections::HashMap;
-use std::io::{Read, Write};
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -21,6 +32,14 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::jlong;
 use jni::{JNIEnv, JavaVM};
 
+use crate::engine::error::{wire_message, DownloadError};
+use crate::engine::progress::ProgressEvent;
+use crate::engine::{http, transfer};
+
+/// Intervalo mínimo entre `onProgress` para a notificação/EventChannel
+/// (o núcleo amostra a 100 ms; aqui suavizamos o custo de notify).
+const NOTIFY_INTERVAL: Duration = Duration::from_millis(300);
+
 static CANCEL_FLAGS: OnceLock<Mutex<HashMap<i64, Arc<AtomicBool>>>> = OnceLock::new();
 static NEXT_ID: OnceLock<Mutex<i64>> = OnceLock::new();
 
@@ -28,9 +47,17 @@ fn registry() -> &'static Mutex<HashMap<i64, Arc<AtomicBool>>> {
     CANCEL_FLAGS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// Lock tolerante a poisoning: um pânico em outra thread não derruba novas
+/// chamadas JNI (nada de `unwrap` em caminho de produção).
+fn lock_registry() -> std::sync::MutexGuard<'static, HashMap<i64, Arc<AtomicBool>>> {
+    registry()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 fn next_id() -> i64 {
     let lock = NEXT_ID.get_or_init(|| Mutex::new(0));
-    let mut guard = lock.lock().unwrap();
+    let mut guard = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     *guard += 1;
     *guard
 }
@@ -41,15 +68,13 @@ fn jstring_to_string(env: &mut JNIEnv, value: &JString) -> String {
         .unwrap_or_default()
 }
 
-fn emit_progress(env: &mut JNIEnv, callback: &GlobalRef, done: i64, total: i64) -> Result<(), String> {
-    env.call_method(
+fn emit_progress(env: &mut JNIEnv, callback: &GlobalRef, done: i64, total: i64) {
+    let _ = env.call_method(
         callback.as_obj(),
         "onProgress",
         "(JJ)V",
         &[JValue::Long(done), JValue::Long(total)],
-    )
-    .map(|_| ())
-    .map_err(|error| error.to_string())
+    );
 }
 
 fn emit_complete(env: &mut JNIEnv, callback: &GlobalRef, ok: bool, error: &str) {
@@ -65,109 +90,68 @@ fn emit_complete(env: &mut JNIEnv, callback: &GlobalRef, ok: bool, error: &str) 
     );
 }
 
-/// Faz o download de `url` para `dest`, reportando progresso pelo callback.
-fn transfer(
-    env: &mut JNIEnv,
-    callback: &GlobalRef,
-    url: &str,
-    dest: &str,
-    cancel: &AtomicBool,
-) -> Result<(), String> {
-    emit_progress(env, callback, 0, -1)?;
-
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(20))
-        .timeout_read(Duration::from_secs(60))
-        .timeout_write(Duration::from_secs(30))
-        .user_agent("PORTIX/1.0 (Android)")
-        .build();
-
-    let response = agent
-        .get(url)
-        .set("Accept", "application/vnd.android.package-archive,*/*")
-        .call()
-        .map_err(|error| format!("http: {error}"))?;
-
-    let content_type = response
-        .header("Content-Type")
-        .unwrap_or("")
-        .to_lowercase();
-    if content_type.contains("text/html") {
-        return Err("o link não aponta para um APK".to_string());
-    }
-
-    let total: i64 = response
-        .header("Content-Length")
-        .and_then(|value| value.trim().parse::<i64>().ok())
-        .unwrap_or(-1);
-
-    let mut reader = response.into_reader();
-    let mut file = std::fs::File::create(dest).map_err(|error| format!("file: {error}"))?;
-
-    let mut buffer = vec![0u8; 64 * 1024];
-    let mut done: i64 = 0;
-    let mut head = [0u8; 4];
-    let mut head_len = 0usize;
-    let mut last = Instant::now();
-
-    loop {
-        if cancel.load(Ordering::SeqCst) {
-            drop(file);
-            let _ = std::fs::remove_file(dest);
-            return Err("cancelado".to_string());
-        }
-        let read = reader.read(&mut buffer).map_err(|error| format!("read: {error}"))?;
-        if read == 0 {
-            break;
-        }
-        if head_len < 4 {
-            let take = (4 - head_len).min(read);
-            head[head_len..head_len + take].copy_from_slice(&buffer[..take]);
-            head_len += take;
-        }
-        file.write_all(&buffer[..read])
-            .map_err(|error| format!("write: {error}"))?;
-        done += read as i64;
-        if last.elapsed() >= Duration::from_millis(350) {
-            emit_progress(env, callback, done, total)?;
-            last = Instant::now();
-        }
-    }
-
-    file.flush().map_err(|error| format!("flush: {error}"))?;
-    drop(file);
-
-    if done < 4 || &head != b"PK\x03\x04" {
-        return Err("o arquivo baixado não é um APK".to_string());
-    }
-
-    emit_progress(env, callback, done, total)?;
-    Ok(())
-}
-
-fn run_download(jvm: JavaVM, callback: GlobalRef, id: i64, url: String, dest: String, cancel: Arc<AtomicBool>) {
+/// Thread de trabalho: roda o núcleo e traduz o resultado para o callback.
+fn run_download(
+    jvm: JavaVM,
+    callback: GlobalRef,
+    id: i64,
+    url: String,
+    dest: String,
+    cancel: Arc<AtomicBool>,
+) {
     let outcome = catch_unwind(AssertUnwindSafe(|| {
         let mut env = jvm
             .attach_current_thread()
-            .map_err(|error| error.to_string())?;
-        transfer(&mut env, &callback, &url, &dest, &cancel)
+            .map_err(|error| DownloadError::Internal(error.to_string()))?;
+
+        emit_progress(&mut env, &callback, 0, -1);
+
+        let agent = http::agent();
+        let mut last_notify = Instant::now() - NOTIFY_INTERVAL;
+        let mut on_state = |_state: crate::engine::state::DownloadState| {
+            // Contrato enriquecido (estados visíveis na UI) chega na
+            // iteração de contrato; hoje o Kotlin só conhece progresso/fim.
+        };
+        let mut on_progress = |event: ProgressEvent| {
+            let is_final = event.total > 0 && event.done >= event.total;
+            if is_final || last_notify.elapsed() >= NOTIFY_INTERVAL {
+                last_notify = Instant::now();
+                emit_progress(&mut env, &callback, event.done, event.total);
+            }
+        };
+
+        transfer::download(
+            &agent,
+            &url,
+            Path::new(&dest),
+            &cancel,
+            &mut on_state,
+            &mut on_progress,
+        )
     }));
 
-    let error = match outcome {
-        Ok(Ok(())) => None,
-        Ok(Err(message)) => Some(message),
-        Err(_) => Some("falha interna".to_string()),
+    let error: Option<DownloadError> = match outcome {
+        Ok(Ok(_)) => None,
+        Ok(Err(error)) => Some(error),
+        Err(_) => Some(DownloadError::Internal(
+            "pânico capturado na fronteira JNI".into(),
+        )),
     };
 
-    if error.is_some() {
-        let _ = std::fs::remove_file(&dest);
-    }
+    // O destino final NUNCA é apagado em erro: o núcleo só toca no `.part`.
+    // Um APK bom de um download anterior sobrevive a uma nova tentativa falha.
 
     if let Ok(mut env) = jvm.attach_current_thread() {
-        emit_complete(&mut env, &callback, error.is_none(), error.as_deref().unwrap_or(""));
+        match &error {
+            None => emit_complete(&mut env, &callback, true, ""),
+            Some(e) => {
+                let message = wire_message(e);
+                emit_complete(&mut env, &callback, false, &message);
+            }
+        }
     }
 
-    registry().lock().unwrap().remove(&id);
+    lock_registry().remove(&id);
 }
 
 #[no_mangle]
@@ -195,7 +179,7 @@ pub extern "system" fn Java_com_deivid22srk_portix_downloader_NativeDownloader_s
 
     let id = next_id();
     let cancel = Arc::new(AtomicBool::new(false));
-    registry().lock().unwrap().insert(id, cancel.clone());
+    lock_registry().insert(id, cancel.clone());
 
     std::thread::spawn(move || run_download(jvm, callback, id, url, dest, cancel));
     id
@@ -207,7 +191,7 @@ pub extern "system" fn Java_com_deivid22srk_portix_downloader_NativeDownloader_c
     _class: JClass,
     handle: jlong,
 ) {
-    if let Some(cancel) = registry().lock().unwrap().get(&handle) {
+    if let Some(cancel) = lock_registry().get(&handle) {
         cancel.store(true, Ordering::SeqCst);
     }
 }
