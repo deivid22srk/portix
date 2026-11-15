@@ -17,6 +17,7 @@ use std::time::Duration;
 use portix_downloader::engine::error::DownloadError;
 use portix_downloader::engine::progress::ProgressEvent;
 use portix_downloader::engine::resume::ResumeMeta;
+use portix_downloader::engine::retry;
 use portix_downloader::engine::state::DownloadState;
 use portix_downloader::engine::{http, transfer};
 
@@ -220,12 +221,29 @@ fn run(
     states: &mut Vec<DownloadState>,
     progress: &mut Vec<ProgressEvent>,
 ) -> Result<transfer::TransferResult, DownloadError> {
+    // Política sem retry: os cenários abaixo controlam as tentativas à mão.
+    let no_retry = retry::RetryPolicy {
+        max_attempts: 1,
+        ..retry::RetryPolicy::default()
+    };
+    run_with(url, dest, cancel, &no_retry, states, progress)
+}
+
+fn run_with(
+    url: &str,
+    dest: &Path,
+    cancel: &AtomicBool,
+    policy: &retry::RetryPolicy,
+    states: &mut Vec<DownloadState>,
+    progress: &mut Vec<ProgressEvent>,
+) -> Result<transfer::TransferResult, DownloadError> {
     let agent = http::agent();
-    transfer::download(
+    transfer::download_with_policy(
         &agent,
         url,
         dest,
         cancel,
+        policy,
         &mut |state| states.push(state),
         &mut |event| progress.push(event),
     )
@@ -533,7 +551,7 @@ fn resume_handler(
                             ("ETag".into(), format!("\"{etag}\"")),
                             (
                                 "Content-Range".into(),
-                                format!("bytes {start}-{} {}", body.len() - 1, body.len()),
+                                format!("bytes {start}-{}/{}", body.len() - 1, body.len()),
                             ),
                         ],
                         ..MockResponse::apk(body[start..].to_vec())
@@ -818,7 +836,7 @@ fn cancelamento_no_meio_preserva_progresso_e_retoma() {
             status: 206,
             extra: vec![(
                 "Content-Range".into(),
-                format!("bytes {start}-{} {}", body.len() - 1, body.len()),
+                format!("bytes {start}-{}/{}", body.len() - 1, body.len()),
             )],
             ..MockResponse::apk(body[start..].to_vec())
         }
@@ -850,4 +868,242 @@ fn cancelamento_no_meio_preserva_progresso_e_retoma() {
     let result = run(&server.url, &dest, &NO_CANCEL, &mut states, &mut progress).expect("retomada");
     assert_eq!(result.bytes, FULL);
     assert_eq!(std::fs::read(&dest).expect("final"), expected);
+}
+
+// ---------------------------------------------------------------------------
+// Retry automático (backoff + jitter + Retry-After)
+// ---------------------------------------------------------------------------
+
+fn fast_policy(max_attempts: u32) -> retry::RetryPolicy {
+    retry::RetryPolicy {
+        max_attempts,
+        base_delay: Duration::from_millis(20),
+        max_delay: Duration::from_millis(60),
+        jitter: 0.5,
+    }
+}
+
+#[test]
+fn retry_apos_queda_retoma_e_conclui_sozinho() {
+    let body = fake_apk(FULL as usize);
+    let for_handler = body.clone();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let handler_seen = Arc::clone(&seen);
+    let counter = Arc::new(AtomicUsize::new(0));
+    // req1: metade com ETag (queda); req2+: 206 do ponto pedido.
+    let server = MockServer::start(move |req| {
+        let body = &for_handler;
+        handler_seen
+            .lock()
+            .unwrap()
+            .push(format!("range={:?}", req.header("Range")));
+        let n = counter.fetch_add(1, Ordering::SeqCst);
+        if n == 0 {
+            return MockResponse {
+                declared_length: Some(FULL),
+                extra: vec![("ETag".into(), "\"v1\"".into())],
+                ..MockResponse::apk(body[..HALF as usize].to_vec())
+            };
+        }
+        let start = req
+            .header("Range")
+            .and_then(|r| {
+                r.trim_start_matches("bytes=")
+                    .split('-')
+                    .next()
+                    .and_then(|s| s.parse::<usize>().ok())
+            })
+            .unwrap_or(0);
+        MockResponse {
+            status: 206,
+            extra: vec![(
+                "Content-Range".into(),
+                format!("bytes {start}-{}/{}", body.len() - 1, body.len()),
+            )],
+            ..MockResponse::apk(body[start..].to_vec())
+        }
+    });
+    let scratch = ScratchDir::new("retryresume");
+    let dest = scratch.apk();
+
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let result = run_with(
+        &server.url,
+        &dest,
+        &NO_CANCEL,
+        &fast_policy(4),
+        &mut states,
+        &mut progress,
+    )
+    .expect("retry deve concluir sem intervenção");
+    assert_eq!(result.bytes, FULL);
+    assert_eq!(std::fs::read(&dest).expect("final"), body);
+    let requests = seen.lock().unwrap();
+    assert_eq!(requests.len(), 2, "queda + retomada: {requests:?}");
+    assert!(
+        requests[1].contains(&format!("bytes={HALF}-")),
+        "{requests:?}"
+    );
+}
+
+#[test]
+fn retry_apos_500_consegue_200() {
+    let body = fake_apk(FULL as usize);
+    let counter = Arc::new(AtomicUsize::new(0));
+    let server = MockServer::start(move |_| {
+        let n = counter.fetch_add(1, Ordering::SeqCst);
+        if n == 0 {
+            MockResponse {
+                status: 500,
+                content_type: "text/plain",
+                body: b"boom".to_vec(),
+                declared_length: None,
+                extra: Vec::new(),
+                delay: None,
+                mid_delay: None,
+            }
+        } else {
+            MockResponse::apk(body.clone())
+        }
+    });
+    let scratch = ScratchDir::new("retry500");
+    let dest = scratch.apk();
+
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let result = run_with(
+        &server.url,
+        &dest,
+        &NO_CANCEL,
+        &fast_policy(3),
+        &mut states,
+        &mut progress,
+    )
+    .expect("retry após 500");
+    assert_eq!(result.bytes, FULL);
+    assert_eq!(server.request_count(), 2);
+}
+
+#[test]
+fn retry_respeita_retry_after_do_429() {
+    let body = fake_apk(64 * 1024);
+    let counter = Arc::new(AtomicUsize::new(0));
+    let server = MockServer::start(move |_| {
+        let n = counter.fetch_add(1, Ordering::SeqCst);
+        if n == 0 {
+            MockResponse {
+                status: 429,
+                content_type: "text/plain",
+                body: b"lento ai".to_vec(),
+                declared_length: None,
+                extra: vec![("Retry-After".into(), "1".into())],
+                delay: None,
+                mid_delay: None,
+            }
+        } else {
+            MockResponse::apk(body.clone())
+        }
+    });
+    let scratch = ScratchDir::new("retry429");
+    let dest = scratch.apk();
+
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let began = std::time::Instant::now();
+    let result = run_with(
+        &server.url,
+        &dest,
+        &NO_CANCEL,
+        &fast_policy(3),
+        &mut states,
+        &mut progress,
+    )
+    .expect("retry após 429");
+    assert_eq!(result.bytes, 64 * 1024);
+    assert!(
+        began.elapsed() >= Duration::from_millis(950),
+        "Retry-After: 1 deve atrasar a 2ª tentativa ({:?})",
+        began.elapsed()
+    );
+}
+
+#[test]
+fn erro_fatal_nao_retrya() {
+    let server = MockServer::start(|_| MockResponse {
+        status: 404,
+        content_type: "text/plain",
+        body: b"nope".to_vec(),
+        declared_length: None,
+        extra: Vec::new(),
+        delay: None,
+        mid_delay: None,
+    });
+    let scratch = ScratchDir::new("nofatalretry");
+    let dest = scratch.apk();
+
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let err = run_with(
+        &server.url,
+        &dest,
+        &NO_CANCEL,
+        &fast_policy(4),
+        &mut states,
+        &mut progress,
+    )
+    .unwrap_err();
+    assert!(matches!(err, DownloadError::Http { status: 404, .. }));
+    assert_eq!(server.request_count(), 1, "404 não merece retry");
+}
+
+#[test]
+fn cancel_durante_backoff_aborta_rapido() {
+    let server = MockServer::start(|_| MockResponse {
+        status: 500,
+        content_type: "text/plain",
+        body: b"boom".to_vec(),
+        declared_length: None,
+        extra: Vec::new(),
+        delay: None,
+        mid_delay: None,
+    });
+    let scratch = ScratchDir::new("cancelbackoff");
+    let dest = scratch.apk();
+
+    let cancel = Arc::new(AtomicBool::new(false));
+    let thread = {
+        let cancel = Arc::clone(&cancel);
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(60));
+            cancel.store(true, Ordering::SeqCst);
+        })
+    };
+
+    // Política lenta: o backoff seria de ~0,5s-1s entre tentativas.
+    let slow = retry::RetryPolicy {
+        max_attempts: 6,
+        base_delay: Duration::from_millis(500),
+        max_delay: Duration::from_secs(8),
+        jitter: 0.0,
+    };
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let began = std::time::Instant::now();
+    let err = run_with(
+        &server.url,
+        &dest,
+        &cancel,
+        &slow,
+        &mut states,
+        &mut progress,
+    )
+    .unwrap_err();
+    thread.join().unwrap();
+    assert_eq!(err.code(), "cancelled");
+    assert!(
+        began.elapsed() < Duration::from_millis(700),
+        "{:?}",
+        began.elapsed()
+    );
 }

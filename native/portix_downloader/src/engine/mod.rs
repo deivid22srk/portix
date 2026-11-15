@@ -9,5 +9,6 @@ pub mod fsutil;
 pub mod http;
 pub mod progress;
 pub mod resume;
+pub mod retry;
 pub mod state;
 pub mod transfer;

@@ -26,14 +26,18 @@ Ajustado à stack real: Flutter + motor Rust (`ureq`/JNI) + Kotlin service. Ver 
       `Range` + `If-Range`). Política: sem validador não retoma; 200-ao-invés-de-206 ou 416 → recomeço
       seguro uma vez. Progresso preservado em cancelamento/queda (pausa = retomável).
       Testes: 206, ETag mudou, 416, sem validador, meta corrompida, redirect 302, cancel no meio.
-- [ ] Motor: retry com backoff exponencial + jitter + `Retry-After` (429/503).
+- [x] Motor: retry com backoff exponencial + jitter + `Retry-After` (429/503).
+      `RetryPolicy` (4 tentativas, base 500 ms, teto 8 s, jitter 0,5), PRNG xorshift64* próprio
+      (zero deps), espera interrompível (≤100 ms) e cada retry retoma do disco.
+      Testes: retry após queda (retoma), retry após 500, `Retry-After: 1` do 429 respeitado,
+      404 sem retry, cancelamento durante o backoff.
 - [ ] Motor: progresso enriquecido no contrato (núcleo já produz done/total/velocidade EWMA/ETA;
       expor no JNI/Kotlin/Dart de forma compatível no mesmo commit das 3 camadas).
 - [ ] Dart/Kotlin: novos estados e erros mapeados para mensagens localizadas pt/en (sem texto cru do motor).
 
 ## P1 — Produto
 
-- [ ] Motor: retry com backoff exponencial + jitter + `Retry-After` (429/503).
+- [x] Motor: retry com backoff + jitter e `Retry-After` — feito na fatia P0 (ver item P0 acima).
 - [ ] Motor: segmentação paralela adaptativa (1–8 conexões), segmento mínimo, balanceamento.
 - [ ] Motor: limite de velocidade (token bucket) global e por download.
 - [ ] Motor: SHA-256 em streaming quando houver hash esperado (estado `Verifying`).

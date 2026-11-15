@@ -26,6 +26,7 @@ use super::fsutil::{io_error, part_path, remove_if_exists, sanitize_destination,
 use super::http::{map_ureq_error, validate_url};
 use super::progress::{ProgressEvent, ProgressTracker};
 use super::resume::ResumeMeta;
+use super::retry::{effective_delay, sleep_interruptible, RetryPolicy, RetryRng};
 use super::state::{DownloadState, StateTracker};
 
 /// Magic de ZIP/APK (`PK\x03\x04`).
@@ -46,7 +47,9 @@ pub struct TransferResult {
     pub total: i64,
 }
 
-/// Executa o download de `url` para `dest`, retomando um `.part` válido.
+/// Executa o download de `url` para `dest` com retry automático (backoff
+/// exponencial + jitter + `Retry-After`), retomando o `.part` entre
+/// tentativas quando há validador.
 ///
 /// Callbacks: `on_state` (transições) e `on_progress` (amostras throttled
 /// com velocidade/ETA). Em cancelamento/erro retentável o progresso fica
@@ -59,12 +62,71 @@ pub fn download(
     on_state: &mut dyn FnMut(DownloadState),
     on_progress: &mut dyn FnMut(ProgressEvent),
 ) -> Result<TransferResult, DownloadError> {
+    download_with_policy(
+        agent,
+        url,
+        dest,
+        cancel,
+        &RetryPolicy::default(),
+        on_state,
+        on_progress,
+    )
+}
+
+/// Igual a [`download`], com política de retry explícita (usada por testes).
+pub fn download_with_policy(
+    agent: &ureq::Agent,
+    url: &str,
+    dest: &Path,
+    cancel: &AtomicBool,
+    policy: &RetryPolicy,
+    on_state: &mut dyn FnMut(DownloadState),
+    on_progress: &mut dyn FnMut(ProgressEvent),
+) -> Result<TransferResult, DownloadError> {
     if cancel.load(Ordering::SeqCst) {
         return Err(DownloadError::Cancelled);
     }
     sanitize_destination(dest)?;
     validate_url(url)?;
 
+    let mut rng = RetryRng::from_clock();
+    let mut attempt_no: u32 = 0;
+    loop {
+        attempt_no += 1;
+        match download_once(agent, url, dest, cancel, on_state, on_progress) {
+            Ok(result) => return Ok(result),
+            Err(error) => {
+                let can_retry = error.is_retryable()
+                    && attempt_no < policy.max_attempts
+                    && !cancel.load(Ordering::SeqCst);
+                if !can_retry {
+                    return Err(error);
+                }
+                let delay = if let DownloadError::Http {
+                    retry_after_secs, ..
+                } = &error
+                {
+                    effective_delay(policy, attempt_no, *retry_after_secs, &mut rng)
+                } else {
+                    effective_delay(policy, attempt_no, None, &mut rng)
+                };
+                if !sleep_interruptible(delay, cancel) {
+                    return Err(DownloadError::Cancelled);
+                }
+            }
+        }
+    }
+}
+
+/// Uma tentativa de download (retomada + recomeço seguro internos).
+fn download_once(
+    agent: &ureq::Agent,
+    url: &str,
+    dest: &Path,
+    cancel: &AtomicBool,
+    on_state: &mut dyn FnMut(DownloadState),
+    on_progress: &mut dyn FnMut(ProgressEvent),
+) -> Result<TransferResult, DownloadError> {
     let saved = ResumeMeta::load(dest).filter(|meta| meta.can_resume(url));
     match saved {
         Some(meta) => match attempt(agent, url, dest, Some(meta), cancel, on_state, on_progress) {

@@ -90,4 +90,28 @@ de teste 206/416/ETag/429/redirect/queda no meio.
 
 **Bloqueios:** nenhum.
 
+## Iteração 5 — Motor fatia 3: retry automático (2026-11-15)
+
+**Feito (`feat(download): retry com backoff, jitter e Retry-After`):**
+- `engine/retry.rs`: `RetryPolicy` (4 tentativas, base 500 ms, teto 8 s, jitter 0,5) +
+  `effective_delay` (`Retry-After` vence o backoff quando maior) + `sleep_interruptible`
+  (cancela em ≤100 ms) + PRNG xorshift64* semeado por relógio (zero dependências).
+- `download()` virou orquestrador de retries; `download_once` mantém retomada + recomeço seguro;
+  cada retry aproveita o `.part.meta` do disco automaticamente. JNI não muda.
+- 5 cenários de integração novos: retry após queda (retoma sozinho e conclui com 2 requests),
+  retry após 500, 429 com `Retry-After: 1` respeitado (≥950 ms), 404 sem retry, cancel durante o
+  backoff aborta rápido. 6 testes unitários (backoff cresce/teto, RNG determinístico, Retry-After,
+  sleep interrompível).
+- Correção de suíte: o `Content-Range` do mock estava malformado (espaço em vez de `/`) e os
+  testes de retomada passavam via fallback seguro; com o formato certo, o caminho 206 real é
+  exercitado (o parse rígido do motor pegou a malformação — bom sinal).
+- **Validação local:** fmt ok, clippy -D warnings ok, 49/49 testes (27 unit + 22 integração).
+
+**CI:** run da fatia 2 (`43733494095`) em andamento; novo dispatch após este commit.
+
+**Próximo passo:** iteração 6 → contrato enriquecido JNI/Kotlin/Dart (estados, velocidade, ETA,
+mensagens de erro localizadas) — fatia vertical nas 3 camadas.
+
+**Bloqueios:** nenhum.
+
 ---
