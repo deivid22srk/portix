@@ -1,7 +1,7 @@
 name: portix
 description: "PORTIX — biblioteca de ports de jogos para Android, com catálogo público, favoritos e downloads simulados."
 publish_to: "none"
-version: 1.0.3+4
+version: 1.0.2+3
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
