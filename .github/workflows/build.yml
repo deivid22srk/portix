@@ -117,3 +117,17 @@ jobs:
           path: build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publicar APKs na landing (releases)
+        env:
+          LANDING_TOKEN: ${{ secrets.LANDING_GH_TOKEN }}
+        run: |
+          set -e
+          export GH_TOKEN="$LANDING_TOKEN"
+          REPO="deivid22srk/portix-landing"
+          if ! gh release view apk-latest --repo "$REPO" >/dev/null 2>&1; then
+            gh release create apk-latest --repo "$REPO" \
+              --title "PORTIX APK (latest)" \
+              --notes "APKs mais recentes do PORTIX (build automático a partir de ${{ github.sha }})."
+          fi
+          gh release upload apk-latest build/app/outputs/flutter-apk/*.apk --repo "$REPO" --clobber

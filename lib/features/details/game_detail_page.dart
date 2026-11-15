@@ -187,7 +187,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   Future<void> _share(GameDetail detail) async {
-    final String url = 'https://portix.app/game/${detail.game.slug}';
+    // Compartilha a página do PORTIX (GitHub Pages); os APKs ficam nas releases.
+    final String url = '$kLandingUrl#${detail.game.slug}';
     await Clipboard.setData(ClipboardData(text: url));
     if (!mounted) {
       return;

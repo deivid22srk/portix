@@ -5,6 +5,10 @@ import '../app/app_strings.dart';
 /// Versão exibida/comparada com os avisos de atualização.
 const String kAppVersion = '1.0.0';
 
+/// Landing page pública do PORTIX (GitHub Pages), com os APKs nas releases.
+const String kLandingUrl = 'https://deivid22srk.github.io/portix-landing/';
+const String kReleasesUrl = 'https://github.com/deivid22srk/portix-landing/releases/latest';
+
 class Env {
   const Env._();
 
