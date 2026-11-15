@@ -14,6 +14,19 @@
 
 ## Loop v2 (UI) — iterações U1–U4 (2026-11-15)
 
+### U-F2 — Fix reportado: aparelho/processador invisíveis nos relatos (`fix(ui)` `057709b`)
+- **Sintoma:** na tela de detalhes (e na de relatos) o usuário não via qual
+  aparelho/processador gerou o relato de outra pessoa.
+- **Root cause:** `CompatReport` já tinha brand/model/soc/gpu/ramGb, mas
+  `FeedbackReportRow` espremia as specs na linha do autor (`Expanded` + ellipsis) —
+  cortadas em qualquer largura de telefone.
+- **Correção:** linha dedicada ao aparelho (ícone memória + SoC em destaque · GPU · RAM);
+  autor em linha própria; estrelas/FPS/cargo em `Wrap`; `BadgeChip`/`AdminBadge` com
+  ellipsis. Bônus: sweep de overflow expôs e corrigiu **overflow pré-existente de 93px**
+  (fonte 200%, 360dp) e ~322px do badge ADMIN.
+- **Testes:** `test/ui/report_row_test.dart` — 3 novos; suíte **47/47**; gates verdes.
+- **CI:** run `43745474944` (dispatch em `057709b`) — **success**.
+
 ### U-F1 — Fix reportado pelo usuário: espaço apagado no campo de busca (`fix(ui)` `a94b6ea`)
 - **Sintoma:** na tela de busca, o espaço que o usuário digitava desaparecia (~320ms+RTT
   depois de cada espaço final — a pausa entre palavras dispara o debounce).

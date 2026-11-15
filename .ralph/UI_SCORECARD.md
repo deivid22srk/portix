@@ -107,6 +107,18 @@
   (widget: 'mario ' sobrevive à resposta; texto em voo não é descartado; contrato
   controller: estado bruto × requisição trimada). Suíte 44/44, gates verdes.
 
+### 6b. Relatos de compatibilidade (detalhe + tela de relatos) — fix U-F2 (`057709b`)
+- Reportado pelo usuário: **não dava para ver o aparelho/processador** de quem fez o
+  relato. O modelo já trazia brand/model/soc/gpu/ramGb — era layout: specs dividiam a
+  linha do autor (Expanded + ellipsis) e somiam em qualquer largura de telefone.
+- `FeedbackReportRow`: **linha dedicada ao aparelho** (ícone memória + SoC destacado ·
+  GPU · RAM, sempre visível quando há dados); autor em linha própria; estrelas/FPS/cargo
+  em `Wrap` (sweep expôs **overflow pré-existente de 93px** com fonte 200% em 360dp).
+- `BadgeChip`/`AdminBadge`: rótulo com `maxLines: 1` + ellipsis (badge ADMIN sozinho
+  tinha ~322px @200% e estourava mesmo no Wrap; agora degrada com elegância).
+- 3 testes em `test/ui/report_row_test.dart` (specs visíveis, reserva sem dados, sweep
+  de overflow em 6 dispositivos). Suíte 47/47, gates verdes, CI `43745474944` success.
+
 ### 8-10. Auth / Perfil / Menu — 3,1
 - Evidência: `auth_page.dart`, `profile_edit_page.dart`, `user_profile_page.dart`, `menu_page.dart`.
   Formulários sem validação visível de erro por campo (Est 3), sem transições (Mov 2).
