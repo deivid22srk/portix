@@ -548,12 +548,16 @@ class BadgeChip extends StatelessWidget {
             Icon(icon, size: 12, color: tone),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: context.texts.labelSmall?.copyWith(
-              color: tone,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.texts.labelSmall?.copyWith(
+                color: tone,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],

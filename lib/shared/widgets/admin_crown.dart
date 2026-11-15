@@ -54,7 +54,11 @@ class AdminCrown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(adminLevelIcon(level), size: size, color: adminLevelColor(level));
+    return Icon(
+      adminLevelIcon(level),
+      size: size,
+      color: adminLevelColor(level),
+    );
   }
 }
 
@@ -81,11 +85,15 @@ class AdminBadge extends StatelessWidget {
           Icon(adminLevelIcon(level), size: 12, color: color),
           if (!compact) ...<Widget>[
             const SizedBox(width: 4),
-            Text(
-              adminLevelLabel(context.l10n, level),
-              style: context.texts.labelSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                adminLevelLabel(context.l10n, level),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
