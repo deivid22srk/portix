@@ -67,6 +67,7 @@ class L10n {
   String get continueAction => _t('Continuar', 'Continue');
   String get open => _t('Abrir', 'Open');
   String get installedLabel => _t('Instalado', 'Installed');
+  String get openApp => _t('Abrir o app', 'Open app');
   String get addToLibrary => _t('Biblioteca', 'Library');
   String get inLibrary => _t('Na biblioteca', 'In library');
   String get favoriteTooltip => _t('Favoritar', 'Add to wishlist');

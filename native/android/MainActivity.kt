@@ -8,6 +8,7 @@ import android.os.Bundle
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.deivid22srk.portix.apk.PortixApkTools
 import com.deivid22srk.portix.device.PortixDeviceInfo
 import com.deivid22srk.portix.downloader.DownloadService
 import com.deivid22srk.portix.downloader.DownloaderBridge
@@ -26,6 +27,7 @@ class MainActivity : FlutterActivity() {
     private val methodsChannelName = "portix/downloader"
     private val eventsChannelName = "portix/downloader/events"
     private val deviceChannelName = "portix/device"
+    private val apkChannelName = "portix/apk"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +93,25 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "info" -> result.success(PortixDeviceInfo.collect(applicationContext))
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, apkChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "inspect" -> {
+                        val path = call.argument<String>("path")
+                        result.success(path?.let { PortixApkTools.inspect(applicationContext, it) })
+                    }
+                    "installed" -> {
+                        val pkg = call.argument<String>("packageName")
+                        result.success(pkg?.let { PortixApkTools.installed(applicationContext, it) })
+                    }
+                    "launch" -> {
+                        val pkg = call.argument<String>("packageName")
+                        result.success(pkg != null && PortixApkTools.launch(applicationContext, pkg))
+                    }
                     else -> result.notImplemented()
                 }
             }

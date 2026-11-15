@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
+import '../../core/apk_tools.dart';
 import '../../core/auth.dart';
 import '../../core/device_info.dart';
 import '../../core/download_source.dart';
@@ -39,6 +40,23 @@ final gameCompatReportsProvider = FutureProvider.family<List<CompatReport>, Stri
       ref.watch(catalogRepositoryProvider).fetchCompatReports(gameId),
 );
 
+/// Última release (com APK) do repositório de um port, identificada por
+/// `owner/repo`. Serve para saber se existe uma versão mais nova que a baixada.
+final latestReleaseProvider = FutureProvider.family<GithubRelease?, String>(
+  (ref, String repoId) {
+    final List<String> parts = repoId.split('/');
+    if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
+      return null;
+    }
+    return fetchLatestApkRelease(GithubRepo(parts[0], parts[1]));
+  },
+);
+
+/// Estado de instalação do app correspondente ao pacote de um APK baixado.
+final installedAppProvider = FutureProvider.family<ApkSummary?, String>(
+  (ref, String packageName) => ApkTools.installed(packageName),
+);
+
 class GameDetailPage extends ConsumerStatefulWidget {
   const GameDetailPage({super.key, required this.slug, this.heroTag});
 
@@ -55,10 +73,18 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   bool _expandedDescription = false;
   bool _barTitle = false;
 
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
+    // Ao voltar do instalador do Android, revalida se o app ficou instalado.
+    _lifecycle = AppLifecycleListener(onResume: _onResumed);
+  }
+
+  void _onResumed() {
+    ref.invalidate(installedAppProvider);
   }
 
   void _onScroll() {
@@ -73,6 +99,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     super.dispose();
@@ -111,6 +138,19 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final L10n l10n = context.l10n;
     final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
     if (current != null && current.isDone) {
+      final ApkSummary? installed = await _installedApp(current);
+      if (installed != null) {
+        // Instalado: se saiu uma versão nova, baixa de novo; senão abre o app.
+        if (await _hasUpdate(current)) {
+          await _startDownload(detail, restart: true);
+          return;
+        }
+        final String? pkg = current.packageName;
+        if (pkg != null && await ApkTools.launch(pkg)) {
+          return;
+        }
+      }
+      // Sem app instalado (ou sem como abrir): instala o APK já baixado.
       final String? path = current.apkPath;
       if (path != null && await NativeDownloader.install(path)) {
         return;
@@ -124,6 +164,41 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       return;
     }
 
+    await _startDownload(detail);
+  }
+
+  /// Dados do app instalado correspondente à tarefa (ou `null`).
+  Future<ApkSummary?> _installedApp(DownloadTask task) async {
+    final String? pkg = task.packageName;
+    if (pkg == null || pkg.isEmpty) {
+      return null;
+    }
+    return ApkTools.installed(pkg);
+  }
+
+  /// `true` quando a release mais recente difere da versão já baixada.
+  Future<bool> _hasUpdate(DownloadTask task) async {
+    final String? stored = task.releaseTag;
+    final String? url = task.portUrl;
+    if (stored == null || url == null) {
+      return false;
+    }
+    final GithubRepo? repo = githubRepoOf(url);
+    if (repo == null) {
+      return false;
+    }
+    try {
+      final GithubRelease? release = await fetchLatestApkRelease(repo);
+      final String? latest = release?.tag;
+      return latest != null && latest.isNotEmpty && latest != stored;
+    } on Object {
+      return false;
+    }
+  }
+
+  /// Resolve a fonte do port e inicia o download (ou abre a página de destino).
+  Future<void> _startDownload(GameDetail detail, {bool restart = false}) async {
+    final L10n l10n = context.l10n;
     final GamePort? port = detail.primaryPort;
     final String? url = port?.url;
     if (port == null || url == null) {
@@ -133,7 +208,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
     final GithubRepo? repo = githubRepoOf(url);
     if (repo != null && !isDirectApkUrl(url)) {
-      await _installFromGithub(detail, port, url, repo);
+      await _installFromGithub(detail, port, url, repo, restart: restart);
       return;
     }
 
@@ -151,6 +226,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           detail.game,
           port: port,
           urlOverride: direct,
+          restart: restart,
         );
     _showSnack(
       l10n.downloadStarted,
@@ -272,15 +348,17 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     GameDetail detail,
     GamePort port,
     String sourceUrl,
-    GithubRepo repo,
-  ) async {
+    GithubRepo repo, {
+    bool restart = false,
+  }) async {
     final L10n l10n = context.l10n;
     _showSnack(l10n.searchingRelease);
     try {
-      final List<ApkAsset> assets = await fetchLatestApkAssets(repo);
+      final GithubRelease? release = await fetchLatestApkRelease(repo);
       if (!mounted) {
         return;
       }
+      final List<ApkAsset> assets = release?.assets ?? const <ApkAsset>[];
       if (assets.isEmpty) {
         await _openLink(sourceUrl);
         if (mounted) {
@@ -297,6 +375,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
             detail.game,
             port: port,
             urlOverride: chosen.url,
+            releaseTag: release?.tag,
+            restart: restart,
           );
       _showSnack(
         l10n.downloadStarted,
@@ -372,15 +452,47 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final bool inLibrary = collections.isInLibrary(game.id);
     final DownloadTask? task = ref.watch(downloadForGameProvider(game.id));
 
+    // Somente depois de baixar é que dá para checar instalação e atualização.
+    final bool done = task != null && task.isDone;
+    final String packageName = done ? (task?.packageName ?? '') : '';
+
+    bool installed = false;
+    if (packageName.isNotEmpty) {
+      installed = ref.watch(installedAppProvider(packageName)).valueOrNull != null;
+    }
+
+    final String? sourceUrl = detail.primaryPort?.url;
+    final GithubRepo? sourceRepo =
+        sourceUrl == null ? null : githubRepoOf(sourceUrl);
+    String? latestTag;
+    if (done && sourceRepo != null) {
+      latestTag = ref
+          .watch(latestReleaseProvider('${sourceRepo.owner}/${sourceRepo.repo}'))
+          .valueOrNull
+          ?.tag;
+    }
+    final String? storedTag = task?.releaseTag;
+    final bool updateAvailable = installed &&
+        storedTag != null &&
+        latestTag != null &&
+        latestTag.isNotEmpty &&
+        latestTag != storedTag;
+
     final String installLabel = task == null || task.status == DownloadStatus.failed
         ? l10n.install
-        : task.isDone
-            ? (task.apkPath != null ? l10n.install : l10n.installedLabel)
+        : done
+            ? (installed
+                ? (updateAvailable ? l10n.updateNow : l10n.openApp)
+                : l10n.install)
             : l10n.continueAction;
     final IconData installIcon = task == null || task.status == DownloadStatus.failed
         ? Icons.download_rounded
-        : task.isDone
-            ? Icons.check_circle_rounded
+        : done
+            ? (installed
+                ? (updateAvailable
+                    ? Icons.system_update_alt_rounded
+                    : Icons.open_in_new_rounded)
+                : Icons.download_done_rounded)
             : Icons.play_arrow_rounded;
 
     final bool longDescription = game.description.length > 320;

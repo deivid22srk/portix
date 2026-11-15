@@ -50,8 +50,19 @@ class ApkAsset {
   final int sizeBytes;
 }
 
-/// Busca os APKs da release mais recente que tenha anexos .apk.
-Future<List<ApkAsset>> fetchLatestApkAssets(GithubRepo repo) async {
+/// Uma release do GitHub com APKs anexados (tag + assets).
+class GithubRelease {
+  const GithubRelease({required this.tag, required this.assets});
+
+  /// Etiqueta da release (ex.: `v1.2.0`).
+  final String tag;
+
+  /// APKs anexados à release.
+  final List<ApkAsset> assets;
+}
+
+/// Busca a release mais recente que tenha anexos .apk, com a sua tag.
+Future<GithubRelease?> fetchLatestApkRelease(GithubRepo repo) async {
   final Uri uri = Uri.parse(
     'https://api.github.com/repos/${repo.owner}/${repo.repo}/releases?per_page=20',
   );
@@ -67,7 +78,7 @@ Future<List<ApkAsset>> fetchLatestApkAssets(GithubRepo repo) async {
   }
   final Object? body = jsonDecode(response.body);
   if (body is! List) {
-    return const <ApkAsset>[];
+    return null;
   }
   for (final Object? release in body) {
     if (release is! Map) {
@@ -94,8 +105,11 @@ Future<List<ApkAsset>> fetchLatestApkAssets(GithubRepo repo) async {
       }
     }
     if (apks.isNotEmpty) {
-      return apks;
+      return GithubRelease(
+        tag: (release['tag_name'] ?? '').toString(),
+        assets: apks,
+      );
     }
   }
-  return const <ApkAsset>[];
+  return null;
 }

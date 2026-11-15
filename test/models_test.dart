@@ -180,6 +180,10 @@ void main() {
         status: DownloadStatus.downloading,
         progress: 0.5,
         startedAt: DateTime.utc(2024, 1, 2),
+        releaseTag: 'v1.2.0',
+        packageName: 'com.exemplo.mario64',
+        versionName: '1.2.0',
+        versionCode: 120,
       );
 
       final DownloadTask restored = DownloadTask.fromJson(task.toJson());
@@ -187,6 +191,10 @@ void main() {
       expect(restored.status, DownloadStatus.downloading);
       expect(restored.progress, 0.5);
       expect(restored.startedAt, DateTime.utc(2024, 1, 2));
+      expect(restored.releaseTag, 'v1.2.0');
+      expect(restored.packageName, 'com.exemplo.mario64');
+      expect(restored.versionName, '1.2.0');
+      expect(restored.versionCode, 120);
       expect(restored.isActive, isTrue);
       expect(restored.isDone, isFalse);
     });

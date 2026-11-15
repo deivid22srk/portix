@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/apk_tools.dart';
 import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../models/download_task.dart';
@@ -81,10 +82,16 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     }
   }
 
-  void start(Game game, {GamePort? port, String? urlOverride}) {
+  void start(
+    Game game, {
+    GamePort? port,
+    String? urlOverride,
+    String? releaseTag,
+    bool restart = false,
+  }) {
     final int index =
         state.indexWhere((DownloadTask task) => task.gameId == game.id);
-    if (index >= 0) {
+    if (index >= 0 && !restart) {
       final DownloadTask current = state[index];
       if (current.status == DownloadStatus.done) {
         return;
@@ -93,6 +100,12 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
         resume(game.id);
       }
       return;
+    }
+    if (index >= 0) {
+      // Atualização: descarta a tarefa anterior antes de baixar de novo.
+      state = state
+          .where((DownloadTask item) => item.gameId != game.id)
+          .toList(growable: false);
     }
 
     final String? url = urlOverride ?? port?.url;
@@ -109,6 +122,7 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       progress: useNative ? 0 : 0.03,
       startedAt: DateTime.now(),
       nativeId: useNative ? _nativeIdFor(game.id) : null,
+      releaseTag: releaseTag,
     );
     state = <DownloadTask>[task, ...state];
     _persist();
@@ -163,16 +177,7 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
           ),
         );
       case 'done':
-        final DownloadTask done = task.copyWith(
-          status: DownloadStatus.done,
-          progress: 1,
-          apkPath: event.path,
-        );
-        _replace(done);
-        _persist();
-        _sync(done);
-        HapticFeedback.mediumImpact();
-        unawaited(_addToLibrary(done));
+        unawaited(_finishNative(task, event.path));
       case 'failed':
         _update(
           task.gameId,
@@ -185,6 +190,34 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       default:
         break;
     }
+  }
+
+  /// Conclui um download nativo: inspeciona o próprio APK baixado para guardar
+  /// o nome do pacote e a versão, junto da tag da release de origem.
+  Future<void> _finishNative(DownloadTask task, String? path) async {
+    DownloadTask done = task.copyWith(
+      status: DownloadStatus.done,
+      progress: 1,
+      apkPath: path,
+    );
+    if (path != null) {
+      final ApkSummary? apk = await ApkTools.inspect(path);
+      if (apk != null) {
+        done = done.copyWith(
+          packageName: apk.packageName,
+          versionName: apk.versionName,
+          versionCode: apk.versionCode,
+        );
+      }
+    }
+    if (!ref.mounted) {
+      return;
+    }
+    _replace(done);
+    _persist();
+    _sync(done);
+    HapticFeedback.mediumImpact();
+    unawaited(_addToLibrary(done));
   }
 
   void pause(String gameId) {

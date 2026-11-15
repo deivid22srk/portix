@@ -16,6 +16,10 @@ class DownloadTask {
     this.startedAt,
     this.nativeId,
     this.apkPath,
+    this.releaseTag,
+    this.packageName,
+    this.versionName,
+    this.versionCode,
     this.error,
   });
 
@@ -36,6 +40,18 @@ class DownloadTask {
   /// Caminho do APK baixado, quando concluído pelo motor nativo.
   final String? apkPath;
 
+  /// Tag da release do GitHub de onde o APK veio (para detectar atualizações).
+  final String? releaseTag;
+
+  /// Nome do pacote lido do próprio APK baixado.
+  final String? packageName;
+
+  /// Versão declarada no APK baixado.
+  final String? versionName;
+
+  /// Código de versão declarado no APK baixado.
+  final int? versionCode;
+
   /// Mensagem de erro quando o download falha.
   final String? error;
 
@@ -49,6 +65,10 @@ class DownloadTask {
     String? portUrl,
     String? platformName,
     String? apkPath,
+    String? releaseTag,
+    String? packageName,
+    String? versionName,
+    int? versionCode,
     String? error,
   }) =>
       DownloadTask(
@@ -64,6 +84,10 @@ class DownloadTask {
         startedAt: startedAt,
         nativeId: nativeId,
         apkPath: apkPath ?? this.apkPath,
+        releaseTag: releaseTag ?? this.releaseTag,
+        packageName: packageName ?? this.packageName,
+        versionName: versionName ?? this.versionName,
+        versionCode: versionCode ?? this.versionCode,
         error: error ?? this.error,
       );
 
@@ -80,6 +104,10 @@ class DownloadTask {
         'started_at': startedAt?.toIso8601String(),
         'native_id': nativeId,
         'apk_path': apkPath,
+        'release_tag': releaseTag,
+        'package_name': packageName,
+        'version_name': versionName,
+        'version_code': versionCode,
         'error': error,
       };
 
@@ -104,6 +132,11 @@ class DownloadTask {
       startedAt: asDate(map['started_at']),
       nativeId: map['native_id'] == null ? null : asInt(map['native_id']),
       apkPath: asText(map['apk_path']),
+      releaseTag: asText(map['release_tag']),
+      packageName: asText(map['package_name']),
+      versionName: asText(map['version_name']),
+      versionCode:
+          map['version_code'] == null ? null : asInt(map['version_code']),
       error: asText(map['error']),
     );
   }
