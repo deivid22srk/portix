@@ -253,8 +253,6 @@ class HomePage extends ConsumerWidget {
       );
     }
 
-    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
-    slivers.add(SliverToBoxAdapter(child: _StatsPanel(stats: feed.stats)));
     slivers.add(SliverToBoxAdapter(child: SizedBox(height: context.bottomChromePadding)));
     return slivers;
   }
@@ -375,80 +373,6 @@ class _HomeHeader extends StatelessWidget {
       title: l10n.navHome,
       subtitle: l10n.tagline,
       expandedHeight: 150,
-    );
-  }
-}
-
-class _StatsPanel extends StatelessWidget {
-  const _StatsPanel({required this.stats});
-
-  final CatalogStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    final L10n l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-      child: GlassContainer(
-        radius: AppRadii.lg,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
-        child: Row(
-          children: <Widget>[
-            Expanded(child: _StatBlock(value: stats.games.toString(), label: l10n.gameCount(stats.games))),
-            const _StatDivider(),
-            Expanded(child: _StatBlock(value: stats.ports.toString(), label: l10n.portCount(stats.ports))),
-            const _StatDivider(),
-            Expanded(
-              child: _StatBlock(
-                value: stats.platforms.toString(),
-                label: l10n.platformCount(stats.platforms),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatBlock extends StatelessWidget {
-  const _StatBlock({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Text(
-          value,
-          style: context.texts.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.accent,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 1,
-      height: 30,
-      child: ColoredBox(color: AppColors.glassBorder),
     );
   }
 }
