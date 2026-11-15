@@ -160,4 +160,26 @@ mensagens de erro localizadas) — fatia vertical nas 3 camadas.
 
 **Bloqueios:** nenhum.
 
+## Iteração 9 — docs + CI da fatia paralela (2026-11-15)
+
+**Feito:**
+- README: arquitetura do motor documentada (núcleo agnóstico, escrita atômica,
+  retomada, paralelismo com probe, retry, erros tipados, progresso rico) e seção
+  "Limitações" sincronizada com a realidade (downloads reais no Android; tipografia Poppins).
+- CI da fatia paralela: run `43735568342` → **success** (analyze + test + scaffold +
+  Rust/NDK 3 ABIs + APK). `3c6803d` no topo da branch.
+
+## Estado do loop para a próxima sessão
+
+**P0: 100% concluído.** P1: falta fila no serviço Kotlin (N simultâneos), notificação
+com ações, limite de velocidade (expor na UI), tela de downloads dedicada com filtros/lote,
+estados offline/espaço/permissão. P2: restam animações/adaptativo/i18n por locale/previews.
+SHA-256: N/A enquanto o catálogo não publicar hashes (justificado em DECISIONS quando surgir).
+
+**Como retomar:** rode o mesmo prompt; o agente deve ler este arquivo, `PLAN.md`,
+`git log --oneline -15` e continuar da maior prioridade aberta. `main` permanece intacta
+(MAIN_SHA `305eb58` confere). Branch: `feat/ui-ux-pro-download-engine`.
+
+**Bloqueios:** nenhum.
+
 ---
