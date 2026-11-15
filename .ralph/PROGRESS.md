@@ -7,9 +7,47 @@
 - Guard: hook `pre-push` local bloqueia push para main/master; todo push é explícito.
 - Stack real: Flutter 3.50 + Riverpod 3 + go_router; motor Rust (`ureq` + JNI) em `native/portix_downloader`;
   Kotlin em `native/android/`; `android/` gerado no CI (`tools/ci/prepare_android.py`).
-- Ambiente local: Rust instalável via `source /home/z/my-project/scripts/env.sh`
-  (`RUSTUP_HOME`/`CARGO_HOME` em `/home/z/my-project/tools`). Flutter NÃO está disponível no sandbox —
-  `flutter analyze/test` só no CI. Token: arquivo 600 em `/home/z/my-project/scripts/.gh_token` (nunca commitar; **rotacionar ao fim**).
+- Ambiente local: Rust via `source /home/z/my-project/scripts/env.sh`. **Flutter 3.50.0 instalado em
+  `/home/z/my-project/tools/flutter`** (`export PATH=/home/z/my-project/tools/flutter/bin:$PATH`) —
+  analyze/test/gates rodam localmente. Token: arquivo 600 em `/home/z/my-project/scripts/.gh_token`
+  (nunca commitar; **rotacionar ao fim**).
+
+## Loop v2 (UI) — iteração U1 — Fundação de UI: auditoria + portões + testes (2026-11-15)
+
+**Feito (`test(ui): portões de UI, testes de acessibilidade e auditoria das telas`):**
+- **Flutter 3.50.0 instalado no sandbox** (SDK intacto verificado por `git status` do próprio SDK).
+  Baseline local: `flutter analyze` limpo, `flutter test` 31/31.
+- **Auditoria UI completa**: inventário de 14 telas em `.ralph/UI_SCORECARD.md` (11 dimensões,
+  média honesta inicial **3,2**; 5 lacunas transversais listadas), `.ralph/UI_PLAN.md`
+  (U0/U1/U2 + itens de motor marcados `[congelado]`) e `.ralph/ui/*.md` (8 diagnósticos por tela).
+- **`tool/ui_gates.sh`** (raw_color/raw_font/raw_text/tok_size/debug_print/secret/ui_change/
+  format-catraca/analyze) com allowlist medida por `--init` (20 arquivos de cor, 3 de fontSize,
+  22 de tamanho, 6 de texto) — meta: drenar até o fim do U2.
+- **`test/ui/ui_test_helpers.dart`**: `pumpUi` (tema Aurora + pt-BR + dispositivos 360×640/411×891/
+  800×1280/paisagem + escala de fonte), `expectMeetsAccessibilityGuidelines` (tap targets 48dp,
+  rótulos, contraste AA) e `expectNoOverflow` (6 dispositivos). Notas: `flutter_test` assume
+  plataforma android (sobrescrita para linux no helper) e Riverpod 3.5 não exporta o tipo
+  `Override` (helper usa closure `wrap`).
+- **`test/ui/downloads_tile_test.dart`** (4 testes): conteúdo (bytes/velocidade/ETA/badge),
+  erro humanizado sem string crua, guidelines de acessibilidade nos 4 estados, varredura de
+  overflow × 6 dispositivos.
+- **Correções de UI com evidência do teste**: botão "Abrir fonte" 38→48dp (alvo de toque);
+  linha de ações da falha Row→Wrap (overflow real de 62px em paisagem/fonte 2.0);
+  `textTertiary` 42%→55% branco (contraste 3,9→6,0:1, AA) — tokens.dart comentado.
+- **CI**: `build.yml` da branch ganha "Portões de UI" (`tool/ui_gates.sh --skip-analyze`)
+  + `fetch-depth: 0` (regra `ui_change`). Jobs de release/main intocados.
+- **Validação local:** analyze limpo · `dart format` nos arquivos tocados · **35/35 testes** ·
+  gates verdes.
+
+**CI:** dispatch após o push; conferir resultado no início da próxima iteração.
+
+**Próximo passo:** U0-D (design system: fonte Poppins embutida em assets + ThemeExtension) ou,
+se o CI vermelhar, corrigir primeiro. Depois U1-D (Downloads: filtros/lote/animação/Semantics).
+
+**Bloqueios:** nenhum.
+
+---
+## Loop v1 (motor) — histórico
 
 ## Iteração 1 — Setup + auditoria (2026-11-15)
 

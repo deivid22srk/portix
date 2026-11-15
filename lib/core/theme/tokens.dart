@@ -27,7 +27,9 @@ class AppColors {
 
   static const Color textPrimary = Color(0xFFF4F6FA);
   static const Color textSecondary = Color(0x9EFFFFFF); // branco 62%
-  static const Color textTertiary = Color(0x6BFFFFFF); // branco 42%
+  // Terceiro nível com 55% (antes 42%): contraste ≥ 4,5:1 sobre o vidro —
+  // exigência AA verificada por textContrastGuideline em test/ui/.
+  static const Color textTertiary = Color(0x8CFFFFFF); // branco 55%
 
   /// Destaque principal (ciano).
   static const Color accent = Color(0xFF22D3EE);
@@ -108,18 +110,10 @@ class AppShadows {
   const AppShadows._();
 
   static const List<BoxShadow> glass = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x59000000),
-      blurRadius: 24,
-      offset: Offset(0, 12),
-    ),
+    BoxShadow(color: Color(0x59000000), blurRadius: 24, offset: Offset(0, 12)),
   ];
 
   static const List<BoxShadow> floating = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x8C000000),
-      blurRadius: 32,
-      offset: Offset(0, 16),
-    ),
+    BoxShadow(color: Color(0x8C000000), blurRadius: 32, offset: Offset(0, 16)),
   ];
 }

@@ -65,7 +65,9 @@ class DownloadTile extends ConsumerWidget {
       if (task.speedBps > 0) formatSpeed(task.speedBps),
     ];
     if (parts.isEmpty) {
-      return task.status == DownloadStatus.connecting ? l10n.statusConnecting : '';
+      return task.status == DownloadStatus.connecting
+          ? l10n.statusConnecting
+          : '';
     }
     return parts.join(' · ');
   }
@@ -91,11 +93,10 @@ class DownloadTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
     final DownloadsController controller = ref.read(downloadsProvider.notifier);
-    final List<String> metaParts = <String>[
-      ?task.platformName,
-      ?task.portKey,
-    ];
-    final String meta = metaParts.isEmpty ? l10n.notInformed : metaParts.join(' · ');
+    final List<String> metaParts = <String>[?task.platformName, ?task.portKey];
+    final String meta = metaParts.isEmpty
+        ? l10n.notInformed
+        : metaParts.join(' · ');
 
     return GlassContainer(
       radius: AppRadii.md,
@@ -142,7 +143,9 @@ class DownloadTile extends ConsumerWidget {
                   meta,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+                  style: context.texts.labelSmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 if (task.status == DownloadStatus.failed) ...<Widget>[
                   const SizedBox(height: 9),
@@ -168,24 +171,28 @@ class DownloadTile extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  Row(
+                  // Wrap (não Row): em fonte 2,0 os botões quebram de linha em
+                  // vez de estourar a largura (varredura de overflow do helper).
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
                     children: <Widget>[
                       if (task.portUrl != null)
                         SecondaryButton(
                           label: l10n.openSource,
                           icon: Icons.open_in_new_rounded,
-                          height: 38,
+                          height: AppSpacing.secondaryButtonHeight,
                           expand: false,
                           onPressed: () => _openSource(task.portUrl),
                         ),
-                      const Spacer(),
                       GlassCircleButton(
                         icon: Icons.refresh_rounded,
                         size: 48,
                         tooltip: l10n.tryAgain,
                         onTap: () => controller.resume(task.gameId),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
                       GlassCircleButton(
                         icon: Icons.close_rounded,
                         size: 48,
