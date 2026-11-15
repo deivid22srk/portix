@@ -14,6 +14,21 @@
 
 ## Loop v2 (UI) — iterações U1–U4 (2026-11-15)
 
+### U-F1 — Fix reportado pelo usuário: espaço apagado no campo de busca (`fix(ui)` `a94b6ea`)
+- **Sintoma:** na tela de busca, o espaço que o usuário digitava desaparecia (~320ms+RTT
+  depois de cada espaço final — a pausa entre palavras dispara o debounce).
+- **Root cause:** `SearchController._fetch` gravava a query **trimada** de volta no estado
+  ao concluir e o `ref.listen` da SearchPage espelha `state.query` no TextField — o echo
+  normalizado reescrevia (e truncava) o texto digitado; em corrida, texto digitado durante
+  a busca em voo também era descartado.
+- **Correção:** estado carrega a query BRUTA do campo (texto = fonte da verdade enquanto
+  se digita); trim só na requisição e em "buscas recentes" (sucesso e erro).
+- **Testes:** `test/ui/search_query_test.dart` — 3 novos (regressão widget 'mario ' sobrevive;
+  texto em voo preservado; contrato controller estado bruto × requisição trimada), com fake
+  de `CatalogRepository`. **Prova:** sem o fix, `Expected 'mario ' / Actual 'mario'`; com o
+  fix, verde. Suíte **44/44**; gates verdes; `fake_async ^1.3.1` em dev_dependencies.
+- **CI:** run `43743949614` (dispatch em `a94b6ea`) — **success**.
+
 ### U4 — AppSnackbar + desfazer (`feat(ui): snackbar com desfazer e AppSnackbar padrão`)
 - `lib/shared/widgets/app_snackbar.dart` (posição acima da barra de vidro via token
   `snackbarBottomGap`, ação opcional); remover/cancelar do tile com **Desfazer**;

@@ -101,6 +101,11 @@
 ### 7. Busca — 3,2
 - Evidência: `search_page.dart`, `filter_sheet.dart`. **Est 3** (SearchSkeleton + vazio com
   ação). Histórico limpa sem desfazer (**Fdb 3**).
+- Fix U-F1 (`a94b6ea`): campo de busca **preserva o espaço digitado** — o controller ecoava
+  a query trimada de volta ao TextField e apagava o espaço ~320ms+RTT depois de digitado
+  (reportado pelo usuário). 3 testes de regressão em `test/ui/search_query_test.dart`
+  (widget: 'mario ' sobrevive à resposta; texto em voo não é descartado; contrato
+  controller: estado bruto × requisição trimada). Suíte 44/44, gates verdes.
 
 ### 8-10. Auth / Perfil / Menu — 3,1
 - Evidência: `auth_page.dart`, `profile_edit_page.dart`, `user_profile_page.dart`, `menu_page.dart`.
