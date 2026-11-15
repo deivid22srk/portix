@@ -106,7 +106,6 @@ class L10n {
   String get send => _t('Enviar', 'Send');
   String get reviewSent => _t('Avaliação publicada', 'Review published');
   String get newGame => _t('Novo', 'New');
-  String get visits => _t('visitas', 'visits');
 
   // ------------------------------------------------------------ downloads
   String get downloadsTitle => _t('Downloads', 'Downloads');

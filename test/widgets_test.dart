@@ -40,7 +40,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: Center(child: StatBadge(rating: 4.5, visits: 1200)),
+          body: Center(child: StatBadge(rating: 4.5, downloads: 1200)),
         ),
       ),
     );

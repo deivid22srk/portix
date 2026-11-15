@@ -13,6 +13,7 @@ class Game {
     this.platforms = const <String>[],
     this.portCount = 0,
     this.visitCount = 0,
+    this.downloadCount = 0,
     this.rating = 0,
     this.ratingCount = 0,
     this.isFree = false,
@@ -31,6 +32,7 @@ class Game {
   final List<String> platforms;
   final int portCount;
   final int visitCount;
+  final int downloadCount;
   final double rating;
   final int ratingCount;
   final bool isFree;
@@ -54,6 +56,7 @@ class Game {
       platforms: asStringList(map['platforms']),
       portCount: asInt(map['port_count']),
       visitCount: asInt(map['visit_count']),
+      downloadCount: asInt(map['download_count']),
       rating: asDouble(map['rating_avg']),
       ratingCount: asInt(map['rating_count']),
       isFree: map['is_free'] == true,

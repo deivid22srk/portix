@@ -170,7 +170,7 @@ class GameCard extends StatelessWidget {
                   Positioned(
                     left: 10,
                     top: 10,
-                    child: StatBadge(rating: game.rating, visits: game.visitCount),
+                    child: StatBadge(rating: game.rating, downloads: game.downloadCount),
                   ),
                 Positioned(
                   left: 14,

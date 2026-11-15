@@ -736,10 +736,10 @@ class _Chips extends StatelessWidget {
           icon: Icons.star_rounded,
           color: AppColors.warning,
         ),
-      if (game.visitCount > 0)
+      if (game.downloadCount > 0)
         InfoChip(
-          label: compactNumber(game.visitCount),
-          icon: Icons.visibility_rounded,
+          label: '${compactNumber(game.downloadCount)} ${l10n.downloadsLabel}',
+          icon: Icons.download_rounded,
           color: AppColors.accentAlt,
         ),
       if (game.isFree)

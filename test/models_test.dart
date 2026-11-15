@@ -15,6 +15,7 @@ Map<String, dynamic> _gameMap() => <String, dynamic>{
       'platforms': <Object?>['Nintendo 64', null, ''],
       'port_count': '2',
       'visit_count': 1500,
+      'download_count': 7,
       'rating_avg': '4.5',
       'rating_count': 8,
       'is_free': true,
@@ -30,6 +31,7 @@ void main() {
       expect(game.platforms, <String>['Nintendo 64']);
       expect(game.portCount, 2);
       expect(game.visitCount, 1500);
+      expect(game.downloadCount, 7);
       expect(game.rating, 4.5);
       expect(game.hasRating, isTrue);
       expect(game.isFree, isTrue);

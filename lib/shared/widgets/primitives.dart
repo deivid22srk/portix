@@ -438,14 +438,14 @@ class InfoChip extends StatelessWidget {
 
 /// Pílula escura sobre a capa com nota (%) e popularidade.
 class StatBadge extends StatelessWidget {
-  const StatBadge({super.key, this.rating = 0, this.visits = 0});
+  const StatBadge({super.key, this.rating = 0, this.downloads = 0});
 
   final double rating;
-  final int visits;
+  final int downloads;
 
   @override
   Widget build(BuildContext context) {
-    if (rating <= 0 && visits <= 0) {
+    if (rating <= 0 && downloads <= 0) {
       return const SizedBox.shrink();
     }
     return Container(
@@ -469,7 +469,7 @@ class StatBadge extends StatelessWidget {
               ),
             ),
           ],
-          if (rating > 0 && visits > 0)
+          if (rating > 0 && downloads > 0)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 6),
               child: SizedBox(
@@ -478,11 +478,11 @@ class StatBadge extends StatelessWidget {
                 child: ColoredBox(color: AppColors.glassBorder),
               ),
             ),
-          if (visits > 0) ...<Widget>[
-            const Icon(Icons.visibility_rounded, size: 13, color: AppColors.accent),
+          if (downloads > 0) ...<Widget>[
+            const Icon(Icons.download_rounded, size: 13, color: AppColors.accentAlt),
             const SizedBox(width: 3),
             Text(
-              compactNumber(visits),
+              compactNumber(downloads),
               style: context.texts.labelSmall?.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
