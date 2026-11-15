@@ -17,30 +17,15 @@ class L10n {
 
   // ------------------------------------------------------------ navegação
   String get navHome => _t('Início', 'Home');
-  String get navSearch => _t('Explorar', 'Explore');
-  String get navLibrary => _t('Biblioteca', 'Library');
-  String get navDownloads => _t('Downloads', 'Downloads');
-  String get navProfile => _t('Perfil', 'Profile');
 
   // ------------------------------------------------------------------ home
-  String get greetingMorning => _t('Bom dia', 'Good morning');
-  String get greetingAfternoon => _t('Boa tarde', 'Good afternoon');
-  String get greetingEvening => _t('Boa noite', 'Good evening');
-  String get homeTitle => _t('O que vamos jogar?', 'What are we playing?');
-  String get homeSubtitle => _t('Ports de clássicos e novos, prontos para o Android.',
-      'Ports of classics and new hits, ready for Android.');
-  String get sectionTrending => _t('Em alta agora', 'Trending now');
-  String get sectionRecent => _t('Novos lançamentos', 'New releases');
   String get sectionClassics => _t('Clássicos eternos', 'Timeless classics');
   String get sectionFree => _t('Grátis e aberto', 'Free and open');
   String get sectionPlatforms => _t('Por plataforma', 'By platform');
   String get sectionGenres => _t('Por gênero', 'By genre');
   String get seeAll => _t('Ver tudo', 'See all');
-  String get searchShort => _t('Busque por jogo, gênero ou dev', 'Search by game, genre or dev');
-  String get catalogStatsHint => _t('catálogo aberto atualizado toda semana', 'open catalog updated weekly');
 
   // ---------------------------------------------------------------- busca
-  String get searchTitle => _t('Explorar', 'Explore');
   String get searchHint => _t('Buscar jogos, gêneros, devs', 'Search games, genres, devs');
   String get filters => _t('Filtros', 'Filters');
   String get filterPlatform => _t('Plataforma', 'Platform');
@@ -71,21 +56,16 @@ class L10n {
   String get addToLibrary => _t('Biblioteca', 'Library');
   String get inLibrary => _t('Na biblioteca', 'In library');
   String get favoriteTooltip => _t('Favoritar', 'Add to wishlist');
-  String get unfavoriteTooltip => _t('Remover dos favoritos', 'Remove from wishlist');
   String get share => _t('Compartilhar', 'Share');
   String get linkCopied => _t('Link copiado', 'Link copied');
   String get portsTitle => _t('Ports disponíveis', 'Available ports');
-  String get requirements => _t('Requisitos', 'Requirements');
-  String get synopsis => _t('Sobre o jogo', 'About the game');
   String get readMore => _t('Ler mais', 'Read more');
   String get readLess => _t('Ler menos', 'Show less');
   String get releaseYear => _t('Ano', 'Year');
   String get developer => _t('Desenvolvedor', 'Developer');
   String get genreLabel => _t('Gênero', 'Genre');
   String get platformsLabel => _t('Plataformas', 'Platforms');
-  String get portVersion => _t('Versão', 'Version');
   String get portUpdated => _t('Atualizado', 'Updated');
-  String get portSource => _t('Fonte', 'Source');
   String get openSource => _t('Abrir fonte', 'Open source');
   String get noLink => _t('Sem link', 'No link');
   String get needsFiles => _t('Arquivos do jogo', 'Game files');
@@ -99,23 +79,15 @@ class L10n {
   String get worksBug => _t('Com bugs', 'Bugs');
   String get worksPartial => _t('Parcial', 'Partial');
   String get relatedTitle => _t('Você também pode gostar', 'You may also like');
-  String get reviewsTitle => _t('Avaliações', 'Reviews');
-  String get noReviews => _t('Ainda sem avaliações. Seja o primeiro.', 'No reviews yet. Be the first.');
-  String get rateGame => _t('Avaliar', 'Rate');
-  String get yourRating => _t('Sua nota', 'Your rating');
   String get reviewHint => _t('Conte como o port roda (opcional)', 'Tell us how the port runs (optional)');
   String get send => _t('Enviar', 'Send');
   String get reviewSent => _t('Avaliação publicada', 'Review published');
   String get newGame => _t('Novo', 'New');
 
   // ------------------------------------------------------------ downloads
-  String get downloadsTitle => _t('Downloads', 'Downloads');
-  String get downloadsSubtitle => _t('Fila simulada, com pausa e retomada.', 'Simulated queue with pause and resume.');
   String get downloadEmpty => _t('Nada na fila', 'Queue is empty');
   String get downloadEmptyBody => _t('Abra um jogo e toque em Instalar para começar.',
       'Open a game and tap Install to start.');
-  String get activeDownloads => _t('Em andamento', 'In progress');
-  String get completedDownloads => _t('Concluídos', 'Completed');
   String get pause => _t('Pausar', 'Pause');
   String get resume => _t('Retomar', 'Resume');
   String get cancel => _t('Cancelar', 'Cancel');
@@ -130,7 +102,6 @@ class L10n {
   String get statusFailed => _t('Falhou', 'Failed');
 
   // ------------------------------------------------------------- biblioteca
-  String get libraryTitle => _t('Biblioteca', 'Library');
   String get addedToLibrary => _t('Adicionado à biblioteca', 'Added to library');
   String get removedFromLibrary => _t('Removido da biblioteca', 'Removed from library');
   String get ratingRequired => _t('Escolha uma nota de 1 a 5', 'Pick a rating from 1 to 5');
@@ -139,31 +110,22 @@ class L10n {
   String get libraryEmptyBody => _t('Adicione jogos pela página de detalhes ou instale um port.',
       'Add games from detail pages or install a port.');
   String get explore => _t('Explorar catálogo', 'Explore catalog');
-  String get wishlistTitle => _t('Lista de desejos', 'Wishlist');
   String get wishlistEmpty => _t('Nenhum favorito ainda', 'No favorites yet');
   String get wishlistEmptyBody => _t('Toque no coração de um jogo para guardar aqui.',
       "Tap a game's heart to save it here.");
 
   // ---------------------------------------------------------------- perfil
-  String get profileTitle => _t('Perfil', 'Profile');
   String get player => _t('Jogador', 'Player');
-  String get anonymousSession => _t('Sessão anônima sincronizada', 'Anonymous synced session');
   String get anonymousHint => _t('Favoritos e biblioteca ficam ligados a este dispositivo.',
       'Favorites and library are tied to this device.');
-  String get appearance => _t('Aparência', 'Appearance');
-  String get themeSystem => _t('Sistema', 'System');
-  String get themeLight => _t('Claro', 'Light');
-  String get themeDark => _t('Escuro', 'Dark');
   String get language => _t('Idioma', 'Language');
   String get notifications => _t('Notificações', 'Notifications');
   String get notificationsHint => _t('Avisos de novos ports (simulado)', 'New port alerts (simulated)');
   String get about => _t('Sobre o PORTIX', 'About PORTIX');
-  String get settingsSection => _t('Preferências', 'Preferences');
   String get activity => _t('Atividade', 'Activity');
   String get dataSource => _t(
       'Catálogo público de ports (fe2rr) com capas do LaunchBox Games Database. Todos os créditos aos projetos originais.',
       'Public port catalog (fe2rr) with covers from LaunchBox Games Database. All credits to the original projects.');
-  String get versionLabel => _t('Versão', 'Version');
   String get dataSection => _t('Dados', 'Data');
   String get legalSection => _t('Legal', 'Legal');
   String get termsOfUse => _t('Termos de uso', 'Terms of use');
@@ -204,9 +166,6 @@ class L10n {
   String get sectionNews => _t('Novidades', 'What\'s new');
   String get sectionTopRated => _t('Mais bem avaliados', 'Top rated');
   String get sectionPopular => _t('Mais populares', 'Most popular');
-  String get tileAndroidPorts => _t('Ports Android', 'Android ports');
-  String get tileHandheld => _t('Portáteis', 'Handhelds');
-  String get tileMobile => _t('Mobile', 'Mobile');
 
   // --------------------------------------------------------------- explore+
   String get exploreTitle => _t('Explorar', 'Explore');
@@ -232,30 +191,22 @@ class L10n {
   // ------------------------------------------------------------------ menu
   String get menuTitle => _t('Menu', 'Menu');
   String get account => _t('Conta', 'Account');
-  String get accentColor => _t('Cor de destaque', 'Accent color');
   String get appearanceSection => _t('Preferências', 'Preferences');
 
   // -------------------------------------------------------------- detalhes+
   String get installedAction => _t('Marcar como instalado', 'Mark as installed');
-  String get uninstalledAction => _t('Marcar como não instalado', 'Mark as not installed');
   String get infoTitle => _t('Informações', 'Information');
   String get descriptionTitle => _t('Descrição', 'Description');
   String get compatTitle => _t('Roda no seu celular?', 'Does it run on your phone?');
   String get compatSubtitle => _t('Relatos da comunidade, aparelho por aparelho.',
       'Community reports, device by device.');
-  String get compatWorks => _t('Funciona bem', 'Runs well');
-  String get compatPatch => _t('Precisa de patch', 'Needs a patch');
-  String get compatBroken => _t('Não roda', 'Does not run');
   String get compatReport => _t('Relatar', 'Report');
-  String get compatSent => _t('Relato enviado. Obrigado!', 'Report sent. Thanks!');
   String compatReports(int n) =>
       _t('$n ${n == 1 ? 'relato' : 'relatos'}', '$n ${n == 1 ? 'report' : 'reports'}');
   String get downloadsLabel => _t('baixados', 'downloads');
   String get sourceOnly => _t(
       'Este port não tem um APK direto. Abrindo a fonte para você baixar.',
       'This port has no direct APK. Opening the source so you can download it.');
-  String get notApk => _t('O link não apontou para um APK válido.',
-      'The link did not point to a valid APK.');
 
   // --------------------------------------------------------- contas / perfil
   String get authTitle => _t('Entrar no PORTIX', 'Sign in to PORTIX');
@@ -304,7 +255,6 @@ class L10n {
   String get reportBodyLabel => _t('O que o jogador relatou', 'What the player reported');
   String get reportsSearchHint => _t('Buscar por aparelho, chipset ou autor',
       'Search by device, chipset or author');
-  String get adminBadge => _t('ADM', 'ADM');
   String get searchTabGames => _t('Jogos', 'Games');
   String get searchTabUsers => _t('Usuários', 'Users');
   String get searchUsersHint => _t('Buscar por @ ou nome', 'Search by @ or name');
@@ -321,6 +271,8 @@ class L10n {
   String get admAdminLabel => _t('Administrador', 'Admin');
   String get admModLabel => _t('Moderador', 'Moderator');
   String get updateAvailable => _t('Atualização disponível', 'Update available');
+  String get downloadStartFailed =>
+      _t('Não foi possível iniciar o download.', 'Could not start the download.');
   String get updateNow => _t('Atualizar', 'Update now');
   String get later => _t('Depois', 'Later');
   String get chooseApk => _t('Escolha o APK', 'Choose the APK');
@@ -333,8 +285,6 @@ class L10n {
       '$n ${n == 1 ? 'platform' : 'platforms'}');
   String resultsCount(int n) => _t('$n ${n == 1 ? 'resultado' : 'resultados'}',
       '$n ${n == 1 ? 'result' : 'results'}');
-  String reviewCount(int n) => _t('$n ${n == 1 ? 'avaliação' : 'avaliações'}',
-      '$n ${n == 1 ? 'review' : 'reviews'}');
   String progressPercent(int value) => '$value%';
 }
 

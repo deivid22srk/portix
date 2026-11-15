@@ -36,17 +36,17 @@ class CompatReport {
   final int? ramGb;
   final DateTime? createdAt;
 
-  /// "Marca Modelo" (ou o que existir).
-  String get deviceLabel {
+  /// "Marca Modelo" ou o texto de reserva informado pela tela (localizado).
+  String deviceLabelOr(String fallback) {
     final List<String> parts = <String>[
       ?brand,
       ?model,
     ];
-    return parts.isEmpty ? 'Aparelho' : parts.join(' ');
+    return parts.isEmpty ? fallback : parts.join(' ');
   }
 
   factory CompatReport.fromMap(Map<String, dynamic> map) => CompatReport(
-        author: asTextOr(map['author'], 'Jogador'),
+        author: asTextOr(map['author'], ''),
         status: asTextOr(map['status'], 'good'),
         authorCover: asText(map['author_cover']),
         authorRole: asText(map['author_role']),

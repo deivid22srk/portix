@@ -57,6 +57,8 @@ class FeedbackReportRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    final String author = report.author.isEmpty ? l10n.player : report.author;
+    final String device = report.deviceLabelOr(l10n.reportDevice);
     final String specs = <String>[
       ?report.soc,
       ?report.gpu,
@@ -76,7 +78,7 @@ class FeedbackReportRow extends StatelessWidget {
                   ? null
                   : () => context.push<Object?>('/u/${report.authorId}'),
               child: ProfileAvatar(
-                name: report.author,
+                name: author,
                 imageUrl: report.authorCover,
                 size: 34,
                 level: report.authorRole,
@@ -91,7 +93,7 @@ class FeedbackReportRow extends StatelessWidget {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          report.deviceLabel,
+                          device,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.texts.labelMedium?.copyWith(
@@ -136,7 +138,7 @@ class FeedbackReportRow extends StatelessWidget {
                       ],
                       Expanded(
                         child: Text(
-                          '${report.authorHandle != null ? '@${report.authorHandle} · ' : ''}${report.author}${specs.isEmpty ? '' : ' · $specs'}',
+                          '${report.authorHandle != null ? '@${report.authorHandle} · ' : ''}$author${specs.isEmpty ? '' : ' · $specs'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.texts.labelSmall?.copyWith(

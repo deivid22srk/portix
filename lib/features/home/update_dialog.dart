@@ -109,7 +109,7 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
     if (!ok && mounted) {
       setState(() {
         _downloading = false;
-        _error = 'Não foi possível iniciar o download.';
+        _error = context.l10n.downloadStartFailed;
       });
     }
   }

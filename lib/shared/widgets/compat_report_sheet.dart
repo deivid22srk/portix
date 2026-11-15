@@ -46,6 +46,8 @@ class _CompatReportSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    final String author = report.author.isEmpty ? l10n.player : report.author;
+    final String device = report.deviceLabelOr(l10n.reportDevice);
     final String specs = <String>[
       ?report.soc,
       ?report.gpu,
@@ -96,7 +98,7 @@ class _CompatReportSheet extends StatelessWidget {
                         ? null
                         : () => _openAuthor(context),
                     child: ProfileAvatar(
-                      name: report.author,
+                      name: author,
                       imageUrl: report.authorCover,
                       size: 46,
                       level: report.authorRole,
@@ -108,7 +110,7 @@ class _CompatReportSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          report.author,
+                          author,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.texts.titleMedium?.copyWith(
@@ -201,7 +203,7 @@ class _CompatReportSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      report.deviceLabel,
+                      device,
                       style: context.texts.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
