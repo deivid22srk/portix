@@ -182,7 +182,7 @@ class _Content extends StatelessWidget {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               AppSpacing.screen,
               0,
               AppSpacing.screen,
