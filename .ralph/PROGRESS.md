@@ -14,6 +14,26 @@
 
 ## Loop v2 (UI) — iterações U1–U4 (2026-11-15)
 
+### U-F3 — Fix reportado: velocidade e tempo restante piscando no Meu Hub (`fix(ui)` `254b357`)
+- **Sintoma:** na fila de downloads do Meu Hub, a velocidade e o tempo restante ficam
+  piscando (aparecem e somem várias vezes por segundo).
+- **Root cause:** o motor nativo emite DOIS tipos de evento `downloading` pelo
+  EventChannel — o rico (`onStats`, ~10/s, com `speed`/`eta`) e o legado de notificação
+  (`onProgress`, ~3/s, SEM esses campos — `lib.rs` linhas 159-176, `DownloadService.kt`).
+  `NativeDownloadEvent.fromMap` convertia a ausência em `0.0`/`-1` e o `copyWith` do
+  controller sobrescrevia a última estatística válida → a UI alternava
+  "1,2 MB/s + 0:35" ↔ nada a cada evento legado.
+- **Correção (camada Dart — engine congelado):** `speedBps`/`etaSecs` viram nullable no
+  evento (`null` = sem estatística; `-1` explícito segue sendo ETA desconhecido) e a fusão
+  virou função pura testável `DownloadsController.applyNativeEvent` — evento legado
+  preserva a última estatística; bytes/progresso seguem vivos; falha zera; connecting/
+  verifying preservam.
+- **Testes:** `test/ui/downloads_eta_stable_test.dart` — 4 de unidade no contrato de
+  fusão + widget provando que "2,0 MB/s" e "0:35" continuam visíveis entre evento rico
+  e legado. **Prova:** sem o fix o teste não compila (contrato novo); a raiz está
+  documentada no código nativo. Suíte **52/52**; gates verdes.
+- **CI:** run `43749317439` (dispatch em `254b357`) — **success**.
+
 ### U-F2 — Fix reportado: aparelho/processador invisíveis nos relatos (`fix(ui)` `057709b`)
 - **Sintoma:** na tela de detalhes (e na de relatos) o usuário não via qual
   aparelho/processador gerou o relato de outra pessoa.

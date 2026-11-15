@@ -53,6 +53,14 @@
 ## Notas por tela (evidência e caminho para 4+)
 
 ### 1. Downloads (DownloadTile) — 3,5
+- **Fix U-F3 (`254b357`)** — reportado pelo usuário: velocidade e tempo restante
+  **piscavam** na fila. Root cause: o motor emite o evento rico (~10/s, com speed/eta)
+  e o legado de notificação (~3/s, sem esses campos); o Dart convertia a ausência em
+  0/-1 e sobrescrevia a última estatística válida. Correção na camada Dart (engine
+  congelado): evento legado **não rebaixa** a estatística (contrato nullable +
+  `applyNativeEvent` puro). 5 testes em `test/ui/downloads_eta_stable_test.dart`
+  (4 de contrato + widget de estabilidade visual). Suíte 52/52, gates verdes,
+  CI `43749317439` success.
 - **Cons 4** — GlassContainer/BadgeChip/GradientProgress/tokens; capa 58×78 virou token
   (`tileCoverWidth/Height`); allowlist de `tok_size` drenada para este arquivo (gates verdes).
 - **Hier 3** — título+badge ok; linha de stats e ETA competem com mesmo peso (labelSmall todas).
