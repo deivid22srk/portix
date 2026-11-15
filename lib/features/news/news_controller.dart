@@ -86,10 +86,11 @@ class NewsController extends Notifier<NewsState> {
   }
 
   List<NewsItem> _merge(List<NewsItem> current, List<NewsItem> incoming) {
-    final Set<String> seen = current.map((NewsItem item) => item.game.id).toSet();
+    String keyOf(NewsItem item) => item.id.isNotEmpty ? item.id : item.slug;
+    final Set<String> seen = current.map(keyOf).toSet();
     final List<NewsItem> next = <NewsItem>[...current];
     for (final NewsItem item in incoming) {
-      if (seen.add(item.game.id)) {
+      if (seen.add(keyOf(item))) {
         next.add(item);
       }
     }

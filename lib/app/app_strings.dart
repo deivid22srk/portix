@@ -210,13 +210,15 @@ class L10n {
 
   // ---------------------------------------------------------------- notícias
   String get newsTitle => _t('Notícias', 'News');
-  String get newsSubtitle => _t('Novidades e atualizações do catálogo.',
-      'Catalog news and updates.');
-  String get newsAdded => _t('Adicionado', 'Added');
-  String get newsUpdated => _t('Atualizado', 'Updated');
-  String get newsEmpty => _t('Sem novidades por enquanto', 'No news yet');
-  String get newsEmptyBody => _t('Assim que o catálogo for atualizado, aparece aqui.',
-      'As soon as the catalog is updated, it shows up here.');
+  String get newsSubtitle => _t('Ports, lançamentos e novidades para Android.',
+      'Android ports, releases and news.');
+  String get newsEmpty => _t('Sem notícias por enquanto', 'No news yet');
+  String get newsEmptyBody => _t('Assim que houver uma novidade, ela aparece aqui.',
+      'As soon as there is news, it shows up here.');
+  String get readOnSource => _t('Ler na fonte', 'Read at source');
+  String get viewProject => _t('Ver projeto', 'View project');
+  String get keyPointsTitle => _t('Principais pontos', 'Key points');
+  String get byAuthor => _t('Por', 'By');
 
   // ------------------------------------------------------------------- hub
   String get hubTitle => _t('Meu Hub', 'My Hub');

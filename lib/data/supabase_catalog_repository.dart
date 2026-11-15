@@ -117,6 +117,20 @@ class SupabaseCatalogRepository implements CatalogRepository {
   }
 
   @override
+  Future<NewsItem?> fetchNewsArticle(String slug) async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc('news_article', params: <String, dynamic>{
+        'p_slug': slug,
+      }),
+    );
+    if (response is! Map) {
+      return null;
+    }
+    final NewsItem item = NewsItem.fromMap(_map(response));
+    return item.slug.isEmpty ? null : item;
+  }
+
+  @override
   Future<List<CompatReport>> fetchCompatReports(String gameId) async {
     final Object? response = await _guard<Object?>(
       () => _client.rpc('game_compat_reports', params: <String, dynamic>{

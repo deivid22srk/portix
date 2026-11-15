@@ -22,6 +22,8 @@ abstract class CatalogRepository {
 
   Future<NewsPayload> fetchNews({int offset = 0, int limit = 20});
 
+  Future<NewsItem?> fetchNewsArticle(String slug);
+
   Future<List<CompatReport>> fetchCompatReports(String gameId);
 
   Future<UserProfile> fetchProfile();

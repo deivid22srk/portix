@@ -9,6 +9,7 @@ import '../features/explore/explore_page.dart';
 import '../features/home/home_page.dart';
 import '../features/hub/hub_page.dart';
 import '../features/menu/menu_page.dart';
+import '../features/news/news_article_page.dart';
 import '../features/news/news_page.dart';
 import '../features/profile/auth_page.dart';
 import '../features/profile/profile_edit_page.dart';
@@ -16,6 +17,7 @@ import '../features/profile/user_profile_page.dart';
 import '../features/search/search_page.dart';
 import '../features/shell/main_shell.dart';
 import '../features/shell/not_found_page.dart';
+import '../models/news.dart';
 
 // Rotas com um único ponto de verdade. As cinco abas vivem num
 // StatefulShellRoute (estado preservado); busca e detalhes são rotas de topo
@@ -82,6 +84,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           GameReportsPage(slug: state.pathParameters['slug'] ?? ''),
         ),
+      ),
+      GoRoute(
+        path: '/news/:slug',
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          final Object? extra = state.extra;
+          return _expandPage(
+            state,
+            NewsArticlePage(
+              slug: state.pathParameters['slug'] ?? '',
+              initial: extra is NewsItem ? extra : null,
+            ),
+          );
+        },
       ),
     ],
     errorBuilder: (BuildContext context, GoRouterState state) =>

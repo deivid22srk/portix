@@ -1,26 +1,53 @@
-import 'game.dart';
 import 'parsing.dart';
 
-/// Item do feed de Notícias: um jogo com o tipo de evento e a data.
+/// Um artigo de notícia do PORTIX.
 class NewsItem {
   const NewsItem({
-    required this.game,
-    required this.kind,
-    this.date,
+    required this.id,
+    required this.slug,
+    required this.category,
+    required this.title,
+    this.titleOriginal,
+    this.author,
+    this.summary = '',
+    this.keyPoints = const <String>[],
+    this.coverUrl,
+    this.sourceName,
+    this.sourceUrl,
+    this.projectUrl,
+    this.publishedAt,
   });
 
-  final Game game;
+  final String id;
+  final String slug;
 
-  /// 'added' quando o jogo entrou no catálogo, 'updated' quando houve novidade.
-  final String kind;
-  final DateTime? date;
-
-  bool get isUpdate => kind == 'updated';
+  /// Categoria exibida em destaque no card (ex.: `Ports`).
+  final String category;
+  final String title;
+  final String? titleOriginal;
+  final String? author;
+  final String summary;
+  final List<String> keyPoints;
+  final String? coverUrl;
+  final String? sourceName;
+  final String? sourceUrl;
+  final String? projectUrl;
+  final DateTime? publishedAt;
 
   factory NewsItem.fromMap(Map<String, dynamic> map) => NewsItem(
-        game: Game.fromMap(map),
-        kind: asTextOr(map['kind'], 'added'),
-        date: asDate(map['event_on']),
+        id: asTextOr(map['id'], ''),
+        slug: asTextOr(map['slug'], ''),
+        category: asTextOr(map['category'], 'Notícias'),
+        title: asTextOr(map['title'], ''),
+        titleOriginal: asText(map['title_original']),
+        author: asText(map['author']),
+        summary: asTextOr(map['summary'], ''),
+        keyPoints: asStringList(map['key_points']),
+        coverUrl: asText(map['cover_url']),
+        sourceName: asText(map['source_name']),
+        sourceUrl: asText(map['source_url']),
+        projectUrl: asText(map['project_url']),
+        publishedAt: asDate(map['published_at']),
       );
 }
 
