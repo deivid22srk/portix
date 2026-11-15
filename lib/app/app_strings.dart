@@ -296,6 +296,9 @@ class L10n {
   String get fpsOptional => _t('Informar FPS médio', 'Report average FPS');
   String get seeAllReports => _t('Ver todos', 'See all');
   String get reportsTitle => _t('Relatos da comunidade', 'Community reports');
+  String get reportDetails => _t('Relato da comunidade', 'Community report');
+  String get reportDevice => _t('Aparelho', 'Device');
+  String get reportBodyLabel => _t('O que o jogador relatou', 'What the player reported');
   String get reportsSearchHint => _t('Buscar por aparelho, chipset ou autor',
       'Search by device, chipset or author');
   String get adminBadge => _t('ADM', 'ADM');

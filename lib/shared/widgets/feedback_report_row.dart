@@ -6,6 +6,7 @@ import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/compat_report.dart';
 import 'admin_crown.dart';
+import 'compat_report_sheet.dart';
 import 'primitives.dart';
 import 'profile_avatar.dart';
 
@@ -62,110 +63,113 @@ class FeedbackReportRow extends StatelessWidget {
       if (report.ramGb != null) '${report.ramGb} GB',
     ].join(' · ');
 
-    return GlassContainer(
-      radius: AppRadii.md,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Pressable(
-            onTap: report.authorId == null
-                ? null
-                : () => context.push<Object?>('/u/${report.authorId}'),
-            child: ProfileAvatar(
-              name: report.author,
-              imageUrl: report.authorCover,
-              size: 34,
-              level: report.authorRole,
+    return Pressable(
+      onTap: () => showCompatReportSheet(context, report),
+      child: GlassContainer(
+        radius: AppRadii.md,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Pressable(
+              onTap: report.authorId == null
+                  ? null
+                  : () => context.push<Object?>('/u/${report.authorId}'),
+              child: ProfileAvatar(
+                name: report.author,
+                imageUrl: report.authorCover,
+                size: 34,
+                level: report.authorRole,
+              ),
             ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        report.deviceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.texts.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          report.deviceLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    BadgeChip(
-                      label: compatVerdictLabel(l10n, report.status),
-                      color: compatVerdictColor(report.status),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: <Widget>[
-                    if (report.rating > 0) ...<Widget>[
-                      for (int i = 1; i <= 5; i += 1)
-                        Icon(
-                          i <= report.rating
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          size: 12,
-                          color: i <= report.rating
-                              ? AppColors.warning
-                              : AppColors.textTertiary,
-                        ),
                       const SizedBox(width: 6),
-                    ],
-                    if (report.fps != null) ...<Widget>[
                       BadgeChip(
-                        label: '${report.fps} FPS',
-                        color: AppColors.accent,
-                        icon: Icons.speed_rounded,
+                        label: compatVerdictLabel(l10n, report.status),
+                        color: compatVerdictColor(report.status),
                       ),
-                      const SizedBox(width: 6),
                     ],
-                    if (report.authorRole != null) ...<Widget>[
-                      AdminBadge(level: report.authorRole!),
-                      const SizedBox(width: 6),
-                    ],
-                    Expanded(
-                      child: Text(
-                        '${report.authorHandle != null ? '@${report.authorHandle} · ' : ''}${report.author}${specs.isEmpty ? '' : ' · $specs'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.texts.labelSmall?.copyWith(
-                          color: AppColors.textTertiary,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: <Widget>[
+                      if (report.rating > 0) ...<Widget>[
+                        for (int i = 1; i <= 5; i += 1)
+                          Icon(
+                            i <= report.rating
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            size: 12,
+                            color: i <= report.rating
+                                ? AppColors.warning
+                                : AppColors.textTertiary,
+                          ),
+                        const SizedBox(width: 6),
+                      ],
+                      if (report.fps != null) ...<Widget>[
+                        BadgeChip(
+                          label: '${report.fps} FPS',
+                          color: AppColors.accent,
+                          icon: Icons.speed_rounded,
                         ),
+                        const SizedBox(width: 6),
+                      ],
+                      if (report.authorRole != null) ...<Widget>[
+                        AdminBadge(level: report.authorRole!),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          '${report.authorHandle != null ? '@${report.authorHandle} · ' : ''}${report.author}${specs.isEmpty ? '' : ' · $specs'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.labelSmall?.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (report.body.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 6),
+                    Text(
+                      report.body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.texts.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
-                ),
-                if (report.body.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 6),
-                  Text(
-                    report.body,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.texts.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                  if (sameSoc) ...<Widget>[
+                    const SizedBox(height: 6),
+                    BadgeChip(
+                      label: l10n.compatSameSoc,
+                      color: AppColors.accent,
+                      icon: Icons.memory_rounded,
                     ),
-                  ),
+                  ],
                 ],
-                if (sameSoc) ...<Widget>[
-                  const SizedBox(height: 6),
-                  BadgeChip(
-                    label: l10n.compatSameSoc,
-                    color: AppColors.accent,
-                    icon: Icons.memory_rounded,
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
