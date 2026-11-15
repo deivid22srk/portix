@@ -454,11 +454,11 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
     // Somente depois de baixar é que dá para checar instalação e atualização.
     final bool done = task != null && task.isDone;
-    final String packageName = done ? (task?.packageName ?? '') : '';
+    final String packageName = done ? (task.packageName ?? '') : '';
 
     bool installed = false;
     if (packageName.isNotEmpty) {
-      installed = ref.watch(installedAppProvider(packageName)).valueOrNull != null;
+      installed = ref.watch(installedAppProvider(packageName)).value != null;
     }
 
     final String? sourceUrl = detail.primaryPort?.url;
@@ -468,7 +468,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     if (done && sourceRepo != null) {
       latestTag = ref
           .watch(latestReleaseProvider('${sourceRepo.owner}/${sourceRepo.repo}'))
-          .valueOrNull
+          .value
           ?.tag;
     }
     final String? storedTag = task?.releaseTag;
