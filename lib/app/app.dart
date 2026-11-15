@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/env.dart';
 import '../core/providers.dart';
+import '../features/ads/adblock_gate.dart';
 import '../features/splash/splash_page.dart';
 import 'router.dart';
 import 'settings.dart';
@@ -17,14 +18,20 @@ class PortixApp extends ConsumerWidget {
   static const List<LocalizationsDelegate<dynamic>> _delegates =
       GlobalMaterialLocalizations.delegates;
 
-  static const List<Locale> _locales = <Locale>[Locale('pt', 'BR'), Locale('en')];
+  static const List<Locale> _locales = <Locale>[
+    Locale('pt', 'BR'),
+    Locale('en'),
+  ];
 
-  /// Limita a escala de fonte do sistema para o layout não quebrar.
+  /// Limita a escala de fonte do sistema para o layout não quebrar e
+  /// encaixa o app na monetização: o AdsGate inicia o SDK no Android e
+  /// bloqueia o app quando detecta bloqueador de anúncios (vale para as
+  /// três árvores Material: splash, erro de bootstrap e app real).
   Widget _withTextScale(Widget? child) => MediaQuery.withClampedTextScaling(
-        minScaleFactor: 0.9,
-        maxScaleFactor: 1.35,
-        child: child ?? const SizedBox.shrink(),
-      );
+    minScaleFactor: 0.9,
+    maxScaleFactor: 1.35,
+    child: AdsGate(child: child ?? const SizedBox.shrink()),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/apk_tools.dart';
+import '../../core/ads/ads_providers.dart';
 import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../models/download_task.dart';
@@ -260,6 +261,8 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     _sync(done);
     HapticFeedback.mediumImpact();
     unawaited(_addToLibrary(done));
+    // Mesmo gancho do caminho nativo (conclusão de download).
+    unawaited(ref.read(adsProvider.notifier).onDownloadCompleted());
   }
 
   void pause(String gameId) {
@@ -421,6 +424,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     _sync(task);
     HapticFeedback.mediumImpact();
     unawaited(_addToLibrary(task));
+    // Pacing da monetização: o interstitial só entra aqui (conclusão de
+    // download), com primeira sessão livre e cooldown — ver AdsController.
+    unawaited(ref.read(adsProvider.notifier).onDownloadCompleted());
   }
 
   Future<void> _addToLibrary(DownloadTask task) async {
