@@ -65,3 +65,22 @@ indeterminísticos com fetch de rede; (3) menos dependência = menos superfície
 absorve o legado medido (58 entradas na U1). Regras novas arquivos entram por `--init`.
 Ao reconstruir uma tela, as linhas dela saem da allowlist NO MESMO commit — o portão
 aperta sozinho com o tempo, sem quebrar o CI de mudanças alheias.
+
+## D-UI4 — Monetização Unity Ads com pacing respeitoso + gate de bloqueador (dono)
+Game ID `6225452` (Android) em `lib/core/ads/ads_config.dart`; placements padrão da
+Unity (`Interstitial_Android`, `Rewarded_Android`). Decisões de produto:
+1. **Intersticial só na conclusão de download** (momento de valor), nunca nas
+   `skipFirstSessions` (1) primeiras sessões e com cooldown de 3 min
+   (`interstitialCooldown`). Anúncio no fim, não no meio: o usuário termina o que
+   veio fazer.
+2. **Rewarded voluntário** ("Apoie o PORTIX" no menu): opt-in explícito, pular não
+   recompensa, indisponível dá feedback honesto. Zero interrupção não solicitada.
+3. **Gate de bloqueador** (pedido do dono): detecção por DNS **conservadora** — host
+   de controle + 3 hosts da Unity; acusa só quando TODOS falham/afogam. Offline e
+   bloqueio parcial NÃO punem (anti falso positivo). A barreira substitui o app
+   (não é rota dispensável) e só reaparece liberada após "Verificar novamente".
+   Custos aceitos documentados: estado de navegação é reiniciado ao desbloquear e
+   DNS corporativo/escolar pode bloquear ads sem intenção do usuário.
+4. `testMode: kDebugMode` — release do CI serve anúncios reais; `FirebaseTestLabMode.
+   disableAds` protege builds de emulador. SDK/detector como interfaces injetáveis:
+   17 testes sem canal nativo.

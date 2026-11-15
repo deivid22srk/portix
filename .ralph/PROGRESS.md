@@ -14,6 +14,20 @@
 
 ## Loop v2 (UI) — iterações U1–U4 (2026-11-15)
 
+### U-A1 — Feature do dono: Unity Ads (6225452) + gate de bloqueador (`feat(ui)` `d5dec8b`)
+- **Pedido:** monetizar com Unity Ads sem estragar a UX do usuário comum; usuário com
+  bloqueador de anúncios recebe diálogo pedindo para desligar e fica bloqueado até
+  verificar de novo.
+- **Implementação:** `lib/core/ads/` (config, detector DNS, SDK injetável, controllers
+  Riverpod) + `lib/features/ads/adblock_gate.dart` na árvore de TODAS as MaterialApps.
+  Intersticial na conclusão de download com pacing (1ª sessão livre + cooldown 3 min);
+  rewarded voluntário no menu; testMode em debug. Gate conservador (controle + 3 hosts;
+  offline/partial não punem) com "Verificar novamente". ProGuard da Unity no scaffold.
+- **Testes:** 17 novos (6 detector, 9 pacing, 2 gate); suíte **69/69**; gates verdes.
+- **CI:** run `43767685146` (dispatch em `d5dec8b`) — **success**.
+- **Nota:** `main` recebeu commits de dados do dono (9060a14) fora do loop — branch
+  de trabalho intacta; guard segue valendo para os pushes do loop.
+
 ### U-F3 — Fix reportado: velocidade e tempo restante piscando no Meu Hub (`fix(ui)` `254b357`)
 - **Sintoma:** na fila de downloads do Meu Hub, a velocidade e o tempo restante ficam
   piscando (aparecem e somem várias vezes por segundo).
