@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/tokens.dart';
@@ -33,45 +32,45 @@ class AppPalette {
   LinearGradient get brand => AppColors.accentGradient;
 
   LinearGradient get brandSoft => LinearGradient(
-        colors: <Color>[
-          AppColors.accent.withValues(alpha: 0.22),
-          AppColors.accentAlt.withValues(alpha: 0.08),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+    colors: <Color>[
+      AppColors.accent.withValues(alpha: 0.22),
+      AppColors.accentAlt.withValues(alpha: 0.08),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   LinearGradient get cardGradient => const LinearGradient(
-        colors: <Color>[AppColors.glass, Color(0x0AFFFFFF)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+    colors: <Color>[AppColors.glass, Color(0x0AFFFFFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   /// Escurecimento sobre capas para legibilidade de texto.
   LinearGradient get coverScrim => const LinearGradient(
-        colors: <Color>[
-          Colors.transparent,
-          Color(0x00000000),
-          Color(0xA6000000),
-          Color(0xD9000000),
-        ],
-        stops: <double>[0, 0.5, 0.82, 1],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      );
+    colors: <Color>[
+      Colors.transparent,
+      Color(0x00000000),
+      Color(0xA6000000),
+      Color(0xD9000000),
+    ],
+    stops: <double>[0, 0.5, 0.82, 1],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
   /// Transição do topo da tela de detalhes para o fundo.
   LinearGradient get scrim => LinearGradient(
-        colors: <Color>[
-          Colors.transparent,
-          AppColors.bg.withValues(alpha: 0.55),
-          AppColors.bg.withValues(alpha: 0.94),
-          AppColors.bg,
-        ],
-        stops: const <double>[0, 0.42, 0.78, 1],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      );
+    colors: <Color>[
+      Colors.transparent,
+      AppColors.bg.withValues(alpha: 0.55),
+      AppColors.bg.withValues(alpha: 0.94),
+      AppColors.bg,
+    ],
+    stops: const <double>[0, 0.42, 0.78, 1],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
   static const AppPalette darkPalette = AppPalette();
 
@@ -97,7 +96,11 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData dark() {
-    final TextTheme base = GoogleFonts.poppinsTextTheme();
+    // Poppins embutida em assets/fonts (OFL) — funciona offline, renderiza
+    // igual no primeiro boot e deixa os testes de golden determinísticos.
+    final TextTheme base = Typography.material2021().black.apply(
+      fontFamily: 'Poppins',
+    );
     final TextTheme textTheme = base.copyWith(
       // Títulos de tela grandes (~34–40).
       displayLarge: base.displayLarge?.copyWith(
@@ -152,22 +155,32 @@ class AppTheme {
       bodyLarge: base.bodyLarge?.copyWith(fontSize: 15, height: 1.45),
       bodyMedium: base.bodyMedium?.copyWith(fontSize: 15, height: 1.45),
       bodySmall: base.bodySmall?.copyWith(fontSize: 13, height: 1.4),
-      labelLarge: base.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
-      labelMedium: base.labelMedium?.copyWith(fontSize: 12.5, fontWeight: FontWeight.w600),
-      labelSmall: base.labelSmall?.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600),
+      labelLarge: base.labelLarge?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+      labelMedium: base.labelMedium?.copyWith(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+      ),
+      labelSmall: base.labelSmall?.copyWith(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w600,
+      ),
     );
 
-    final ColorScheme scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.accent,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: AppColors.accent,
-      secondary: AppColors.accentAlt,
-      surface: AppColors.bg,
-      onSurface: AppColors.textPrimary,
-      error: AppColors.danger,
-      outline: AppColors.glassBorder,
-    );
+    final ColorScheme scheme =
+        ColorScheme.fromSeed(
+          seedColor: AppColors.accent,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: AppColors.accent,
+          secondary: AppColors.accentAlt,
+          surface: AppColors.bg,
+          onSurface: AppColors.textPrimary,
+          error: AppColors.danger,
+          outline: AppColors.glassBorder,
+        );
 
     return ThemeData(
       brightness: Brightness.dark,

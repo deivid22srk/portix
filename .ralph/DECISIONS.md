@@ -47,3 +47,21 @@ antigos funcionando no mesmo commit (Rust+Kotlin+Dart sobem juntos).
 ## D10 — Identidade visual preservada
 Aurora (fundo `#07090E`, ciano→esmeralda, vidro, Poppins) é intocável. Melhorias de
 UI reusam tokens/primitivas existentes; nada de tema claro/OLED sem demanda real.
+
+## D-UI1 — Tema único escuro (marca Aurora) no loop v2
+O scorecard avalia contraste no tema suportado (escuro). Um tema claro contradiria a
+identidade "vidro escuro" preservada pela missão; se o humano pedir, vira backlog próprio.
+
+## D-UI2 — `google_fonts` removido; Poppins embutida em `assets/fonts` (U2)
+Motivos: (1) google_fonts busca a fonte em runtime — primeiro boot sem cache troca a
+tipografia depois de aberto (ruim para "perfeito"); (2) goldens de teste ficam
+indeterminísticos com fetch de rede; (3) menos dependência = menos superfície no CI.
+4 pesos (400/500/600/700) cobrem toda a escala do tema; licença OFL incluída.
+`Typography.material2021().black` substitui o TextTheme base do GoogleFonts — todas as
+15 variantes já eram sobrescritas com tamanho/peso explícitos em `AppTheme.dark()`.
+
+## D-UI3 — Portões de UI tolerantes com allowlist drenável (U1)
+`tool/ui_gates.sh` varre lib/ inteira, mas a allowlist (`tool/ui_gates_allowlist.txt`)
+absorve o legado medido (58 entradas na U1). Regras novas arquivos entram por `--init`.
+Ao reconstruir uma tela, as linhas dela saem da allowlist NO MESMO commit — o portão
+aperta sozinho com o tempo, sem quebrar o CI de mudanças alheias.
