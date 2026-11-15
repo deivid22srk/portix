@@ -28,6 +28,7 @@ use super::progress::{ProgressEvent, ProgressTracker};
 use super::resume::ResumeMeta;
 use super::retry::{effective_delay, sleep_interruptible, RetryPolicy, RetryRng};
 use super::state::{DownloadState, StateTracker};
+use super::{parallel, segments};
 
 /// Magic de ZIP/APK (`PK\x03\x04`).
 pub const APK_MAGIC: [u8; 4] = [0x50, 0x4B, 0x03, 0x04];
@@ -118,7 +119,8 @@ pub fn download_with_policy(
     }
 }
 
-/// Uma tentativa de download (retomada + recomeço seguro internos).
+/// Uma tentativa de download: retomada v2 (paralela), retomada v1
+/// (single-stream) ou sessão nova com probe de capacidade.
 fn download_once(
     agent: &ureq::Agent,
     url: &str,
@@ -127,19 +129,84 @@ fn download_once(
     on_state: &mut dyn FnMut(DownloadState),
     on_progress: &mut dyn FnMut(ProgressEvent),
 ) -> Result<TransferResult, DownloadError> {
-    let saved = ResumeMeta::load(dest).filter(|meta| meta.can_resume(url));
-    match saved {
-        Some(meta) => match attempt(agent, url, dest, Some(meta), cancel, on_state, on_progress) {
-            // Servidor não honrou Range/If-Range: recomeço seguro, uma vez.
-            Err(_error @ (DownloadError::RangeNotSatisfiable | DownloadError::FileChanged)) => {
-                remove_if_exists(&part_path(dest));
-                ResumeMeta::remove(dest);
-                attempt(agent, url, dest, None, cancel, on_state, on_progress)
-            }
-            other => other,
-        },
-        None => attempt(agent, url, dest, None, cancel, on_state, on_progress),
+    if let Some(meta) = ResumeMeta::load(dest) {
+        if meta.can_resume_parallel(url) {
+            let validators = (meta.etag.clone(), meta.last_modified.clone());
+            let chunks = meta.segments.clone().unwrap_or_default();
+            let result = parallel::run_parallel(
+                agent,
+                url,
+                dest,
+                cancel,
+                meta.total,
+                validators,
+                chunks,
+                &meta,
+                on_state,
+                on_progress,
+            );
+            // Validador não bateu: recomeço limpo e seguro (uma vez).
+            return match result {
+                Err(_e @ (DownloadError::RangeNotSatisfiable | DownloadError::FileChanged)) => {
+                    remove_if_exists(&part_path(dest));
+                    ResumeMeta::remove(dest);
+                    fresh_download(agent, url, dest, cancel, on_state, on_progress)
+                }
+                other => other,
+            };
+        }
+        if meta.can_resume(url) {
+            return match attempt(agent, url, dest, Some(meta), cancel, on_state, on_progress) {
+                // Servidor não honrou Range/If-Range: recomeço seguro, uma vez.
+                Err(_e @ (DownloadError::RangeNotSatisfiable | DownloadError::FileChanged)) => {
+                    remove_if_exists(&part_path(dest));
+                    ResumeMeta::remove(dest);
+                    attempt(agent, url, dest, None, cancel, on_state, on_progress)
+                }
+                other => other,
+            };
+        }
     }
+    fresh_download(agent, url, dest, cancel, on_state, on_progress)
+}
+
+/// Sessão nova: probe `Range: bytes=0-0` decide entre paralelo e
+/// single-stream (fallback automático quando não há suporte a Range).
+fn fresh_download(
+    agent: &ureq::Agent,
+    url: &str,
+    dest: &Path,
+    cancel: &AtomicBool,
+    on_state: &mut dyn FnMut(DownloadState),
+    on_progress: &mut dyn FnMut(ProgressEvent),
+) -> Result<TransferResult, DownloadError> {
+    let capability = parallel::probe(agent, url, cancel)?;
+    if let Some(probe) = capability {
+        if segments::worker_count(probe.total) > 1 {
+            let chunks = segments::plan_chunks(probe.total);
+            let meta = ResumeMeta::parallel(
+                url,
+                probe.total,
+                probe.etag.as_deref(),
+                probe.last_modified.as_deref(),
+                chunks.clone(),
+            );
+            meta.save(dest);
+            return parallel::run_parallel(
+                agent,
+                url,
+                dest,
+                cancel,
+                probe.total,
+                (probe.etag, probe.last_modified),
+                chunks,
+                &meta,
+                on_state,
+                on_progress,
+            );
+        }
+    }
+    attempt(agent, url, dest, None, cancel, on_state, on_progress)
 }
 
 #[allow(clippy::too_many_arguments)]

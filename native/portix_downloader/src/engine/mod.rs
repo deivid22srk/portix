@@ -7,8 +7,10 @@
 pub mod error;
 pub mod fsutil;
 pub mod http;
+pub mod parallel;
 pub mod progress;
 pub mod resume;
 pub mod retry;
+pub mod segments;
 pub mod state;
 pub mod transfer;

@@ -42,7 +42,13 @@ Ajustado à stack real: Flutter + motor Rust (`ureq`/JNI) + Kotlin service. Ver 
 ## P1 — Produto
 
 - [x] Motor: retry com backoff + jitter e `Retry-After` — feito na fatia P0 (ver item P0 acima).
-- [ ] Motor: segmentação paralela adaptativa (1–8 conexões), segmento mínimo, balanceamento.
+- [x] Motor: segmentação paralela adaptativa (1–8 conexões), segmento mínimo, balanceamento.
+      Probe `Range: bytes=0-0` detecta capacidade (206 → paralelo; 200 → single-stream, conforme a
+      barra de qualidade). Chunks = 2× conexões (oversubscription balanceia sem coordenação em voo);
+      chunk mínimo 1 MiB; retomada v2 por chunk (`.part.meta` com segI=start,end,pos) com `If-Range`
+      por conexão; abort coordena falha de um chunk nos demais; progresso agregado (EWMA/ETA) e
+      meta persistida a cada ~1 MiB. Testes: paralelo monta arquivo, sem-Range → single,
+      chunk cai no meio → retomada v2 conclui.
 - [ ] Motor: limite de velocidade (token bucket) global e por download.
 - [ ] Motor: SHA-256 em streaming quando houver hash esperado (estado `Verifying`).
 - [ ] Testes de integração com servidor HTTP local (200, 206, 416, queda no meio, resposta lenta,

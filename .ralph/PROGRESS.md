@@ -137,4 +137,27 @@ mensagens de erro localizadas) — fatia vertical nas 3 camadas.
 
 **Bloqueios:** nenhum.
 
+## Iteração 8 — Motor fatia 4: segmentação paralela (2026-11-15)
+
+**Feito (`feat(download): segmentação paralela com probe e retomada v2`):**
+- `engine/segments.rs`: plano de chunks com oversubscription (2× conexões, chunk mínimo 1 MiB,
+  ≥8 MiB para paralelizar) — balanceamento por fila, sem coordenação em pleno voo.
+- `engine/parallel.rs`: probe `Range: bytes=0-0` (206 → capacidade+validadores; 200 → fallback
+  single-stream), workers com `Range`+`If-Range` por chunk, escrita em intervalos disjuntos do
+  `.part`, agregador via mpsc (progresso EWMA/ETA + meta v2 a cada ~1 MiB), abort coordenado.
+- `engine/resume.rs` v2: `segments` por chunk no `.meta` (`segI=start,end,pos`),
+  `can_resume_parallel`, compatível com meta v1.
+- `download_once` orquestra: v2 paralelo → v1 single → fresh (probe → paralelo/single).
+- CI do contrato rico (e8f7cb2): **success** — Dart/Kotlin validados no build.
+- **Validação local:** fmt ok, clippy -D warnings ok, **57/57 testes** (32 unit + 25 integração,
+  incluindo: paralelo monta arquivo correto, servidor sem Range → single-stream, chunk cai no
+  meio → retomada v2 conclui), release ok.
+
+**CI:** dispatch após este commit.
+
+**Próximo passo:** iteração 9 → corrigir CI se vermelho; depois fila no serviço Kotlin
+(N simultâneos + notificação com ações) ou limite de velocidade.
+
+**Bloqueios:** nenhum.
+
 ---

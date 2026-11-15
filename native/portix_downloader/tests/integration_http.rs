@@ -68,6 +68,28 @@ impl MockResponse {
     }
 }
 
+/// Resposta padrão de um probe `Range: bytes=0-0`: 206 com 1 byte,
+/// `Content-Range` completo e o ETag do arquivo.
+pub fn probe_response(body: &[u8], etag: &str) -> MockResponse {
+    MockResponse {
+        status: 206,
+        content_type: "application/vnd.android.package-archive",
+        body: body[..1].to_vec(),
+        declared_length: Some(1),
+        extra: vec![
+            ("Content-Range".into(), format!("bytes 0-0/{}", body.len())),
+            ("ETag".into(), format!("\"{etag}\"")),
+        ],
+        delay: None,
+        mid_delay: None,
+    }
+}
+
+/// O request é um probe de capacidade?
+pub fn is_probe(req: &MockRequest) -> bool {
+    req.header("Range") == Some("bytes=0-0")
+}
+
 pub struct MockServer {
     pub url: String,
     requests: Arc<AtomicUsize>,
@@ -516,16 +538,19 @@ fn resume_handler(
 ) -> impl Fn(&MockRequest) -> MockResponse {
     let counter = Arc::new(AtomicUsize::new(0));
     move |req: &MockRequest| {
-        let entry = format!(
+        if is_probe(req) {
+            return probe_response(&body, etag);
+        }
+        seen.lock().unwrap().push(format!(
             "path={} range={:?} if_range={:?}",
             req.path,
             req.header("Range"),
             req.header("If-Range")
-        );
-        seen.lock().unwrap().push(entry);
+        ));
         let n = counter.fetch_add(1, Ordering::SeqCst);
-        if n == 0 {
-            // Sessão 1: metade do corpo com Content-Length total (queda).
+        if n <= 1 {
+            // Duas quedas: a sessão inicial E o rescue automático falham,
+            // para exercitar a retomada explícita da fase 2.
             return MockResponse {
                 declared_length: Some(body.len() as i64),
                 extra: vec![("ETag".into(), format!("\"{etag}\""))],
@@ -561,9 +586,10 @@ fn resume_handler(
             }
             SecondBehavior::Changed200 => MockResponse::apk(changed(&body)),
             SecondBehavior::Range416 => {
-                // Servidor real só devolve 416 para pedidos com Range.
-                if req.header("Range").is_some() {
-                    MockResponse {
+                // n2 (primeiro retry): 416 com Range; n3 (fresh): 500 sem
+                // Range para esgotar a fase 1; depois comportamento normal.
+                if req.header("Range").is_some() && n == 2 {
+                    return MockResponse {
                         status: 416,
                         content_type: "text/plain",
                         body: b"range not satisfiable".to_vec(),
@@ -571,10 +597,39 @@ fn resume_handler(
                         extra: Vec::new(),
                         delay: None,
                         mid_delay: None,
-                    }
-                } else {
-                    MockResponse::apk(body.clone())
+                    };
                 }
+                if req.header("Range").is_none() && n == 3 {
+                    return MockResponse {
+                        status: 500,
+                        content_type: "text/plain",
+                        body: b"boom".to_vec(),
+                        declared_length: None,
+                        extra: Vec::new(),
+                        delay: None,
+                        mid_delay: None,
+                    };
+                }
+                if req.header("Range").is_some() {
+                    let start = req
+                        .header("Range")
+                        .and_then(|r| {
+                            r.trim_start_matches("bytes=")
+                                .split('-')
+                                .next()
+                                .and_then(|s| s.parse::<usize>().ok())
+                        })
+                        .unwrap_or(0);
+                    return MockResponse {
+                        status: 206,
+                        extra: vec![(
+                            "Content-Range".into(),
+                            format!("bytes {start}-{}/{}", body.len() - 1, body.len()),
+                        )],
+                        ..MockResponse::apk(body[start..].to_vec())
+                    };
+                }
+                MockResponse::apk(body.clone())
             }
         }
     }
@@ -701,7 +756,11 @@ fn range_416_recomeca_do_zero() {
         run(&server.url, &dest, &NO_CANCEL, &mut states, &mut progress).expect("ok após 416");
     assert_eq!(result.bytes, FULL);
     assert_eq!(std::fs::read(&dest).expect("final"), expected);
-    assert_eq!(server.request_count(), 3, "parcial + 416 + fresh completo");
+    assert_eq!(
+        server.request_count(),
+        4,
+        "probe + parcial + 416 + fresh completo"
+    );
 }
 
 #[test]
@@ -714,6 +773,9 @@ fn sem_validador_nao_tenta_retomar() {
     // Sem ETag: sessão 1 falha na metade; sessão 2 deve vir SEM Range.
     let server = MockServer::start(move |req| {
         let body = &for_handler;
+        if is_probe(req) {
+            return probe_response(body, "v1");
+        }
         handler_seen
             .lock()
             .unwrap()
@@ -811,6 +873,9 @@ fn cancelamento_no_meio_preserva_progresso_e_retoma() {
     // Sessão 1: manda 64 KiB, pausa 500 ms, mandaria o resto — o teste
     // cancela durante a pausa. Sessão 2: 206 do ponto onde parou.
     let server = MockServer::start(move |req| {
+        if is_probe(req) {
+            return probe_response(&body, "v1");
+        }
         let n = handler_seen.lock().unwrap().len();
         handler_seen
             .lock()
@@ -893,6 +958,9 @@ fn retry_apos_queda_retoma_e_conclui_sozinho() {
     // req1: metade com ETag (queda); req2+: 206 do ponto pedido.
     let server = MockServer::start(move |req| {
         let body = &for_handler;
+        if is_probe(req) {
+            return probe_response(body, "v1");
+        }
         handler_seen
             .lock()
             .unwrap()
@@ -951,7 +1019,10 @@ fn retry_apos_queda_retoma_e_conclui_sozinho() {
 fn retry_apos_500_consegue_200() {
     let body = fake_apk(FULL as usize);
     let counter = Arc::new(AtomicUsize::new(0));
-    let server = MockServer::start(move |_| {
+    let server = MockServer::start(move |req| {
+        if is_probe(req) {
+            return probe_response(&body, "v1");
+        }
         let n = counter.fetch_add(1, Ordering::SeqCst);
         if n == 0 {
             MockResponse {
@@ -982,7 +1053,11 @@ fn retry_apos_500_consegue_200() {
     )
     .expect("retry após 500");
     assert_eq!(result.bytes, FULL);
-    assert_eq!(server.request_count(), 2);
+    assert_eq!(
+        server.request_count(),
+        4,
+        "2 probes (1 por tentativa) + 500 + 200"
+    );
 }
 
 #[test]
@@ -1106,4 +1181,158 @@ fn cancel_durante_backoff_aborta_rapido() {
         "{:?}",
         began.elapsed()
     );
+}
+
+// ---------------------------------------------------------------------------
+// Paralelismo (chunks + probe)
+// ---------------------------------------------------------------------------
+
+const BIG: usize = 12 * 1024 * 1024; // 3 chunks de 4 MiB, 3 workers
+
+/// Fatia `bytes=A-B` do corpo como resposta 206.
+fn serve_range(req: &MockRequest, body: &[u8], etag: &str) -> MockResponse {
+    let (start, end) = req
+        .header("Range")
+        .and_then(|r| r.trim_start_matches("bytes=").split_once('-'))
+        .map(|(a, b)| (a.parse::<u64>().unwrap_or(0), b.parse::<u64>().unwrap_or(0)))
+        .unwrap_or((0, 0));
+    let end_inclusive = end.min(body.len() as u64 - 1);
+    MockResponse {
+        status: 206,
+        extra: vec![
+            (
+                "Content-Range".into(),
+                format!("bytes {start}-{end_inclusive}/{}", body.len()),
+            ),
+            ("ETag".into(), format!("\"{etag}\"")),
+        ],
+        ..MockResponse::apk(body[start as usize..=(end_inclusive as usize)].to_vec())
+    }
+}
+
+#[test]
+fn download_paralelo_monta_o_arquivo_correto() {
+    let body = fake_apk(BIG);
+    let for_handler = body.clone();
+    let server = MockServer::start(move |req| {
+        if is_probe(req) {
+            return probe_response(&for_handler, "v1");
+        }
+        serve_range(req, &for_handler, "v1")
+    });
+    let scratch = ScratchDir::new("par");
+    let dest = scratch.apk();
+
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let result = run(&server.url, &dest, &NO_CANCEL, &mut states, &mut progress).expect("ok");
+    assert_eq!(result.bytes, BIG as i64);
+    assert_eq!(std::fs::read(&dest).expect("final"), body);
+    assert!(!scratch.part().exists());
+    assert_eq!(server.request_count(), 4, "probe + 3 chunks");
+}
+
+#[test]
+fn servidor_sem_range_cai_para_single_stream() {
+    let body = fake_apk(BIG);
+    let for_handler = body.clone();
+    let server = MockServer::start(move |req| {
+        let _ = req.header("Range"); // ignora Range deliberadamente
+        MockResponse::apk(for_handler.clone())
+    });
+    let scratch = ScratchDir::new("norange");
+    let dest = scratch.apk();
+
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let result = run(&server.url, &dest, &NO_CANCEL, &mut states, &mut progress).expect("ok");
+    assert_eq!(result.bytes, BIG as i64);
+    assert_eq!(std::fs::read(&dest).expect("final"), body);
+    assert_eq!(server.request_count(), 2, "probe(200) + stream única");
+}
+
+#[test]
+fn chunk_cai_no_meio_e_retomada_v2_completa() {
+    let body = fake_apk(8 * 1024 * 1024); // 2 chunks de 4 MiB
+    let for_handler = body.clone();
+    let dropped = Arc::new(AtomicUsize::new(0));
+    let dropped_ref = Arc::clone(&dropped);
+    let server = MockServer::start(move |req| {
+        let body = &for_handler;
+        if is_probe(req) {
+            return probe_response(body, "v1");
+        }
+        // Primeira request do chunk 0: metade do intervalo e fecha.
+        let range_start = req
+            .header("Range")
+            .and_then(|r| r.trim_start_matches("bytes=").split('-').next())
+            .and_then(|v| v.parse::<u64>().ok());
+        if range_start == Some(0) && dropped_ref.fetch_add(1, Ordering::SeqCst) == 0 {
+            let end = req
+                .header("Range")
+                .and_then(|r| r.split('-').nth(1))
+                .and_then(|b| b.parse::<usize>().ok())
+                .unwrap_or(0);
+            let half = end / 2;
+            let (start, _) = req
+                .header("Range")
+                .and_then(|r| r.trim_start_matches("bytes=").split_once('-'))
+                .map(|(a, _)| (a.parse::<u64>().unwrap_or(0), 0u64))
+                .unwrap_or((0, 0));
+            return MockResponse {
+                status: 206,
+                extra: vec![
+                    ("ETag".into(), "\"v1\"".into()),
+                    (
+                        "Content-Range".into(),
+                        format!("bytes {start}-{} {}", half - 1, body.len()),
+                    ),
+                ],
+                declared_length: Some((half - start as usize) as i64),
+                ..MockResponse::apk(body[start as usize..half].to_vec())
+            };
+        }
+        serve_range(req, body, "v1")
+    });
+    let scratch = ScratchDir::new("parresume");
+    let dest = scratch.apk();
+
+    // Fase 1: chunk 0 cai no meio → erro retentável, meta v2 no disco.
+    let mut states = Vec::new();
+    let mut progress = Vec::new();
+    let no_retry = retry::RetryPolicy {
+        max_attempts: 1,
+        ..retry::RetryPolicy::default()
+    };
+    let err = run_with(
+        &server.url,
+        &dest,
+        &NO_CANCEL,
+        &no_retry,
+        &mut states,
+        &mut progress,
+    )
+    .unwrap_err();
+    assert!(err.is_retryable(), "{err:?}");
+    let meta = ResumeMeta::load(&dest).expect("meta v2 persistida");
+    let chunks = meta.segments.clone().expect("segmentos na meta");
+    assert_eq!(chunks.len(), 2);
+    assert!(
+        chunks[0].pos > 0 && chunks[0].pos < chunks[0].end,
+        "{chunks:?}"
+    );
+    // Chunk 1 pode ter avançado antes do abort — só precisa ser consistente.
+    assert!(
+        chunks[1].pos >= chunks[1].start && chunks[1].pos <= chunks[1].end,
+        "{chunks:?}"
+    );
+    assert!(meta.can_resume_parallel(&server.url));
+
+    // Fase 2: retomada paralela conclui o chunk 0 do ponto onde parou.
+    let result =
+        run(&server.url, &dest, &NO_CANCEL, &mut states, &mut progress).expect("retomada paralela");
+    assert_eq!(result.bytes, 8 * 1024 * 1024);
+    assert_eq!(std::fs::read(&dest).expect("final"), body);
+    assert!(!scratch.part().exists());
+    assert!(ResumeMeta::load(&dest).is_none());
 }
