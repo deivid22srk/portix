@@ -276,10 +276,6 @@ class L10n {
     'The local cache (catalog data, profile and images) will be cleared and re-downloaded when needed.',
   );
 
-  /// Rótulo numérico genérico (ex.: valor do slider de FPS) — passa pela l10n
-  /// para receber formatação de número por idioma no futuro.
-  String numericLabel(Object value) => _t('$value', '$value');
-
   /// Valor atual do alvo de FPS: "30 FPS".
   String fpsValue(Object value) => _t('$value FPS', '$value FPS');
 

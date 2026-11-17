@@ -104,6 +104,7 @@ void main() {
 
       test('cores de estado usadas como texto', () {
         expectAA('danger/bg', c.danger, c.bg);
+        expectAA('danger/bgElevated', c.danger, c.bgElevated);
         expectAA('success/bg', c.success, c.bg);
         expectAA('warning/bg', c.warning, c.bg);
         expectAA('favorite/bg', c.favorite, c.bg);

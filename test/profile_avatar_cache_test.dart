@@ -12,13 +12,19 @@ import 'package:portix/shared/widgets/profile_avatar.dart';
 import 'ui/ui_test_helpers.dart';
 
 // ============================================================================
-// Evidência do cache da imagem de perfil (mesmo mecanismo do ProfileAvatar —
-// DefaultCacheManager do cached_network_image):
+// Evidência do cache da imagem de perfil em DOIS níveis:
 //
-// 1. putFile + getSingleFile 5x → 0 downloads (servido do disco);
-// 2. removeFile (logout/troca de foto) → próximo acesso faz 1 download;
-// 3. URL nova (foto trocada) → 1 download;
-// 4. offline (HttpOverrides sintético) com cache → imagem disponível.
+// A) nível cache manager (mesmo mecanismo do ProfileAvatar —
+//    DefaultCacheManager do cached_network_image):
+//   1. putFile + getSingleFile 5x → 0 downloads (servido do disco);
+//   2. removeFile (logout/troca de foto) → próximo acesso faz 1 download;
+//   3. URL nova (foto trocada) → 1 download;
+//   4. offline (HttpOverrides sintético) com cache → imagem disponível.
+//
+// B) nível WIDGET (integração real): pump do ProfileAvatar com o mesmo
+//    HttpClient contando — 1º uso = 1 download; 5 renderizações seguintes
+//    = 0 (memória do framework); clear da memória = 0 (disco atende);
+//    removeFile + clear = 1 re-download. É o caminho que o app de fato usa.
 //
 // Um HttpClient sintético conta cada tentativa de download; nenhuma rede real.
 // ============================================================================

@@ -178,7 +178,13 @@ class _SettingsSearchField extends StatelessWidget {
                   controller: controller,
                   onChanged: onChanged,
                   decoration: InputDecoration(
-                    hintText: l10n.settingsSearchHint,
+                    // Label explícito para leitores de tela; visual idêntico
+                    // ao hint (nunca flutua — comportamento de placeholder).
+                    labelText: l10n.settingsSearchHint,
+                    labelStyle: context.texts.bodyMedium?.copyWith(
+                      color: context.colors.textTertiary,
+                    ),
+                    floatingLabelBehavior: FloatingLabelBehavior.never,
                     border: InputBorder.none,
                     isDense: true,
                   ),

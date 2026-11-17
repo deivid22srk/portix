@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'core/providers.dart';
-import 'core/theme/tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,17 +15,9 @@ Future<void> main() async {
   // Edge-to-edge: o conteúdo desenha sob as barras do sistema e o app reserva
   // os insets (viewPadding) — evita sobreposição em aparelhos com 3 botões.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: AppContentColors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-      systemNavigationBarColor: AppContentColors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-      systemNavigationBarDividerColor: AppContentColors.transparent,
-      systemNavigationBarContrastEnforced: false,
-    ),
-  );
+  // O estilo das barras (ícones claro/escuro) é declarativo: o
+  // AnnotatedRegion<SystemUiOverlayStyle> do builder do PortixApp resolve
+  // pelo tema já no 1º frame e reage a modo Sistema/brilho do SO.
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
 

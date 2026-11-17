@@ -137,6 +137,26 @@ no geral; imagem recarregando = cache ≤5 e média ≤7; tema ilegível/sub-AA 
 | 5b | (reavaliação pós-iter 5) | **8,60** | +0,17 | — | 7 apontamentos; SystemChrome parcial; detalhes no commit 8a37443 |
 | 6 | 8a37443 | — | — | 44105416754 | correções da 8,60 + 5 testes de regressão |
 | 7 | 8a37443 (estado) | **9,05** | +0,45 | 44105416754 | CRÍTICO subagente (agent-508c1fc6, .ralph/CRITICO_ITER7.md): AI 9,5 · Temas 9,0 · Cache 8,5 · Consistência 9,0 · A11y 9,0 · Resp 9,5 · Estados 8,5 · Microinter 9,0 · Microcopy 9,0. 0 🔴 + 6 🟡 (mem-cache ignorado; teste avatar cosmético; reload sem loading; SystemChrome sistema/brilho; allowlist 25; commit infiel) + 8 🟢. 7/8 apontamentos da 8,60 corrigidos de verdade. Veredito: CONTINUAR |
+| 8 | 164af31 (iter 7) | — | — | 44112141331 | correções dos 6 🟡 + 8 🟢 da 9,05 (invalidação de memória, integração real do avatar, spinner no reload, AnnotatedRegion, allowlist 25→0, destructive danger, reduced motion) |
+| 9 | (reavaliação pós-iter-7) | **9,45** | +0,40 | 44112141331 | CRÍTICO subagente (agent-298c6284, .ralph/CRITICO_ITER8.md): AI 9,5 · Temas 9,5 · Cache 9,5 · Consistência 9,5 · **A11y 9,0** · Resp 9,5 · Estados 9,5 · Microinter 9,5 · Microcopy 9,5. 0 🔴 + 0 🟡 (primeiro sem médios) + 8 🟢. 6/6 🟡 do iter-7 corrigidos de verdade (nenhum fake fix). Falta: média 9,45<9,5 (só A11y 9,0). Veredito: CONTINUAR |
+| 10 | (iter 8, este commit) | — | — | (CI) | correção dos 🟢 que desbloqueiam o APROVADO: teste permanente do PortixApp (modo Sistema/brilho/AnnotatedRegion), label explícito na busca (A11y), numericLabel morto removido, SystemChrome do boot removido, par danger/bgElevated no contraste, cabeçalho do teste de cache |
+
+## Execução iter-8 (nota do CRÍTICO: a busca sem label era o único desconto de A11y)
+
+- **iter 8** `fix(settings): acessibilidade da busca e teste permanente do modo Sistema`
+  - 🟢-N1 (A11y): teste permanente do PortixApp em theme_settings_test.dart —
+    bootstrap pendente (splash), platformBrightnessTestValue dark→light:
+    1º frame resolve o brilho REAL do SO, AnnotatedRegion<SystemUiOverlayStyle>
+    condizente (ícones claros/dark), troca de brilho com o app aberto reage
+    (tema + chrome) — protege a área com histórico de 3 🟡.
+  - 🟢-N4 (A11y): campo de busca com labelText + floatingLabelBehavior.never
+    (semântica de label explícita; visual idêntico ao hint).
+  - 🟢-N2: SystemChrome imperativo do boot removido do main.dart
+    (AnnotatedRegion cobre o 1º frame; comentário documenta).
+  - 🟢-N3: numericLabel (código morto) removido; 🟢-N5: cabeçalho do teste
+    de cache atualizado (2 níveis de evidência); 🟢-N6: par danger/bgElevated
+    no contraste (diálogo destrutivo).
+  - Suíte 117/117; analyze limpo; gates verdes com allowlist vazia.
 
 ### CRÍTICO — iteração 0 (evidências)
 | Critério | Peso | Nota | Evidência |

@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:portix/app/app.dart';
 import 'package:portix/app/settings.dart';
 import 'package:portix/app/theme.dart';
 import 'package:portix/core/providers.dart';
@@ -169,6 +173,78 @@ void main() {
           ),
         );
         expect(options, findsWidgets);
+      },
+    );
+  });
+
+  // ========================================================================
+  // App REAL (PortixApp): modo Sistema resolve o brilho do SO no 1º frame e
+  // reage à troca de brilho; o estilo das barras do sistema é declarativo
+  // (AnnotatedRegion) e condizente com a paleta resolvida.
+  // ========================================================================
+  group('PortixApp: modo Sistema e SystemChrome declarativo', () {
+    testWidgets(
+      '1º frame usa o brilho REAL do dispositivo e a troca do SO reage',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues(<String, Object>{
+          'settings.themeId': kThemeSystem,
+        });
+        final SharedPreferences instance =
+            await SharedPreferences.getInstance();
+        // Bootstrap pendente: o app fica no splash (nenhuma rede necessária).
+        final Completer<void> boot = Completer<void>();
+        final ProviderContainer container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(instance),
+            supabaseBootstrapProvider.overrideWith((Ref ref) => boot.future),
+          ],
+        );
+        addTearDown(container.dispose);
+        addTearDown(boot.complete);
+
+        tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+        addTearDown(
+          () => tester.platformDispatcher.platformBrightnessTestValue =
+              Brightness.dark,
+        );
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const PortixApp(),
+          ),
+        );
+        await tester.pump();
+
+        // Dispositivo ESCURO + modo Sistema → paleta Aurora escuro no 1º frame.
+        final BuildContext splashCtx = tester.element(
+          find.byType(Scaffold).first,
+        );
+        expect(Theme.of(splashCtx).brightness, Brightness.dark);
+        expect(
+          Theme.of(splashCtx).extension<AppColorsTheme>()!.bg,
+          auroraDark.bg,
+        );
+        // Estilo declarativo condizente: ícones CLAROS sobre fundo escuro.
+        final AnnotatedRegion<SystemUiOverlayStyle> overlay = tester.widget(
+          find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first,
+        );
+        expect(overlay.value.statusBarIconBrightness, Brightness.light);
+
+        // Usuário troca claro/escuro no SO com o app aberto: o tema e o
+        // chrome acompanham (MediaQuery reativo, sem recriar o app).
+        // NB: pumps com duração em vez de pumpAndSettle — o splash tem um
+        // indicador infinito (CircularProgressIndicator) que nunca assenta.
+        tester.platformDispatcher.platformBrightnessTestValue =
+            Brightness.light;
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final BuildContext after = tester.element(find.byType(Scaffold).first);
+        expect(Theme.of(after).brightness, Brightness.light);
+        expect(Theme.of(after).extension<AppColorsTheme>()!.bg, auroraLight.bg);
+        final AnnotatedRegion<SystemUiOverlayStyle> overlayAfter = tester
+            .widget(find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first);
+        expect(overlayAfter.value.statusBarIconBrightness, Brightness.dark);
       },
     );
   });
