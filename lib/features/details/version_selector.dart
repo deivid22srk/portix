@@ -66,7 +66,7 @@ class VersionSelector extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Row(
           children: <Widget>[
-            const Icon(Icons.inventory_2_rounded, color: AppColors.textTertiary),
+            const Icon(Icons.inventory_2_rounded, color: AppColors.textSecondary),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -76,7 +76,7 @@ class VersionSelector extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     l10n.noReleasesBody,
-                    style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+                    style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -351,7 +351,7 @@ class _SegmentedVersions extends StatelessWidget {
         ),
         Text(
           l10n.versionsSubtitle,
-          style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+          style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

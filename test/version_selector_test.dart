@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portix/core/github_releases.dart';
+import 'package:portix/app/theme.dart';
 import 'package:portix/core/github_service.dart';
 import 'package:portix/features/details/developer_card.dart';
 import 'package:portix/shared/widgets/primitives.dart';
@@ -155,6 +156,33 @@ void main() {
     expect(selected, isNull);
   });
 
+
+
+  testWidgets('contraste AA dos textos do seletor (guideline do flutter_test)',
+      (WidgetTester tester) async {
+    _mobileViewport(tester);
+    final SemanticsHandle handle = tester.ensureSemantics();
+    // Fixture com releases ativas (card desabilitado é isento pela WCAG).
+    final List<GithubRelease> ativas = _fixtures
+        .take(2)
+        .toList(growable: false);
+    await _pumpReleases(
+      tester,
+      SizedBox(
+        width: 375,
+        child: VersionSelector(
+          repoId: 'o/r',
+          selectedTag: null,
+          installedTag: 'v1.0.0',
+          onSelected: (GithubRelease release) {},
+        ),
+      ),
+      () => Future<List<GithubRelease>>.value(ativas),
+    );
+
+    await expectLater(tester, meetsGuideline(textContrastGuideline));
+    handle.dispose();
+  });
 
   testWidgets('wide (≥768px): controle segmentado seleciona versão',
       (WidgetTester tester) async {

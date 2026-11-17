@@ -1259,7 +1259,7 @@ class _WhatsNewCard extends StatelessWidget {
             Expanded(child: _BlockTitle(title: l10n.whatsNewTitle)),
             Text(
               release.tag,
-              style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+              style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -1270,7 +1270,7 @@ class _WhatsNewCard extends StatelessWidget {
           child: body == null || body.trim().isEmpty
               ? Text(
                   l10n.releasesEmptyNotes,
-                  style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+                  style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
                 )
               : MarkdownLite(data: body),
         ),
@@ -1656,7 +1656,7 @@ class _BlockTitle extends StatelessWidget {
         if (trailing != null)
           Text(
             trailing!,
-            style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+            style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
           ),
       ],
     );
@@ -1719,7 +1719,7 @@ class CompatReportCard extends StatelessWidget {
           if (summary.isEmpty)
             Text(
               l10n.notInformed,
-              style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+              style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
             )
           else
             Wrap(
@@ -2070,7 +2070,7 @@ class _CommunityReports extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Text(
           l10n.compatNoReports,
-          style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+          style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
       );
     }
