@@ -20,10 +20,12 @@ class AccountState {
   /// E-mail da conta (null para convidado/sem e-mail).
   String? get email => user?.email;
 
+  /// Nome bruto da sessão (pode ser vazio) — a UI resolve o fallback com
+  /// l10n (`player`) para não fixar pt-BR em telas em inglês.
   String get displayName {
     final Object? name = user?.userMetadata?['display_name'];
     final String text = name?.toString().trim() ?? '';
-    return text.isEmpty ? 'Jogador' : text;
+    return text;
   }
 }
 

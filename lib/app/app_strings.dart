@@ -235,7 +235,7 @@ class L10n {
   String get languageEn => 'English';
   String get notifications => _t('Notificações', 'Notifications');
   String get notificationsHint =>
-      _t('Avisos de novos ports (simulado)', 'New port alerts (simulated)');
+      _t('Avisos de novos ports dentro do app', 'In-app alerts for new ports');
 
   // ----------------------------------------------- configurações (categorias)
   String get settingsTitle => _t('Configurações', 'Settings');
@@ -307,6 +307,8 @@ class L10n {
   String get privacyPolicy => _t('Política de privacidade', 'Privacy policy');
   String get reloadCatalog => _t('Recarregar catálogo', 'Reload catalog');
   String get catalogReloaded => _t('Catálogo atualizado', 'Catalog refreshed');
+  String get catalogReloadFailed =>
+      _t('Não foi possível atualizar agora', 'Could not refresh right now');
   String get clearCache => _t('Limpar cache local', 'Clear local cache');
   String get cacheCleared => _t('Cache limpo', 'Cache cleared');
   String get madeWith =>

@@ -119,6 +119,8 @@ no geral; imagem recarregando = cache ≤5 e média ≤7; tema ilegível/sub-AA 
 | Iter | Commit | Média | Δ | CI | Resumo |
 |---|---|---|---|---|---|
 | 0 | 4713dfa | **5,0** | — | 44087292104 | linha de base (ver abaixo) |
+| 1-3 | 3bd465b/c218395/3a4d6bf | — | — | success | implementação (avaliação após iter 4) |
+| 4 | 47c2b99 | **8,43** | +3,43 | 44100937756 | 1 🔴 (navbar cobre conteúdo no detail desktop) + 7 🟡 (confirmação de cache promete o que não faz; master-detail full-bleed; sucesso falso offline; Convidado duplo; Jogador hardcoded; toggle órfã; busca perdida) + 6 🟢. CRÍTICO subagente (agent-6cadbf88). Veredito: CONTINUAR |
 
 ### CRÍTICO — iteração 0 (evidências)
 | Critério | Peso | Nota | Evidência |

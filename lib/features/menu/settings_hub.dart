@@ -9,6 +9,19 @@ import 'settings_categories.dart';
 import 'settings_profile_header.dart';
 import '../../shared/widgets/primitives.dart';
 
+/// Termo de busca das configurações — fora do widget para sobreviver às
+/// trocas de rota do master-detail (a lista é recriada por categoria).
+final settingsSearchProvider = NotifierProvider<SettingsSearchNotifier, String>(
+  SettingsSearchNotifier.new,
+);
+
+class SettingsSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void set(String value) => state = value;
+}
+
 /// Hub de configurações: título + perfil resumido + busca + lista de
 /// categorias. Usado no /menu e como coluna esquerda do master-detail (≥768px).
 class SettingsHub extends ConsumerStatefulWidget {
@@ -23,7 +36,6 @@ class SettingsHub extends ConsumerStatefulWidget {
 
 class _SettingsHubState extends ConsumerState<SettingsHub> {
   final TextEditingController _search = TextEditingController();
-  String _query = '';
 
   @override
   void dispose() {
@@ -32,7 +44,10 @@ class _SettingsHubState extends ConsumerState<SettingsHub> {
   }
 
   bool _matches(SettingsCategory category, L10n l10n) {
-    final String needle = _query.trim().toLowerCase();
+    final String needle = ref
+        .watch(settingsSearchProvider)
+        .trim()
+        .toLowerCase();
     if (needle.isEmpty) {
       return true;
     }
@@ -86,7 +101,8 @@ class _SettingsHubState extends ConsumerState<SettingsHub> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
           child: _SettingsSearchField(
             controller: _search,
-            onChanged: (String value) => setState(() => _query = value),
+            onChanged: (String value) =>
+                ref.read(settingsSearchProvider.notifier).set(value),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -170,12 +186,17 @@ class _SettingsSearchField extends StatelessWidget {
                       onChanged('');
                     },
                     scale: 0.9,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xs),
-                      child: Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                        color: context.colors.textSecondary,
+                    // Alvo de toque do padrão do app (48dp) mesmo com ícone
+                    // pequeno — área maior que o desenho.
+                    child: SizedBox(
+                      width: AppSpacing.circleButton,
+                      height: AppSpacing.circleButton,
+                      child: Center(
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: context.colors.textSecondary,
+                        ),
                       ),
                     ),
                   ),

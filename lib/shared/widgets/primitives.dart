@@ -183,7 +183,10 @@ class _PressableState extends State<Pressable> {
         button: enabled,
         child: AnimatedScale(
           scale: _pressed ? widget.scale : 1,
-          duration: AppMotion.fast,
+          // Reduced motion: sem animação de press (transição instantânea).
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : AppMotion.fast,
           curve: AppMotion.out,
           child: widget.child,
         ),
@@ -749,7 +752,7 @@ class SectionTile extends StatelessWidget {
       onTap: onTap,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
-        vertical: 14,
+        vertical: AppSpacing.lg,
       ),
       child: Row(
         children: <Widget>[

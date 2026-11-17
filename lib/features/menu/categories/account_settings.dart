@@ -43,6 +43,9 @@ class AccountSettingsBody extends ConsumerWidget {
     final UserProfile profile =
         ref.watch(profileProvider).value ??
         UserProfile(id: account.id ?? '', displayName: account.displayName);
+    final String name = profile.displayName.isEmpty
+        ? l10n.player
+        : profile.displayName;
     final String? adminLevel = ref.watch(adminLevelProvider).value;
     final Collections collections =
         ref.watch(collectionsProvider).value ?? Collections.empty;
@@ -71,7 +74,7 @@ class AccountSettingsBody extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      profile.displayName,
+                      name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: context.texts.headlineSmall?.copyWith(

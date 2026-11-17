@@ -144,6 +144,7 @@ class _ThemeCard extends StatelessWidget {
       button: true,
       selected: selected,
       label: l10n.themeOptionSemantic(option.name),
+      hint: selected ? l10n.themeSelected : null,
       child: Pressable(
         onTap: onTap,
         scale: 0.97,
@@ -224,18 +225,22 @@ class _ThemePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadii.sm),
-      child: SizedBox(
-        height: _previewHeight,
-        child: split
-            ? Row(
-                children: <Widget>[
-                  Expanded(child: _paint(auroraLight)),
-                  Expanded(child: _paint(auroraDark)),
-                ],
-              )
-            : _paint(colors),
+    // A miniatura é imagem sem texto: rotula para leitores de tela.
+    return Semantics(
+      label: context.l10n.themePreviewLabel,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        child: SizedBox(
+          height: _previewHeight,
+          child: split
+              ? Row(
+                  children: <Widget>[
+                    Expanded(child: _paint(auroraLight)),
+                    Expanded(child: _paint(auroraDark)),
+                  ],
+                )
+              : _paint(colors),
+        ),
       ),
     );
   }

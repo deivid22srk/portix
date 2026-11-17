@@ -138,7 +138,7 @@ void main() {
     addTearDown(container.dispose);
 
     final UserProfile profile = container.read(profileProvider).value!;
-    expect(profile.displayName, 'Jogador');
+    expect(profile.displayName, isEmpty, reason: 'UI resolve o nome com l10n');
     expect(repo.fetchCalls, 0);
     expect(
       container.read(cacheStoreProvider).readMap(kProfileCacheKey),

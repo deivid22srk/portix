@@ -85,7 +85,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
     );
   }
 
-  /// Troca o tema e persiste. O MaterialApp anima a transição (240ms) —
+  /// Troca o tema e persiste. O MaterialApp anima a transição (AppMotion.base) —
   /// troca instantânea e sutil, sem reconstruir navegação.
   void setThemeId(String id) {
     if (id == state.themeId) {

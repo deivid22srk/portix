@@ -16,6 +16,9 @@ import 'categories/about_settings.dart';
 import 'settings_categories.dart';
 import 'settings_hub.dart';
 
+/// Largura da coluna do hub no master-detail (≥768px).
+const double _hubColumnWidth = 360;
+
 /// Container de uma categoria de configurações.
 ///
 /// Mobile (<768px): drill-down — tela cheia com voltar + título.
@@ -44,7 +47,7 @@ class SettingsCategoryPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 SizedBox(
-                  width: 360,
+                  width: _hubColumnWidth,
                   child: SettingsHub(selectedId: categoryId),
                 ),
                 Container(width: 1, color: context.colors.glassBorder),
@@ -97,13 +100,13 @@ class CategoryContent extends StatelessWidget {
     final Widget content = AppContentMax(
       child: ListView(
         physics: const BouncingScrollPhysics(),
+        // Destrutivo/detail: a navbar de vidro flutua em TODAS as rotas do
+        // shell — o conteúdo precisa do espaço dela em ambos os modos.
         padding: EdgeInsets.fromLTRB(
           AppSpacing.screen,
           AppSpacing.lg,
           AppSpacing.screen,
-          detailMode
-              ? AppSpacing.xxl
-              : context.bottomChromePadding + AppSpacing.sm,
+          context.bottomChromePadding + AppSpacing.sm,
         ),
         children: <Widget>[
           Row(
