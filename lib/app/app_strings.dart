@@ -438,6 +438,20 @@ class L10n {
   String get searchingRelease =>
       _t('Buscando a release…', 'Looking up the release…');
 
+  // ------------------------------------------------------- acessibilidade
+  // Rótulos semânticos de controles só-ícone (TalkBack) — nunca deixe um
+  // GlassCircleButton sem tooltip: o ícone é invisível para leitores de tela.
+  String get tooltipBack => _t('Voltar', 'Back');
+  String get tooltipSearch => _t('Buscar', 'Search');
+  String get tooltipPrevious => _t('Anterior', 'Previous');
+  String get tooltipNext => _t('Próximo', 'Next');
+  String get tooltipPauseCarousel => _t('Pausar destaques', 'Pause highlights');
+  String get tooltipPlayCarousel =>
+      _t('Reproduzir destaques', 'Play highlights');
+  String starSemantic(int n) => _t('$n de 5 estrelas', '$n out of 5 stars');
+  String starPickerSummary(int value) =>
+      _t('Avaliação: $value de 5 estrelas', 'Rating: $value out of 5 stars');
+
   // -------------------------------------------------------------- contagens
   String gameCount(int n) =>
       _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');

@@ -320,6 +320,7 @@ class MenuPage extends ConsumerWidget {
                             const SizedBox(width: AppSpacing.md),
                             AppToggle(
                               value: settings.notifications,
+                              semanticLabel: l10n.notifications,
                               onChanged: (bool value) => ref
                                   .read(settingsProvider.notifier)
                                   .setNotifications(value),

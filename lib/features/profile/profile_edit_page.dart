@@ -53,19 +53,22 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     final L10n l10n = context.l10n;
     setState(() => _busy = true);
     try {
-      await ref.read(catalogRepositoryProvider).updateProfile(
-            displayName: _name.text,
-            coverUrl: _cover.text,
-          );
+      await ref
+          .read(catalogRepositoryProvider)
+          .updateProfile(displayName: _name.text, coverUrl: _cover.text);
       try {
-        await ref.read(catalogRepositoryProvider).setHandle(_handle.text.trim());
+        await ref
+            .read(catalogRepositoryProvider)
+            .setHandle(_handle.text.trim());
       } on Object catch (error) {
         final String text = error.toString();
         if (!mounted) {
           return;
         }
         setState(() => _busy = false);
-        _snack(text.contains('HANDLE_TAKEN') ? l10n.handleTaken : l10n.handleInvalid);
+        _snack(
+          text.contains('HANDLE_TAKEN') ? l10n.handleTaken : l10n.handleInvalid,
+        );
         return;
       }
       ref.invalidate(profileProvider);
@@ -112,7 +115,11 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
               AppSpacing.xxl,
             ),
             children: <Widget>[
-              GlassCircleButton(icon: Icons.arrow_back_rounded, onTap: _close),
+              GlassCircleButton(
+                icon: Icons.arrow_back_rounded,
+                tooltip: context.l10n.tooltipBack,
+                onTap: _close,
+              ),
               const SizedBox(height: AppSpacing.xl),
               Text(
                 l10n.editProfile,
@@ -158,8 +165,12 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadii.md),
                             child: GameCover(
-                              title: _name.text.isEmpty ? l10n.guestLabel : _name.text,
-                              imageUrl: _cover.text.trim().isEmpty ? null : _cover.text.trim(),
+                              title: _name.text.isEmpty
+                                  ? l10n.guestLabel
+                                  : _name.text,
+                              imageUrl: _cover.text.trim().isEmpty
+                                  ? null
+                                  : _cover.text.trim(),
                               memWidth: 240,
                               borderRadius: 0,
                             ),
@@ -205,7 +216,9 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: context.texts.labelMedium?.copyWith(color: AppColors.textSecondary),
+      style: context.texts.labelMedium?.copyWith(
+        color: AppColors.textSecondary,
+      ),
     );
   }
 }
@@ -229,7 +242,9 @@ class _Input extends StatelessWidget {
           isDense: true,
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: context.texts.bodyMedium?.copyWith(color: AppColors.textTertiary),
+          hintStyle: context.texts.bodyMedium?.copyWith(
+            color: AppColors.textTertiary,
+          ),
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),

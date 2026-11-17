@@ -52,7 +52,8 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       try {
         final Object? body = jsonDecode(text.substring(start));
         if (body is Map) {
-          final Object? msg = body['msg'] ?? body['message'] ?? body['error_description'];
+          final Object? msg =
+              body['msg'] ?? body['message'] ?? body['error_description'];
           if (msg != null) {
             return msg.toString();
           }
@@ -142,9 +143,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final L10n l10n = context.l10n;
     final Set<String> providers =
         ref.watch(enabledProvidersProvider).value ?? const <String>{};
-    final bool googleKnownOff = providers.isNotEmpty && !providers.contains('google');
+    final bool googleKnownOff =
+        providers.isNotEmpty && !providers.contains('google');
 
-    ref.listen<AccountState>(accountProvider, (AccountState? previous, AccountState next) {
+    ref.listen<AccountState>(accountProvider, (
+      AccountState? previous,
+      AccountState next,
+    ) {
       if (next.isSignedIn && context.canPop()) {
         context.pop();
       }
@@ -162,7 +167,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               AppSpacing.xxl,
             ),
             children: <Widget>[
-              GlassCircleButton(icon: Icons.arrow_back_rounded, onTap: _close),
+              GlassCircleButton(
+                icon: Icons.arrow_back_rounded,
+                tooltip: context.l10n.tooltipBack,
+                onTap: _close,
+              ),
               const SizedBox(height: AppSpacing.xl),
               Text(
                 l10n.authTitle,
@@ -174,7 +183,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               const SizedBox(height: 6),
               Text(
                 l10n.authSubtitle,
-                style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: context.texts.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.xl),
               GlassContainer(
@@ -184,7 +195,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     if (_signUp) ...<Widget>[
-                      _Field(controller: _name, hint: l10n.yourName, icon: Icons.person_rounded),
+                      _Field(
+                        controller: _name,
+                        hint: l10n.yourName,
+                        icon: Icons.person_rounded,
+                      ),
                       const SizedBox(height: AppSpacing.md),
                     ],
                     _Field(
@@ -204,7 +219,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         _error!,
-                        style: context.texts.bodySmall?.copyWith(color: AppColors.danger),
+                        style: context.texts.bodySmall?.copyWith(
+                          color: AppColors.danger,
+                        ),
                       ),
                     ],
                     const SizedBox(height: AppSpacing.xl),
@@ -221,9 +238,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       onPressed: _busy
                           ? null
                           : () => setState(() {
-                                _signUp = !_signUp;
-                                _error = null;
-                              }),
+                              _signUp = !_signUp;
+                              _error = null;
+                            }),
                     ),
                   ],
                 ),

@@ -22,10 +22,12 @@ class PortixApp extends ConsumerWidget {
     Locale('en'),
   ];
 
-  /// Limita a escala de fonte do sistema para o layout não quebrar.
+  /// Escala de texto do sistema: piso 1.0 (nunca rebaixa o pedido do usuário)
+  /// e teto 2.0 — WCAG 1.4.4 exige redimensionamento de 200%. O layout deve
+  /// sobreviver ao teto (as grades/limites de largura já são elásticas).
   Widget _withTextScale(Widget? child) => MediaQuery.withClampedTextScaling(
-    minScaleFactor: 0.9,
-    maxScaleFactor: 1.35,
+    minScaleFactor: 1.0,
+    maxScaleFactor: 2.0,
     child: child ?? const SizedBox.shrink(),
   );
 

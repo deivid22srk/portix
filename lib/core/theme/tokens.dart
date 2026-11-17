@@ -85,7 +85,8 @@ class AppSpacing {
   /// Botões.
   static const double primaryButtonHeight = 52;
   static const double secondaryButtonHeight = 48;
-  static const double circleButton = 46;
+  // 48px: alvo mínimo de toque WCAG 2.2 AA (2.5.8) — antes 46.
+  static const double circleButton = 48;
   static const double searchFab = 68;
 
   /// Capa compacta na linha de download (proporção ~3:4 de pôster).
@@ -113,6 +114,39 @@ class AppMotion {
 
   static const Curve emphasized = Curves.easeInOutCubicEmphasized;
   static const Curve out = Curves.easeOutCubic;
+}
+
+/// Breakpoints responsivos (mobile-first). Grades de capas ganham colunas
+/// conforme a largura; acima de `contentMax` o conteúdo é centralizado com
+/// teto de largura para não esticar capas 3:4 em monitores.
+class AppBreakpoints {
+  const AppBreakpoints._();
+
+  /// Tablet / paisagem baixa.
+  static const double tablet = 600;
+
+  /// Desktop estreito.
+  static const double desktop = 1024;
+
+  /// Telas largas.
+  static const double wide = 1440;
+
+  /// Teto de largura do conteúdo de grades em telas largas.
+  static const double contentMax = 1200;
+
+  /// Colunas da grade de capas 3:4 conforme a largura disponível.
+  static int coverColumns(double width) {
+    if (width >= wide) {
+      return 6;
+    }
+    if (width >= desktop) {
+      return 5;
+    }
+    if (width >= tablet) {
+      return 3;
+    }
+    return 2;
+  }
 }
 
 /// Sombras suaves reutilizadas pelos elementos de vidro.

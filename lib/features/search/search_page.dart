@@ -108,7 +108,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final CatalogFacets facets =
         ref.watch(catalogFacetsProvider).value ?? const CatalogFacets();
 
-    ref.listen<SearchState>(searchControllerProvider, (SearchState? previous, SearchState next) {
+    ref.listen<SearchState>(searchControllerProvider, (
+      SearchState? previous,
+      SearchState next,
+    ) {
       if (next.query != _text.text) {
         _text.value = TextEditingValue(
           text: next.query,
@@ -131,7 +134,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: SafeArea(
           child: CustomScrollView(
             controller: _scroll,
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             slivers: <Widget>[
               SliverToBoxAdapter(
                 child: Padding(
@@ -148,6 +153,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         children: <Widget>[
                           GlassCircleButton(
                             icon: Icons.arrow_back_rounded,
+                            tooltip: context.l10n.tooltipBack,
                             onTap: _close,
                           ),
                           const SizedBox(width: AppSpacing.md),
@@ -170,7 +176,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                       controller: _text,
                                       focusNode: _focus,
                                       onChanged: (String value) => ref
-                                          .read(searchControllerProvider.notifier)
+                                          .read(
+                                            searchControllerProvider.notifier,
+                                          )
                                           .setQuery(value),
                                       onSubmitted: _runQuery,
                                       textInputAction: TextInputAction.search,
@@ -182,11 +190,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                         isDense: true,
                                         border: InputBorder.none,
                                         hintText: l10n.searchHint,
-                                        hintStyle: context.texts.bodyMedium?.copyWith(
-                                          color: AppColors.textTertiary,
-                                        ),
+                                        hintStyle: context.texts.bodyMedium
+                                            ?.copyWith(
+                                              color: AppColors.textTertiary,
+                                            ),
                                         contentPadding:
-                                            const EdgeInsets.symmetric(vertical: 14),
+                                            const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -195,7 +206,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                       onTap: () {
                                         _text.clear();
                                         ref
-                                            .read(searchControllerProvider.notifier)
+                                            .read(
+                                              searchControllerProvider.notifier,
+                                            )
                                             .setQuery('');
                                       },
                                       child: const Padding(
@@ -215,6 +228,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           GlassCircleButton(
                             icon: Icons.tune_rounded,
                             active: state.filters.activeCount > 0,
+                            tooltip: l10n.filters,
                             onTap: () => _openFilters(state, facets),
                           ),
                         ],
@@ -222,8 +236,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       const SizedBox(height: AppSpacing.md),
                       SegmentedControl<int>(
                         items: <SegmentItem<int>>[
-                          SegmentItem<int>(value: 0, label: l10n.searchTabGames),
-                          SegmentItem<int>(value: 1, label: l10n.searchTabUsers),
+                          SegmentItem<int>(
+                            value: 0,
+                            label: l10n.searchTabGames,
+                          ),
+                          SegmentItem<int>(
+                            value: 1,
+                            label: l10n.searchTabUsers,
+                          ),
                         ],
                         value: _mode,
                         onChanged: (int value) => setState(() => _mode = value),
@@ -255,8 +275,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               ),
                             ),
                             Pressable(
-                              onTap: () =>
-                                  ref.read(recentSearchesProvider.notifier).clear(),
+                              onTap: () => ref
+                                  .read(recentSearchesProvider.notifier)
+                                  .clear(),
                               child: Text(
                                 l10n.clearHistory,
                                 style: context.texts.labelSmall?.copyWith(
@@ -280,7 +301,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ],
                         ),
                       ],
-                      if (state.query.isEmpty && facets.genres.isNotEmpty) ...<Widget>[
+                      if (state.query.isEmpty &&
+                          facets.genres.isNotEmpty) ...<Widget>[
                         const SizedBox(height: AppSpacing.xl),
                         Row(
                           children: <Widget>[
@@ -325,14 +347,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ),
               if (_mode == 0 && state.isInitialLoading)
                 const SliverToBoxAdapter(child: SearchSkeleton()),
-              if (_mode == 0 && state.status == SearchStatus.error && state.items.isEmpty)
+              if (_mode == 0 &&
+                  state.status == SearchStatus.error &&
+                  state.items.isEmpty)
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 380,
                     child: ErrorStateView(
                       message: context.failureText(state.error),
                       retryLabel: l10n.tryAgain,
-                      onRetry: () => ref.read(searchControllerProvider.notifier).refresh(),
+                      onRetry: () =>
+                          ref.read(searchControllerProvider.notifier).refresh(),
                     ),
                   ),
                 ),
@@ -348,7 +373,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       actionIcon: Icons.filter_alt_off_rounded,
                       onAction: state.filters.isDefault
                           ? null
-                          : () => ref.read(searchControllerProvider.notifier).resetFilters(),
+                          : () => ref
+                                .read(searchControllerProvider.notifier)
+                                .resetFilters(),
                     ),
                   ),
                 ),
@@ -369,26 +396,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: AppSpacing.gridGap,
-                      crossAxisSpacing: AppSpacing.gridGap,
-                      childAspectRatio: 3 / 4,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                        final Game game = state.items[index];
-                        return RevealOnMount(
-                          index: index,
-                          child: GameCard(game: game, heroTag: 'search-${game.id}'),
-                        );
-                      },
-                      childCount: state.items.length,
-                    ),
-                  ),
+                ResponsiveCoverGrid(
+                  itemBuilder: (BuildContext context, int index) {
+                    final Game game = state.items[index];
+                    return RevealOnMount(
+                      index: index,
+                      child: GameCard(game: game, heroTag: 'search-${game.id}'),
+                    );
+                  },
+                  itemCount: state.items.length,
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -409,20 +425,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               ),
                             )
                           : state.hasMore
-                              ? SecondaryButton(
-                                  label: l10n.seeAll,
-                                  icon: Icons.expand_more_rounded,
-                                  expand: false,
-                                  onPressed: () =>
-                                      ref.read(searchControllerProvider.notifier).loadMore(),
-                                )
-                              : Text(
-                                  '— PORTIX —',
-                                  style: context.texts.labelSmall?.copyWith(
-                                    color: AppColors.textTertiary,
-                                    letterSpacing: 3,
-                                  ),
-                                ),
+                          ? SecondaryButton(
+                              label: l10n.seeAll,
+                              icon: Icons.expand_more_rounded,
+                              expand: false,
+                              onPressed: () => ref
+                                  .read(searchControllerProvider.notifier)
+                                  .loadMore(),
+                            )
+                          : Text(
+                              '— PORTIX —',
+                              style: context.texts.labelSmall?.copyWith(
+                                color: AppColors.textTertiary,
+                                letterSpacing: 3,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -450,45 +467,55 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           name = item.name;
         }
       }
-      chips.add(_ActiveChip(
-        label: name,
-        onTap: () => ref
-            .read(searchControllerProvider.notifier)
-            .applyFilters(state.filters.copyWith(clearPlatform: true)),
-      ));
+      chips.add(
+        _ActiveChip(
+          label: name,
+          onTap: () => ref
+              .read(searchControllerProvider.notifier)
+              .applyFilters(state.filters.copyWith(clearPlatform: true)),
+        ),
+      );
     }
     final String? genre = state.filters.genre;
     if (genre != null) {
-      chips.add(_ActiveChip(
-        label: genre,
-        onTap: () => ref
-            .read(searchControllerProvider.notifier)
-            .applyFilters(state.filters.copyWith(clearGenre: true)),
-      ));
+      chips.add(
+        _ActiveChip(
+          label: genre,
+          onTap: () => ref
+              .read(searchControllerProvider.notifier)
+              .applyFilters(state.filters.copyWith(clearGenre: true)),
+        ),
+      );
     }
     if (state.filters.freeOnly) {
-      chips.add(_ActiveChip(
-        label: l10n.filterFree,
-        onTap: () => ref
-            .read(searchControllerProvider.notifier)
-            .applyFilters(state.filters.copyWith(freeOnly: false)),
-      ));
+      chips.add(
+        _ActiveChip(
+          label: l10n.filterFree,
+          onTap: () => ref
+              .read(searchControllerProvider.notifier)
+              .applyFilters(state.filters.copyWith(freeOnly: false)),
+        ),
+      );
     }
     if (state.filters.needsRom) {
-      chips.add(_ActiveChip(
-        label: l10n.filterRom,
-        onTap: () => ref
-            .read(searchControllerProvider.notifier)
-            .applyFilters(state.filters.copyWith(needsRom: false)),
-      ));
+      chips.add(
+        _ActiveChip(
+          label: l10n.filterRom,
+          onTap: () => ref
+              .read(searchControllerProvider.notifier)
+              .applyFilters(state.filters.copyWith(needsRom: false)),
+        ),
+      );
     }
     if (state.filters.sort != 'trending') {
-      chips.add(_ActiveChip(
-        label: filterSortLabel(l10n, state.filters.sort),
-        onTap: () => ref
-            .read(searchControllerProvider.notifier)
-            .applyFilters(state.filters.copyWith(sort: 'trending')),
-      ));
+      chips.add(
+        _ActiveChip(
+          label: filterSortLabel(l10n, state.filters.sort),
+          onTap: () => ref
+              .read(searchControllerProvider.notifier)
+              .applyFilters(state.filters.copyWith(sort: 'trending')),
+        ),
+      );
     }
     return chips;
   }
@@ -522,7 +549,11 @@ class _ActiveChip extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 5),
-            const Icon(Icons.close_rounded, size: 13, color: AppColors.textSecondary),
+            const Icon(
+              Icons.close_rounded,
+              size: 13,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),
@@ -539,7 +570,9 @@ class _UsersResults extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
-    final AsyncValue<List<UserResult>> async = ref.watch(userSearchProvider(query));
+    final AsyncValue<List<UserResult>> async = ref.watch(
+      userSearchProvider(query),
+    );
     final List<UserResult> users = async.value ?? const <UserResult>[];
 
     if (async.isLoading && users.isEmpty) {
@@ -550,7 +583,10 @@ class _UsersResults extends ConsumerWidget {
             child: SizedBox(
               width: 22,
               height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.accent,
+              ),
             ),
           ),
         ),
@@ -617,19 +653,27 @@ class _UserTile extends StatelessWidget {
                   user.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: context.texts.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   user.handle == null ? l10n.noHandle : '@${user.handle}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  style: context.texts.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textTertiary),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: AppColors.textTertiary,
+          ),
         ],
       ),
     );

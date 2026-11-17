@@ -44,7 +44,9 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    final AsyncValue<GameDetail> detail = ref.watch(gameDetailProvider(widget.slug));
+    final AsyncValue<GameDetail> detail = ref.watch(
+      gameDetailProvider(widget.slug),
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -63,6 +65,7 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                   children: <Widget>[
                     GlassCircleButton(
                       icon: Icons.arrow_back_rounded,
+                      tooltip: context.l10n.tooltipBack,
                       onTap: _back,
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -91,10 +94,14 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
                 child: GlassContainer(
                   radius: AppRadii.pill,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                  ),
                   child: Row(
                     children: <Widget>[
                       const Icon(
@@ -116,7 +123,9 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                             hintStyle: context.texts.bodyMedium?.copyWith(
                               color: AppColors.textTertiary,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
                           ),
                         ),
                       ),
@@ -149,7 +158,10 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                           ),
                         ),
                       )
-                    : _ReportsList(gameId: detail.value!.game.id, query: _query.text),
+                    : _ReportsList(
+                        gameId: detail.value!.game.id,
+                        query: _query.text,
+                      ),
               ),
             ],
           ),
@@ -170,26 +182,29 @@ class _ReportsList extends ConsumerWidget {
     if (term.isEmpty) {
       return all;
     }
-    return all.where((CompatReport report) {
-      final String haystack = <String>[
-        report.author,
-        report.brand ?? '',
-        report.model ?? '',
-        report.soc ?? '',
-        report.gpu ?? '',
-        report.body,
-        report.status,
-        report.fps?.toString() ?? '',
-      ].join(' ').toLowerCase();
-      return haystack.contains(term);
-    }).toList(growable: false);
+    return all
+        .where((CompatReport report) {
+          final String haystack = <String>[
+            report.author,
+            report.brand ?? '',
+            report.model ?? '',
+            report.soc ?? '',
+            report.gpu ?? '',
+            report.body,
+            report.status,
+            report.fps?.toString() ?? '',
+          ].join(' ').toLowerCase();
+          return haystack.contains(term);
+        })
+        .toList(growable: false);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
-    final AsyncValue<List<CompatReport>> async =
-        ref.watch(gameCompatReportsProvider(gameId));
+    final AsyncValue<List<CompatReport>> async = ref.watch(
+      gameCompatReportsProvider(gameId),
+    );
     final List<CompatReport> reports = async.value ?? const <CompatReport>[];
 
     if (async.isLoading && reports.isEmpty) {
@@ -197,7 +212,10 @@ class _ReportsList extends ConsumerWidget {
         child: SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.accent,
+          ),
         ),
       );
     }

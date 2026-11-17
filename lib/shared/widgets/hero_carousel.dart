@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
@@ -142,7 +143,10 @@ class _HeroCarouselState extends State<HeroCarousel> {
                           _controller.position.hasContentDimensions) {
                         delta = (_controller.page ?? _index.toDouble()) - index;
                       }
-                      final double scale = (1 - delta.abs() * 0.05).clamp(0.94, 1.0);
+                      final double scale = (1 - delta.abs() * 0.05).clamp(
+                        0.94,
+                        1.0,
+                      );
                       return Transform.scale(scale: scale, child: child);
                     },
                     child: Padding(
@@ -198,19 +202,21 @@ class _HeroCarouselState extends State<HeroCarousel> {
               ),
               GlassCircleButton(
                 icon: Icons.chevron_left_rounded,
-                size: 40,
+                tooltip: context.l10n.tooltipPrevious,
                 onTap: () => _go(-1),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               GlassCircleButton(
                 icon: _paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                size: 40,
+                tooltip: _paused
+                    ? context.l10n.tooltipPlayCarousel
+                    : context.l10n.tooltipPauseCarousel,
                 onTap: _togglePause,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               GlassCircleButton(
                 icon: Icons.chevron_right_rounded,
-                size: 40,
+                tooltip: context.l10n.tooltipNext,
                 onTap: () => _go(1),
               ),
             ],
@@ -270,7 +276,10 @@ class _CarouselCard extends StatelessWidget {
                 left: 14,
                 top: 14,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0x66000000),
                     borderRadius: BorderRadius.circular(AppRadii.pill),

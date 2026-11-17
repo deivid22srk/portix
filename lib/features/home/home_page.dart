@@ -30,35 +30,42 @@ class HomePage extends ConsumerWidget {
       child: GlassHeader(
         title: l10n.navHome,
         child: RefreshIndicator(
-        color: context.palette.primary,
-        backgroundColor: context.palette.surface,
-        onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          slivers: <Widget>[
-            const _HomeHeader(),
-            if (feed == null && async.isLoading)
-              const SliverToBoxAdapter(child: HomeSkeleton()),
-            if (feed == null && async.hasError)
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 380,
-                  child: ErrorStateView(
-                    message: context.failureText(async.error),
-                    retryLabel: l10n.tryAgain,
-                    onRetry: () => ref.read(homeFeedProvider.notifier).refresh(),
+          color: context.palette.primary,
+          backgroundColor: context.palette.surface,
+          onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: <Widget>[
+              const _HomeHeader(),
+              if (feed == null && async.isLoading)
+                const SliverToBoxAdapter(child: HomeSkeleton()),
+              if (feed == null && async.hasError)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 380,
+                    child: ErrorStateView(
+                      message: context.failureText(async.error),
+                      retryLabel: l10n.tryAgain,
+                      onRetry: () =>
+                          ref.read(homeFeedProvider.notifier).refresh(),
+                    ),
                   ),
                 ),
-              ),
-            if (feed != null) ..._feedSlivers(context, ref, feed),
-          ],
-        ),
+              if (feed != null) ..._feedSlivers(context, ref, feed),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  List<Widget> _feedSlivers(BuildContext context, WidgetRef ref, HomeFeed feed) {
+  List<Widget> _feedSlivers(
+    BuildContext context,
+    WidgetRef ref,
+    HomeFeed feed,
+  ) {
     final L10n l10n = context.l10n;
     final List<PlatformInfo> platforms = feed.platforms
         .where((PlatformInfo platform) => !platform.isSecondary)
@@ -122,7 +129,9 @@ class HomePage extends ConsumerWidget {
 
     // Faixa de plataformas (atalho).
     if (platforms.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
+      slivers.add(
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+      );
       slivers.add(
         SliverToBoxAdapter(child: SectionHeader(title: l10n.sectionPlatforms)),
       );
@@ -132,7 +141,9 @@ class HomePage extends ConsumerWidget {
             height: 44,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+              ),
               itemCount: platforms.length,
               separatorBuilder: (BuildContext context, int index) =>
                   const SizedBox(width: AppSpacing.sm),
@@ -153,45 +164,39 @@ class HomePage extends ConsumerWidget {
     // Explorar por seção (tiles de vidro).
     final List<_BrowseTarget> tiles = _sectionTiles(context, feed);
     if (tiles.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
+      slivers.add(
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+      );
       slivers.add(
         SliverToBoxAdapter(child: SectionHeader(title: l10n.sectionExploreBy)),
       );
       slivers.add(
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: AppSpacing.md,
-              crossAxisSpacing: AppSpacing.md,
-              mainAxisExtent: 62,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                final _BrowseTarget target = tiles[index];
-                return SectionTile(
-                  icon: target.icon,
-                  label: target.label,
-                  onTap: () => _browse(
-                    context,
-                    ref,
-                    platform: target.platform,
-                    genre: target.genre,
-                    freeOnly: target.freeOnly,
-                    sort: target.sort,
-                  ),
-                );
-              },
-              childCount: tiles.length,
-            ),
-          ),
+        ResponsiveCoverGrid(
+          mainAxisExtent: 62,
+          itemBuilder: (BuildContext context, int index) {
+            final _BrowseTarget target = tiles[index];
+            return SectionTile(
+              icon: target.icon,
+              label: target.label,
+              onTap: () => _browse(
+                context,
+                ref,
+                platform: target.platform,
+                genre: target.genre,
+                freeOnly: target.freeOnly,
+                sort: target.sort,
+              ),
+            );
+          },
+          itemCount: tiles.length,
         ),
       );
     }
 
     if (feed.recent.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
+      slivers.add(
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+      );
       slivers.add(
         SliverToBoxAdapter(
           child: SectionHeader(
@@ -201,11 +206,18 @@ class HomePage extends ConsumerWidget {
           ),
         ),
       );
-      slivers.add(_GameGrid(games: feed.recent.take(6).toList(growable: false), prefix: 'home-news'));
+      slivers.add(
+        _GameGrid(
+          games: feed.recent.take(6).toList(growable: false),
+          prefix: 'home-news',
+        ),
+      );
     }
 
     if (feed.topRated.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
+      slivers.add(
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+      );
       slivers.add(
         SliverToBoxAdapter(
           child: SectionHeader(
@@ -215,11 +227,18 @@ class HomePage extends ConsumerWidget {
           ),
         ),
       );
-      slivers.add(_GameGrid(games: feed.topRated.take(6).toList(growable: false), prefix: 'home-top'));
+      slivers.add(
+        _GameGrid(
+          games: feed.topRated.take(6).toList(growable: false),
+          prefix: 'home-top',
+        ),
+      );
     }
 
     if (feed.trending.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)));
+      slivers.add(
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+      );
       slivers.add(
         SliverToBoxAdapter(
           child: SectionHeader(
@@ -235,7 +254,9 @@ class HomePage extends ConsumerWidget {
             height: 236,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+              ),
               itemCount: feed.trending.length,
               separatorBuilder: (BuildContext context, int index) =>
                   const SizedBox(width: AppSpacing.md),
@@ -253,7 +274,9 @@ class HomePage extends ConsumerWidget {
       );
     }
 
-    slivers.add(SliverToBoxAdapter(child: SizedBox(height: context.bottomChromePadding)));
+    slivers.add(
+      SliverToBoxAdapter(child: SizedBox(height: context.bottomChromePadding)),
+    );
     return slivers;
   }
 
@@ -262,25 +285,31 @@ class HomePage extends ConsumerWidget {
     final List<_BrowseTarget> tiles = <_BrowseTarget>[];
 
     if (feed.free.isNotEmpty) {
-      tiles.add(_BrowseTarget(
-        icon: Icons.bolt_rounded,
-        label: l10n.sectionFree,
-        freeOnly: true,
-      ));
+      tiles.add(
+        _BrowseTarget(
+          icon: Icons.bolt_rounded,
+          label: l10n.sectionFree,
+          freeOnly: true,
+        ),
+      );
     }
     if (feed.classics.isNotEmpty) {
-      tiles.add(_BrowseTarget(
-        icon: Icons.history_edu_rounded,
-        label: l10n.sectionClassics,
-        sort: 'year',
-      ));
+      tiles.add(
+        _BrowseTarget(
+          icon: Icons.history_edu_rounded,
+          label: l10n.sectionClassics,
+          sort: 'year',
+        ),
+      );
     }
     for (final GenreInfo genre in feed.genres.take(2)) {
-      tiles.add(_BrowseTarget(
-        icon: Icons.category_rounded,
-        label: genre.name,
-        genre: genre.name,
-      ));
+      tiles.add(
+        _BrowseTarget(
+          icon: Icons.category_rounded,
+          label: genre.name,
+          genre: genre.name,
+        ),
+      );
     }
     if (tiles.length < 4) {
       final List<PlatformInfo> platforms = feed.platforms
@@ -288,11 +317,13 @@ class HomePage extends ConsumerWidget {
           .toList(growable: false);
       if (platforms.isNotEmpty) {
         final PlatformInfo platform = platforms.first;
-        tiles.add(_BrowseTarget(
-          icon: Icons.sports_esports_rounded,
-          label: platform.name,
-          platform: platform.slug,
-        ));
+        tiles.add(
+          _BrowseTarget(
+            icon: Icons.sports_esports_rounded,
+            label: platform.name,
+            platform: platform.slug,
+          ),
+        );
       }
     }
     return tiles.take(4).toList(growable: false);
@@ -306,7 +337,9 @@ class HomePage extends ConsumerWidget {
     bool freeOnly = false,
     String sort = 'trending',
   }) {
-    ref.read(searchControllerProvider.notifier).browse(
+    ref
+        .read(searchControllerProvider.notifier)
+        .browse(
           platform: platform,
           genre: genre,
           freeOnly: freeOnly,
@@ -342,23 +375,12 @@ class _GameGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: AppSpacing.md,
-          crossAxisSpacing: AppSpacing.gridGap,
-          childAspectRatio: 3 / 4,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            final Game game = games[index];
-            return GameCard(game: game, heroTag: '$prefix-${game.id}');
-          },
-          childCount: games.length,
-        ),
-      ),
+    return ResponsiveCoverGrid(
+      itemBuilder: (BuildContext context, int index) {
+        final Game game = games[index];
+        return GameCard(game: game, heroTag: '$prefix-${game.id}');
+      },
+      itemCount: games.length,
     );
   }
 }
@@ -376,4 +398,3 @@ class _HomeHeader extends StatelessWidget {
     );
   }
 }
-

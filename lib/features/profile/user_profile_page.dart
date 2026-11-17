@@ -32,7 +32,9 @@ class UserProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
-    final AsyncValue<PublicProfile> async = ref.watch(publicProfileProvider(id));
+    final AsyncValue<PublicProfile> async = ref.watch(
+      publicProfileProvider(id),
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -44,7 +46,10 @@ class UserProfilePage extends ConsumerWidget {
               child: SizedBox(
                 width: 24,
                 height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.accent,
+                ),
               ),
             ),
             error: (Object error, StackTrace _) => Stack(
@@ -54,6 +59,7 @@ class UserProfilePage extends ConsumerWidget {
                   top: AppSpacing.sm,
                   child: GlassCircleButton(
                     icon: Icons.arrow_back_rounded,
+                    tooltip: context.l10n.tooltipBack,
                     onTap: () => _back(context),
                   ),
                 ),
@@ -64,7 +70,8 @@ class UserProfilePage extends ConsumerWidget {
                 ),
               ],
             ),
-            data: (PublicProfile profile) => _Content(profile: profile, onBack: () => _back(context)),
+            data: (PublicProfile profile) =>
+                _Content(profile: profile, onBack: () => _back(context)),
           ),
         ),
       ),
@@ -81,7 +88,9 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    final String handle = profile.handle == null ? l10n.noHandle : '@${profile.handle}';
+    final String handle = profile.handle == null
+        ? l10n.noHandle
+        : '@${profile.handle}';
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: <Widget>[
@@ -100,7 +109,11 @@ class _Content extends StatelessWidget {
                 const DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: <Color>[Color(0x66000000), Color(0x00000000), Color(0xCC000000)],
+                      colors: <Color>[
+                        Color(0x66000000),
+                        Color(0x00000000),
+                        Color(0xCC000000),
+                      ],
                       stops: <double>[0, 0.45, 1],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -110,7 +123,11 @@ class _Content extends StatelessWidget {
                 Positioned(
                   left: AppSpacing.md,
                   top: AppSpacing.sm,
-                  child: GlassCircleButton(icon: Icons.arrow_back_rounded, onTap: onBack),
+                  child: GlassCircleButton(
+                    icon: Icons.arrow_back_rounded,
+                    tooltip: l10n.tooltipBack,
+                    onTap: onBack,
+                  ),
                 ),
               ],
             ),
@@ -142,12 +159,16 @@ class _Content extends StatelessWidget {
                         profile.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                        style: context.texts.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         handle,
-                        style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                        style: context.texts.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       if (profile.level != null) ...<Widget>[
                         const SizedBox(height: 6),
@@ -181,31 +202,21 @@ class _Content extends StatelessWidget {
             ),
           )
         else
-          SliverPadding(
+          ResponsiveCoverGrid(
             padding: EdgeInsets.fromLTRB(
               AppSpacing.screen,
               0,
               AppSpacing.screen,
               context.systemBottomInset + AppSpacing.xxxl,
             ),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: AppSpacing.gridGap,
-                crossAxisSpacing: AppSpacing.gridGap,
-                childAspectRatio: 3 / 4,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  final Game game = profile.library[index];
-                  return GameCard(
-                    game: game,
-                    heroTag: 'user-${profile.id}-${game.id}',
-                  );
-                },
-                childCount: profile.library.length,
-              ),
-            ),
+            itemBuilder: (BuildContext context, int index) {
+              final Game game = profile.library[index];
+              return GameCard(
+                game: game,
+                heroTag: 'user-${profile.id}-${game.id}',
+              );
+            },
+            itemCount: profile.library.length,
           ),
       ],
     );

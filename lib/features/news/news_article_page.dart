@@ -84,6 +84,7 @@ class NewsArticlePage extends ConsumerWidget {
                       alignment: Alignment.centerLeft,
                       child: GlassCircleButton(
                         icon: Icons.arrow_back_rounded,
+                        tooltip: context.l10n.tooltipBack,
                         onTap: () => _back(context),
                       ),
                     ),
@@ -196,9 +197,7 @@ class _ArticleMeta extends StatelessWidget {
     }
     return Text(
       parts.join('  ·  '),
-      style: context.texts.bodySmall?.copyWith(
-        color: AppColors.textTertiary,
-      ),
+      style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
     );
   }
 }
@@ -272,6 +271,7 @@ class _MissingArticle extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: GlassCircleButton(
               icon: Icons.arrow_back_rounded,
+              tooltip: context.l10n.tooltipBack,
               onTap: onBack,
             ),
           ),

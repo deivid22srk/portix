@@ -266,31 +266,21 @@ class _HubPageState extends ConsumerState<HubPage> {
       ];
     }
     return <Widget>[
-      SliverPadding(
+      ResponsiveCoverGrid(
         padding: EdgeInsets.fromLTRB(
           AppSpacing.screen,
           0,
           AppSpacing.screen,
           context.bottomChromePadding,
         ),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: AppSpacing.gridGap,
-            crossAxisSpacing: AppSpacing.gridGap,
-            childAspectRatio: 3 / 4,
-          ),
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            final Game game = games[index];
-            return RevealOnMount(
-              index: index,
-              child: GameCard(game: game, heroTag: '$prefix-${game.id}'),
-            );
-          }, childCount: games.length),
-        ),
+        itemBuilder: (BuildContext context, int index) {
+          final Game game = games[index];
+          return RevealOnMount(
+            index: index,
+            child: GameCard(game: game, heroTag: '$prefix-${game.id}'),
+          );
+        },
+        itemCount: games.length,
       ),
     ];
   }

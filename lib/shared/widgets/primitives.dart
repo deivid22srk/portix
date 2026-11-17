@@ -1,8 +1,10 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/rendering.dart' show SliverConstraints;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
@@ -191,26 +193,28 @@ class _PressableState extends State<Pressable> {
 }
 
 /// Botão circular de vidro (voltar, filtro, compartilhar, controles).
+/// O `tooltip` é OBRIGATÓRIO: um ícone sem rótulo é invisível para leitores
+/// de tela (TalkBack) — nunca chame este componente sem um rótulo l10n.
 class GlassCircleButton extends StatelessWidget {
   const GlassCircleButton({
     super.key,
     required this.icon,
+    required this.tooltip,
     this.onTap,
     this.active = false,
     this.size = AppSpacing.circleButton,
     this.iconSize,
-    this.tooltip,
     this.badge,
     this.color,
     this.blur = false,
   });
 
   final IconData icon;
+  final String? tooltip;
   final VoidCallback? onTap;
   final bool active;
   final double size;
   final double? iconSize;
-  final String? tooltip;
   final Widget? badge;
   final Color? color;
   final bool blur;
@@ -765,28 +769,32 @@ class SectionTile extends StatelessWidget {
 
 /// Botão de busca circular, flutuante, ao lado da barra de navegação.
 class SearchFab extends StatelessWidget {
-  const SearchFab({super.key, this.onTap});
+  const SearchFab({super.key, required this.tooltip, this.onTap});
 
+  final String tooltip;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      scale: 0.94,
-      child: SizedBox(
-        width: AppSpacing.searchFab,
-        height: AppSpacing.searchFab,
-        child: GlassContainer(
-          radius: AppRadii.pill,
-          blur: true,
-          color: const Color(0x66090B12),
-          shadow: AppShadows.floating,
-          child: const Center(
-            child: Icon(
-              Icons.search_rounded,
-              size: 30,
-              color: AppColors.textPrimary,
+    return Tooltip(
+      message: tooltip,
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.94,
+        child: SizedBox(
+          width: AppSpacing.searchFab,
+          height: AppSpacing.searchFab,
+          child: GlassContainer(
+            radius: AppRadii.pill,
+            blur: true,
+            color: const Color(0x66090B12),
+            shadow: AppShadows.floating,
+            child: const Center(
+              child: Icon(
+                Icons.search_rounded,
+                size: 30,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ),
@@ -972,7 +980,9 @@ class RatingLine extends StatelessWidget {
   }
 }
 
-/// Seletor de estrelas para avaliação.
+/// Seletor de estrelas para avaliação. Cada estrela expõe papel de botão
+/// e rótulo "N de 5 estrelas"; o contêiner resume o estado atual — sem isso
+/// o fluxo de avaliação é inacessível para leitores de tela.
 class StarPicker extends StatelessWidget {
   const StarPicker({
     super.key,
@@ -987,67 +997,103 @@ class StarPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (int index = 1; index <= 5; index += 1)
-          Pressable(
-            onTap: () => onChanged(index),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: size * 0.08),
-              child: Icon(
-                index <= value
-                    ? Icons.star_rounded
-                    : Icons.star_outline_rounded,
-                size: size,
-                color: index <= value
-                    ? AppColors.warning
-                    : AppColors.textTertiary,
+    final L10n l10n = context.l10n;
+    return Semantics(
+      container: true,
+      label: l10n.starPickerSummary(value),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (int index = 1; index <= 5; index += 1)
+            Pressable(
+              onTap: () => onChanged(index),
+              child: Semantics(
+                label: l10n.starSemantic(index),
+                selected: index <= value,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: size * 0.08),
+                  child: Icon(
+                    index <= value
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    size: size,
+                    color: index <= value
+                        ? AppColors.warning
+                        : AppColors.textTertiary,
+                  ),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// Interruptor customizado (não usa `Switch` do Material).
+/// Expõe papel de botão + estado `toggled` para o TalkBack e garante alvo
+/// de toque de pelo menos 48px de altura (WCAG 2.2 AA, 2.5.8).
 class AppToggle extends StatelessWidget {
-  const AppToggle({super.key, required this.value, required this.onChanged});
+  const AppToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.semanticLabel,
+  });
 
   final bool value;
   final ValueChanged<bool> onChanged;
 
+  /// Nome do ajuste controlado (ex.: "Notificações"). Sem ele o TalkBack
+  /// anuncia "ativado/desativado" sem dizer o que o interruptor faz.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onChanged(!value);
-      },
-      child: AnimatedContainer(
-        duration: AppMotion.base,
-        curve: AppMotion.out,
-        width: 52,
-        height: 30,
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: value ? AppColors.accent : AppColors.glassStrong,
-          border: Border.all(
-            color: value ? AppColors.accent : AppColors.glassBorder,
-          ),
-        ),
-        child: AnimatedAlign(
-          duration: AppMotion.base,
-          curve: AppMotion.out,
-          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: value ? AppColors.onAccent : AppColors.textTertiary,
+    return Semantics(
+      // Papel de botão + estado `toggled`: o TalkBack anuncia
+      // "<rótulo>, ativado/desativado". `switch` não é nome válido de
+      // parâmetro no Dart 3 (palavra reservada).
+      button: true,
+      toggled: value,
+      label: semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onChanged(!value);
+        },
+        child: SizedBox(
+          // Trilho visual 52×30 dentro de alvo 52×48 (toque confortável).
+          width: 52,
+          height: 48,
+          child: Center(
+            child: AnimatedContainer(
+              duration: AppMotion.base,
+              curve: AppMotion.out,
+              width: 52,
+              height: 30,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                color: value ? AppColors.accent : AppColors.glassStrong,
+                border: Border.all(
+                  color: value ? AppColors.accent : AppColors.glassBorder,
+                ),
+              ),
+              child: AnimatedAlign(
+                duration: AppMotion.base,
+                curve: AppMotion.out,
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: value ? AppColors.onAccent : AppColors.textTertiary,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -1190,6 +1236,66 @@ class SegmentedControl<T> extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Grade de capas 3:4 responsiva (padrão de todas as telas de catálogo).
+///
+/// Substitui `SliverGrid` com `crossAxisCount` fixo: 2 colunas no celular,
+/// 3 no tablet (≥600px), 5 no desktop (≥1024px) e 6 em telas largas
+/// (≥1440px). Acima de `AppBreakpoints.contentMax` o conteúdo é centralizado
+/// com padding extra em vez de esticar capas por um monitor inteiro.
+class ResponsiveCoverGrid extends StatelessWidget {
+  const ResponsiveCoverGrid({
+    super.key,
+    required this.itemBuilder,
+    required this.itemCount,
+    this.padding,
+    this.aspectRatio = 3 / 4,
+    this.mainAxisExtent,
+  });
+
+  /// Construtor do card: (context, index).
+  final IndexedWidgetBuilder itemBuilder;
+  final int itemCount;
+
+  /// Padding externo da grade. Se nulo, usa a margem lateral padrão.
+  final EdgeInsets? padding;
+  final double aspectRatio;
+
+  /// Altura fixa dos itens (grades de tiles de seção, não capas).
+  final double? mainAxisExtent;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverLayoutBuilder(
+      builder: (BuildContext context, SliverConstraints constraints) {
+        final double width = constraints.crossAxisExtent;
+        // Teto de largura de conteúdo: em telas largas, distribui o excesso
+        // nas margens para centralizar a grade (sem tocar no shell).
+        final double extra = width > AppBreakpoints.contentMax
+            ? (width - AppBreakpoints.contentMax) / 2
+            : 0;
+        final EdgeInsets base =
+            padding ?? EdgeInsets.symmetric(horizontal: AppSpacing.screen);
+        return SliverPadding(
+          padding: base + EdgeInsets.symmetric(horizontal: extra),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: AppBreakpoints.coverColumns(width),
+              mainAxisSpacing: AppSpacing.gridGap,
+              crossAxisSpacing: AppSpacing.gridGap,
+              childAspectRatio: aspectRatio,
+              mainAxisExtent: mainAxisExtent,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              itemBuilder,
+              childCount: itemCount,
+            ),
+          ),
+        );
+      },
     );
   }
 }

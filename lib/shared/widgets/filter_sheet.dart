@@ -127,10 +127,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                               dense: true,
                               selected: _filters.platform == null,
                               onTap: () => setState(
-                                () => _filters = _filters.copyWith(clearPlatform: true),
+                                () => _filters = _filters.copyWith(
+                                  clearPlatform: true,
+                                ),
                               ),
                             ),
-                            for (final PlatformInfo platform in widget.facets.platforms)
+                            for (final PlatformInfo platform
+                                in widget.facets.platforms)
                               AppPill(
                                 label: platform.name,
                                 dense: true,
@@ -138,7 +141,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                                 onTap: () => setState(() {
                                   _filters = _filters.platform == platform.slug
                                       ? _filters.copyWith(clearPlatform: true)
-                                      : _filters.copyWith(platform: platform.slug);
+                                      : _filters.copyWith(
+                                          platform: platform.slug,
+                                        );
                                 }),
                               ),
                           ],
@@ -154,7 +159,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                               dense: true,
                               selected: _filters.genre == null,
                               onTap: () => setState(
-                                () => _filters = _filters.copyWith(clearGenre: true),
+                                () => _filters = _filters.copyWith(
+                                  clearGenre: true,
+                                ),
                               ),
                             ),
                             for (final GenreInfo genre in widget.facets.genres)
@@ -187,7 +194,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                                 dense: true,
                                 selected: _filters.sort == sort,
                                 onTap: () => setState(
-                                  () => _filters = _filters.copyWith(sort: sort),
+                                  () =>
+                                      _filters = _filters.copyWith(sort: sort),
                                 ),
                               ),
                           ],
@@ -268,10 +276,12 @@ class _ToggleRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              style: context.texts.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-          AppToggle(value: value, onChanged: onChanged),
+          AppToggle(value: value, semanticLabel: title, onChanged: onChanged),
         ],
       ),
     );
