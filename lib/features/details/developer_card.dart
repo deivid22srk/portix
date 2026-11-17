@@ -67,6 +67,10 @@ class DeveloperCard extends ConsumerWidget {
     }
 
     final GithubUser? user = async.value;
+    // Sem URL de avatar (ou falha de rede): fallback com iniciais.
+    final String? photoUrl = (user?.avatarUrl ?? '').trim().isEmpty
+        ? null
+        : user!.avatarUrlFor(112);
     return GlassContainer(
       radius: AppRadii.lg,
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -78,17 +82,17 @@ class DeveloperCard extends ConsumerWidget {
             children: <Widget>[
               Semantics(
                 label: l10n.developerSection,
-                image: user != null,
+                image: photoUrl != null,
                 child: SizedBox(
                   width: 56,
                   height: 56,
                   child: ClipOval(
-                    child: user == null
+                    child: photoUrl == null
                         ? _FallbackAvatar(name: owner)
                         : CachedNetworkImage(
                             // URL estável (?s=112): o cache de memória/disco
                             // bate na 2ª abertura — zero novos downloads.
-                            imageUrl: user.avatarUrlFor(112),
+                            imageUrl: photoUrl,
                             fit: BoxFit.cover,
                             memCacheWidth: 168,
                             fadeInDuration: AppMotion.fast,
@@ -142,17 +146,19 @@ class DeveloperCard extends ConsumerWidget {
           if (user != null &&
               (user.publicRepos > 0 || user.followers > 0)) ...<Widget>[
             const SizedBox(height: AppSpacing.lg),
-            Row(
+            // Wrap: nunca estoura a largura em colunas estreitas.
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
-                if (user.publicRepos > 0) ...<Widget>[
+                if (user.publicRepos > 0)
                   Text(
                     '${user.publicRepos} ${l10n.repositoriesLabel}',
                     style: context.texts.labelSmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                ],
                 if (user.followers > 0)
                   Text(
                     '${compactNumber(user.followers)} ${l10n.followersLabel}',

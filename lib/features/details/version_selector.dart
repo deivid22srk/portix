@@ -91,32 +91,30 @@ class VersionSelector extends ConsumerWidget {
     );
     final String effectiveTag = selectedTag ?? defaultRelease.tag;
 
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final bool segmented = constraints.maxWidth >= 480;
-        if (segmented) {
-          return _SegmentedVersions(
-            releases: shown,
-            effectiveTag: effectiveTag,
-            installedTag: installedTag,
-            onSelected: onSelected,
-          );
-        }
-        return Column(
-          children: <Widget>[
-            for (int index = 0; index < shown.length; index += 1) ...<Widget>[
-              VersionCard(
-                release: shown[index],
-                isLatest: index == 0,
-                selected: shown[index].tag == effectiveTag,
-                installed: shown[index].tag == installedTag,
-                onTap: shown[index].hasApk ? () => onSelected(shown[index]) : null,
-              ),
-              if (index < shown.length - 1) const SizedBox(height: AppSpacing.sm),
-            ],
-          ],
-        );
-      },
+    // Breakpoint alinhado ao layout de 2 colunas da tela de detalhes:
+    // telas largas usam controle segmentado + card do detalhe; mobile usa cards.
+    final bool segmented = MediaQuery.sizeOf(context).width >= 768;
+    if (segmented) {
+      return _SegmentedVersions(
+        releases: shown,
+        effectiveTag: effectiveTag,
+        installedTag: installedTag,
+        onSelected: onSelected,
+      );
+    }
+    return Column(
+      children: <Widget>[
+        for (int index = 0; index < shown.length; index += 1) ...<Widget>[
+          VersionCard(
+            release: shown[index],
+            isLatest: index == 0,
+            selected: shown[index].tag == effectiveTag,
+            installed: shown[index].tag == installedTag,
+            onTap: shown[index].hasApk ? () => onSelected(shown[index]) : null,
+          ),
+          if (index < shown.length - 1) const SizedBox(height: AppSpacing.sm),
+        ],
+      ],
     );
   }
 }
