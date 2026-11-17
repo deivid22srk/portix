@@ -3,7 +3,9 @@
 ## Contexto fixo
 
 - Repositório: `deivid22srk/portix` · Branch de trabalho: `feat/ui-ux-pro-download-engine`
-- **MAIN_SHA**: `305eb584b5dc02ce9d3f6db317ab9319253993b3` (registrado na iteração 1)
+- **MAIN_SHA**: `9060a14db31589aacfa37497ff781c188597ac44` (base `305eb584` da iteração 1;
+  main avançou com commits de dados do próprio dono — migrations Supabase `a1a355f`/`9060a14`:
+  jogo Spore e notícia de port nativo de The Witcher 3 — nenhum toque no loop)
 - Guard: hook `pre-push` local bloqueia push para main/master; todo push é explícito.
 - Stack real: Flutter 3.50 + Riverpod 3 + go_router; motor Rust (`ureq` + JNI) em `native/portix_downloader`;
   Kotlin em `native/android/`; `android/` gerado no CI (`tools/ci/prepare_android.py`).
@@ -13,6 +15,28 @@
   (nunca commitar; **rotacionar ao fim**).
 
 ## Loop v2 (UI) — iterações U1–U4 (2026-11-15)
+
+### U-A2 — Remoção do SDK de anúncios ("admob") a pedido do dono (`fix(ui)` `a8add4b`)
+- **Pedido:** "remova apenas o admob" — a monetização migrará para **link monetizado**
+  (encurtador com intersticial, toggle nas configurações); enquanto isso o app não deve
+  carregar nenhum SDK de anúncios nem punir usuário com bloqueador.
+- **Implementação:** revert integral do `d5dec8b` — `lib/core/ads/*` (config, detector
+  DNS, SDK injetável, controllers) e `lib/features/ads/adblock_gate.dart` removidos;
+  ganchos `onDownloadCompleted()` fora do `DownloadsController`; bloco "Apoie o PORTIX"
+  e strings de l10n órfãs fora do menu; `unity_ads_plugin` fora do `pubspec.yaml`;
+  ProGuard `com.unity3d` fora do scaffold de CI (`tools/ci/prepare_android.py`).
+- **Validação:** suíte **52/52** (os 17 testes de ads saíram com a feature); analyze
+  limpo; ui_gates verdes; golden rule ok; guard ok (branch única, main só com dados do
+  dono). Nota ambiental: a sandbox foi reciclada e o Flutter foi re-extraído do tarball —
+  o formatter novo reformatou 55 arquivos; a reformatação global foi descartada para
+  manter o diff focado, mas os 2 arquivos revertidos exigidos pelo gate (`app.dart`,
+  `menu_page.dart`) ficaram unstaged fora do `a8add4b` → 1º CI falhou no "Portões de UI"
+  (run `44065424582`); corrigido com commit mecânico de formatação `6e35d88`.
+- **CI:** run `44065740648` (dispatch em `6e35d88`) — **success**.
+- **Próximo:** integração do link monetizado (diálogo de 1ª abertura explicando o
+  default ON + toggle nas configurações; API `linkmonetizado.com` com `type=1`,
+  cache por destino, fallback direto e cooldown anti-fraude; token do dono no cliente
+  — risco de extração documentado, decisão do dono).
 
 ### U-A1 — Feature do dono: Unity Ads (6225452) + gate de bloqueador (`feat(ui)` `d5dec8b`)
 - **Pedido:** monetizar com Unity Ads sem estragar a UX do usuário comum; usuário com
