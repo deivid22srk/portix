@@ -16,8 +16,8 @@ import '../../models/profile.dart';
 import '../../shared/widgets/admin_crown.dart';
 import '../../shared/widgets/app_mark.dart';
 import '../../shared/widgets/app_snackbar.dart';
-import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
+import '../../shared/widgets/profile_avatar.dart';
 import '../../shared/widgets/theme_selector.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/downloads_controller.dart';
@@ -124,15 +124,13 @@ class MenuPage extends ConsumerWidget {
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       child: Row(
                         children: <Widget>[
-                          SizedBox(
-                            width: 62,
-                            height: 62,
-                            child: GameCover(
-                              imageUrl: profile.coverUrl,
-                              title: profile.displayName,
-                              memWidth: 180,
-                              borderRadius: AppRadii.md,
-                            ),
+                          // Avatar dedicado (cache de memória/disco, iniciais
+                          // como fallback) — antes era GameCover de jogo.
+                          ProfileAvatar(
+                            name: profile.displayName,
+                            imageUrl: profile.coverUrl,
+                            size: 62,
+                            level: adminLevel,
                           ),
                           const SizedBox(width: AppSpacing.lg),
                           Expanded(

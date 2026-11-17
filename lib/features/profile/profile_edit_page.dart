@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
@@ -53,6 +54,9 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     final L10n l10n = context.l10n;
     setState(() => _busy = true);
     try {
+      // Cache da foto anterior: se a URL continuar a mesma (reupload no mesmo
+      // caminho), o arquivo precisa sair do cache para a nova imagem aparecer.
+      final String? oldCover = ref.read(profileProvider).value?.coverUrl;
       await ref
           .read(catalogRepositoryProvider)
           .updateProfile(displayName: _name.text, coverUrl: _cover.text);
@@ -71,7 +75,9 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
         );
         return;
       }
-      ref.invalidate(profileProvider);
+      // Trocou a foto = cache invalidado (chave é a URL; conteúdo novo no
+      // mesmo endereço exige remoção explícita do arquivo em disco).
+      await _invalidateCover(oldCover);
       if (!mounted) {
         return;
       }
@@ -82,6 +88,23 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
         setState(() => _busy = false);
       }
     }
+  }
+
+  /// Remove do cache de imagem o arquivo da capa antiga/trocada e revalida
+  /// o perfil (o SWR traz o novo valor sem loading).
+  Future<void> _invalidateCover(String? oldCover) async {
+    final List<String> targets = <String>[
+      if (oldCover != null && oldCover.isNotEmpty) oldCover,
+      if (_cover.text.trim().isNotEmpty) _cover.text.trim(),
+    ];
+    for (final String url in targets) {
+      try {
+        await DefaultCacheManager().removeFile(url);
+      } on Object {
+        // Sem arquivo em cache (ou falha local): refetch resolve na revalida.
+      }
+    }
+    await ref.read(profileProvider.notifier).refresh();
   }
 
   @override
