@@ -109,6 +109,26 @@ String formatRating(double value) {
 
 String formatPercent(double value) => '${(value.clamp(0, 1) * 100).round()}%';
 
+/// Tamanho de arquivo legível (KB/MB/GB) a partir de bytes.
+String formatBytes(int bytes) {
+  if (bytes <= 0) {
+    return '—';
+  }
+  final double kb = bytes / 1024;
+  if (kb < 1) {
+    return '$bytes B';
+  }
+  final double mb = kb / 1024;
+  if (mb < 1) {
+    return '${kb.round()} KB';
+  }
+  final double gb = mb / 1024;
+  if (gb >= 1) {
+    return '${_decimal(gb)} GB';
+  }
+  return '${_decimal(mb)} MB';
+}
+
 String truncate(String input, int maxChars) {
   if (input.length <= maxChars) {
     return input;

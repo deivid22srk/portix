@@ -1,5 +1,6 @@
 import 'dart:ui' show BlendMode, ImageFilter;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +16,7 @@ import '../../core/download_source.dart';
 import '../../core/env.dart';
 import '../../core/formatters.dart';
 import '../../core/github_releases.dart';
+import '../../core/github_service.dart';
 import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
@@ -26,10 +28,13 @@ import '../../models/game.dart';
 import '../../models/game_detail.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/feedback_report_row.dart';
+import '../../shared/widgets/markdown_lite.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/downloads_controller.dart';
+import 'developer_card.dart';
+import 'version_selector.dart';
 
 final gameDetailProvider = FutureProvider.family<GameDetail, String>(
   (ref, String slug) => ref.watch(catalogRepositoryProvider).fetchGame(slug),
@@ -38,18 +43,6 @@ final gameDetailProvider = FutureProvider.family<GameDetail, String>(
 final gameCompatReportsProvider = FutureProvider.family<List<CompatReport>, String>(
   (ref, String gameId) =>
       ref.watch(catalogRepositoryProvider).fetchCompatReports(gameId),
-);
-
-/// Última release (com APK) do repositório de um port, identificada por
-/// `owner/repo`. Serve para saber se existe uma versão mais nova que a baixada.
-final latestReleaseProvider = FutureProvider.family<GithubRelease?, String>(
-  (ref, String repoId) {
-    final List<String> parts = repoId.split('/');
-    if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
-      return null;
-    }
-    return fetchLatestApkRelease(GithubRepo(parts[0], parts[1]));
-  },
 );
 
 /// Estado de instalação do app correspondente ao pacote de um APK baixado.
@@ -73,6 +66,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   bool _expandedDescription = false;
   bool _barTitle = false;
 
+  /// Versão escolhida pelo usuário no seletor (null = a mais nova com APK).
+  GithubRelease? _selectedRelease;
+
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -81,6 +77,22 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     _scroll.addListener(_onScroll);
     // Ao voltar do instalador do Android, revalida se o app ficou instalado.
     _lifecycle = AppLifecycleListener(onResume: _onResumed);
+  }
+
+  @override
+  void didUpdateWidget(GameDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.slug != widget.slug) {
+      _selectedRelease = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    _scroll.removeListener(_onScroll);
+    _scroll.dispose();
+    super.dispose();
   }
 
   void _onResumed() {
@@ -95,14 +107,6 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     if (next != _barTitle && mounted) {
       setState(() => _barTitle = next);
     }
-  }
-
-  @override
-  void dispose() {
-    _lifecycle.dispose();
-    _scroll.removeListener(_onScroll);
-    _scroll.dispose();
-    super.dispose();
   }
 
   void _back() {
@@ -134,15 +138,25 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     );
   }
 
-  Future<void> _install(GameDetail detail) async {
+  // ---------------------------------------------------------------------------
+  // Fluxo do CTA (barra fixa): instalar / abrir / atualizar / baixar versão.
+  // ---------------------------------------------------------------------------
+
+  Future<void> _ctaPressed(GameDetail detail) async {
     final L10n l10n = context.l10n;
     final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
+    final GithubRelease? selected = _resolveSelected();
+
     if (current != null && current.isDone) {
       final ApkSummary? installed = await _installedApp(current);
       if (installed != null) {
-        // Instalado: se saiu uma versão nova, baixa de novo; senão abre o app.
-        if (await _hasUpdate(current)) {
-          await _startDownload(detail, restart: true);
+        // Instalado: se o usuário escolheu outra versão, baixa; senão abre.
+        final String? installedTag = current.releaseTag;
+        if (selected != null &&
+            installedTag != null &&
+            installedTag.isNotEmpty &&
+            selected.tag != installedTag) {
+          await _downloadRelease(detail, selected);
           return;
         }
         final String? pkg = current.packageName;
@@ -164,7 +178,36 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       return;
     }
 
-    await _startDownload(detail);
+    if (selected != null) {
+      await _downloadRelease(detail, selected);
+      return;
+    }
+    await _installFallback(detail);
+  }
+
+  /// Versão efetivamente selecionada (ou a mais nova com APK).
+  GithubRelease? _resolveSelected() {
+    if (_selectedRelease != null) {
+      return _selectedRelease;
+    }
+    final String? repoId = _repoId();
+    if (repoId == null) {
+      return null;
+    }
+    final List<GithubRelease> sorted = visibleReleases(
+      ref.read(repoReleasesProvider(repoId)).value ?? const <GithubRelease>[],
+    );
+    for (final GithubRelease release in sorted) {
+      if (release.hasApk) {
+        return release;
+      }
+    }
+    return sorted.isEmpty ? null : sorted.first;
+  }
+
+  String? _repoId() {
+    final String? sourceUrl = ref.read(gameDetailProvider(widget.slug)).value?.primaryPort?.url;
+    return githubRepoOf(sourceUrl ?? '')?.id;
   }
 
   /// Dados do app instalado correspondente à tarefa (ou `null`).
@@ -176,39 +219,114 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     return ApkTools.installed(pkg);
   }
 
-  /// `true` quando a release mais recente difere da versão já baixada.
-  Future<bool> _hasUpdate(DownloadTask task) async {
-    final String? stored = task.releaseTag;
-    final String? url = task.portUrl;
-    if (stored == null || url == null) {
-      return false;
+  /// Baixa a versão escolhida: escolhe o asset, avisa sobre downgrade e
+  /// repassa para o motor de download existente (sem duplicar lógica).
+  Future<void> _downloadRelease(GameDetail detail, GithubRelease release) async {
+    if (!mounted) {
+      return;
     }
-    final GithubRepo? repo = githubRepoOf(url);
-    if (repo == null) {
-      return false;
+    final L10n l10n = context.l10n;
+    final GamePort? port = detail.primaryPort;
+    if (port == null || port.url == null) {
+      _showSnack(l10n.noLink);
+      return;
     }
-    try {
-      final GithubRelease? release = await fetchLatestApkRelease(repo);
-      final String? latest = release?.tag;
-      return latest != null && latest.isNotEmpty && latest != stored;
-    } on Object {
-      return false;
+
+    final List<ApkAsset> assets = release.assets;
+    if (assets.isEmpty) {
+      _showSnack(l10n.noCompatibleApk);
+      return;
     }
+    final ApkAsset? asset =
+        assets.length == 1 ? assets.first : await _pickApkAsset(assets);
+    if (asset == null || !mounted) {
+      return;
+    }
+
+    final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
+    final String? installedTag = current?.releaseTag;
+    if (installedTag != null &&
+        installedTag.isNotEmpty &&
+        isOlderThan(release.tag, installedTag)) {
+      final bool proceed = await _confirmOlderVersion(installedTag);
+      if (!proceed || !mounted) {
+        return;
+      }
+    }
+
+    ref.read(downloadsProvider.notifier).start(
+          detail.game,
+          port: port,
+          urlOverride: asset.url,
+          releaseTag: release.tag,
+          restart: current != null,
+        );
+    if (!mounted) {
+      return;
+    }
+    _showSnack(
+      l10n.downloadStarted,
+      actionLabel: l10n.viewDownloads,
+      onAction: () => context.go('/hub'),
+    );
   }
 
-  /// Resolve a fonte do port e inicia o download (ou abre a página de destino).
-  Future<void> _startDownload(GameDetail detail, {bool restart = false}) async {
+  Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {
+    return showModalBottomSheet<ApkAsset>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (BuildContext context) => ApkPickerSheet(assets: assets),
+    );
+  }
+
+  /// Aviso antes de baixar uma versão mais antiga que a instalada.
+  Future<bool> _confirmOlderVersion(String installedTag) {
+    final L10n l10n = context.l10n;
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: AppColors.bgElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          side: const BorderSide(color: AppColors.glassBorder),
+        ),
+        title: Text(
+          l10n.oldVersionTitle,
+          style: dialogContext.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          l10n.oldVersionBody(installedTag),
+          style: dialogContext.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.later),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              l10n.downloadAnyway,
+              style: dialogContext.texts.labelLarge?.copyWith(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).then((bool? value) => value ?? false);
+  }
+
+  /// Caminho antigo (sem release selecionada): direto na fonte.
+  Future<void> _installFallback(GameDetail detail) async {
     final L10n l10n = context.l10n;
     final GamePort? port = detail.primaryPort;
     final String? url = port?.url;
     if (port == null || url == null) {
       _showSnack(l10n.noLink);
-      return;
-    }
-
-    final GithubRepo? repo = githubRepoOf(url);
-    if (repo != null && !isDirectApkUrl(url)) {
-      await _installFromGithub(detail, port, url, repo, restart: restart);
       return;
     }
 
@@ -226,7 +344,6 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           detail.game,
           port: port,
           urlOverride: direct,
-          restart: restart,
         );
     _showSnack(
       l10n.downloadStarted,
@@ -344,66 +461,6 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
   }
 
-  Future<void> _installFromGithub(
-    GameDetail detail,
-    GamePort port,
-    String sourceUrl,
-    GithubRepo repo, {
-    bool restart = false,
-  }) async {
-    final L10n l10n = context.l10n;
-    _showSnack(l10n.searchingRelease);
-    try {
-      final GithubRelease? release = await fetchLatestApkRelease(repo);
-      if (!mounted) {
-        return;
-      }
-      final List<ApkAsset> assets = release?.assets ?? const <ApkAsset>[];
-      if (assets.isEmpty) {
-        await _openLink(sourceUrl);
-        if (mounted) {
-          _showSnack(l10n.sourceOnly);
-        }
-        return;
-      }
-      final ApkAsset? chosen =
-          assets.length == 1 ? assets.first : await _pickApkAsset(assets);
-      if (chosen == null || !mounted) {
-        return;
-      }
-      ref.read(downloadsProvider.notifier).start(
-            detail.game,
-            port: port,
-            urlOverride: chosen.url,
-            releaseTag: release?.tag,
-            restart: restart,
-          );
-      _showSnack(
-        l10n.downloadStarted,
-        actionLabel: l10n.viewDownloads,
-        onAction: () => context.go('/hub'),
-      );
-    } on Object {
-      if (!mounted) {
-        return;
-      }
-      await _openLink(sourceUrl);
-      if (mounted) {
-        _showSnack(l10n.sourceOnly);
-      }
-    }
-  }
-
-  Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {
-    return showModalBottomSheet<ApkAsset>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      useSafeArea: true,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (BuildContext context) => _ApkPickerSheet(assets: assets),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final AsyncValue<GameDetail> async = ref.watch(gameDetailProvider(widget.slug));
@@ -451,6 +508,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final bool favorite = collections.isFavorite(game.id);
     final bool inLibrary = collections.isInLibrary(game.id);
     final DownloadTask? task = ref.watch(downloadForGameProvider(game.id));
+    final bool downloading = task?.status == DownloadStatus.downloading;
+    final bool paused = task?.status == DownloadStatus.paused;
 
     // Somente depois de baixar é que dá para checar instalação e atualização.
     final bool done = task != null && task.isDone;
@@ -464,36 +523,58 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final String? sourceUrl = detail.primaryPort?.url;
     final GithubRepo? sourceRepo =
         sourceUrl == null ? null : githubRepoOf(sourceUrl);
-    String? latestTag;
-    if (done && sourceRepo != null) {
-      latestTag = ref
-          .watch(latestReleaseProvider('${sourceRepo.owner}/${sourceRepo.repo}'))
-          .value
-          ?.tag;
-    }
-    final String? storedTag = task?.releaseTag;
-    final bool updateAvailable = installed &&
-        storedTag != null &&
-        latestTag != null &&
-        latestTag.isNotEmpty &&
-        latestTag != storedTag;
+    final String? repoId = sourceRepo?.id;
 
-    final String installLabel = task == null || task.status == DownloadStatus.failed
-        ? l10n.install
-        : done
-            ? (installed
-                ? (updateAvailable ? l10n.updateNow : l10n.openApp)
-                : l10n.install)
-            : l10n.continueAction;
-    final IconData installIcon = task == null || task.status == DownloadStatus.failed
-        ? Icons.download_rounded
-        : done
-            ? (installed
-                ? (updateAvailable
-                    ? Icons.system_update_alt_rounded
-                    : Icons.open_in_new_rounded)
-                : Icons.download_done_rounded)
-            : Icons.play_arrow_rounded;
+    final List<GithubRelease> sorted = repoId == null
+        ? const <GithubRelease>[]
+        : visibleReleases(
+            ref.watch(repoReleasesProvider(repoId)).value ?? const <GithubRelease>[],
+          );
+    GithubRelease? selected = _selectedRelease;
+    if (selected == null && sorted.isNotEmpty) {
+      // Padrão conservador: pré-seleciona a mais nova COM APK. Se nenhuma
+      // release tiver APK, selected fica null e o CTA cai no fluxo antigo
+      // (abre a fonte).
+      for (final GithubRelease release in sorted) {
+        if (release.hasApk) {
+          selected = release;
+          break;
+        }
+      }
+    }
+    final String? installedTag = done ? task.releaseTag : null;
+    final bool installedVersionSelected =
+        installedTag != null && selected != null && selected.tag == installedTag;
+
+    final String ctaLabel;
+    final IconData ctaIcon;
+    if (downloading) {
+      ctaLabel = l10n.progressPercent(((task?.progress ?? 0) * 100).round());
+      ctaIcon = Icons.download_rounded;
+    } else if (paused) {
+      ctaLabel = l10n.continueAction;
+      ctaIcon = Icons.play_arrow_rounded;
+    } else if (done && installed) {
+      if (installedVersionSelected) {
+        ctaLabel = l10n.openApp;
+        ctaIcon = Icons.open_in_new_rounded;
+      } else if (selected != null) {
+        ctaLabel = l10n.updateNow;
+        ctaIcon = Icons.system_update_alt_rounded;
+      } else {
+        ctaLabel = l10n.openApp;
+        ctaIcon = Icons.open_in_new_rounded;
+      }
+    } else if (done && !installed) {
+      ctaLabel = l10n.install;
+      ctaIcon = Icons.download_done_rounded;
+    } else if (selected != null) {
+      ctaLabel = l10n.downloadVersion(selected.tag);
+      ctaIcon = Icons.download_rounded;
+    } else {
+      ctaLabel = l10n.install;
+      ctaIcon = Icons.download_rounded;
+    }
 
     final bool longDescription = game.description.length > 320;
 
@@ -526,55 +607,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                         onTap: _back,
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      _Header(game: game, heroTag: widget.heroTag),
+                      _Header(game: game, heroTag: widget.heroTag, repoOwner: sourceRepo?.owner),
                       const SizedBox(height: AppSpacing.lg),
                       _Chips(game: game),
                       const SizedBox(height: AppSpacing.lg),
-                      if (task != null && task.status == DownloadStatus.downloading) ...<Widget>[
-                        GradientProgress(value: task.progress),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: SecondaryButton(
-                                label: l10n.pause,
-                                icon: Icons.pause_rounded,
-                                onPressed: () =>
-                                    ref.read(downloadsProvider.notifier).pause(game.id),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: SecondaryButton(
-                                label: l10n.cancel,
-                                icon: Icons.close_rounded,
-                                onPressed: () =>
-                                    ref.read(downloadsProvider.notifier).cancel(game.id),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else if (task != null && task.status == DownloadStatus.paused)
-                        PrimaryButton(
-                          label: l10n.continueAction,
-                          icon: Icons.play_arrow_rounded,
-                          onPressed: () =>
-                              ref.read(downloadsProvider.notifier).resume(game.id),
-                        )
-                      else
-                        PrimaryButton(
-                          label: installLabel,
-                          icon: installIcon,
-                          onPressed: () => _install(detail),
-                        ),
-                      const SizedBox(height: AppSpacing.md),
-                      SecondaryButton(
-                        label: inLibrary ? l10n.inLibrary : l10n.installedAction,
-                        icon: inLibrary ? Icons.check_rounded : Icons.download_done_rounded,
-                        active: inLibrary,
-                        onPressed: () => _toggleLibrary(detail),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
                       Row(
                         children: <Widget>[
                           Expanded(
@@ -585,6 +621,15 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                             ),
                           ),
                           const SizedBox(width: AppSpacing.md),
+                          SecondaryButton(
+                            label: inLibrary ? l10n.inLibrary : l10n.addToLibrary,
+                            icon: inLibrary ? Icons.check_rounded : Icons.download_done_rounded,
+                            active: inLibrary,
+                            height: AppSpacing.secondaryButtonHeight,
+                            expand: false,
+                            onPressed: () => _toggleLibrary(detail),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
                           GlassCircleButton(
                             icon: Icons.ios_share_rounded,
                             size: AppSpacing.secondaryButtonHeight,
@@ -593,105 +638,24 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      _BlockTitle(title: l10n.descriptionTitle),
-                      const SizedBox(height: AppSpacing.md),
-                      GlassContainer(
-                        radius: AppRadii.lg,
-                        padding: const EdgeInsets.all(AppSpacing.xl),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              game.description.isEmpty ? l10n.notInformed : game.description,
-                              maxLines: _expandedDescription ? null : 5,
-                              overflow: _expandedDescription
-                                  ? TextOverflow.visible
-                                  : TextOverflow.ellipsis,
-                              style: context.texts.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            if (longDescription) ...<Widget>[
-                              const SizedBox(height: AppSpacing.sm),
-                              Pressable(
-                                onTap: () => setState(
-                                  () => _expandedDescription = !_expandedDescription,
-                                ),
-                                child: Text(
-                                  _expandedDescription ? l10n.readLess : l10n.readMore,
-                                  style: context.texts.labelMedium?.copyWith(
-                                    color: AppColors.accent,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                      const SizedBox(height: AppSpacing.xl),
+                      _DetailSections(
+                        detail: detail,
+                        repoOwner: sourceRepo?.owner,
+                        repoId: repoId,
+                        selected: selected,
+                        installedTag: installedTag,
+                        longDescription: longDescription,
+                        expandedDescription: _expandedDescription,
+                        onToggleDescription: () => setState(
+                          () => _expandedDescription = !_expandedDescription,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      CompatReportCard(
-                        summary: detail.compat,
+                        onSelectedRelease: (GithubRelease release) =>
+                            setState(() => _selectedRelease = release),
                         onReport: () => _openFeedbackSheet(detail),
+                        onOpenLink: _openLink,
                       ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      Row(
-                        children: <Widget>[
-                          Expanded(child: _BlockTitle(title: l10n.compatCommunity)),
-                          Pressable(
-                            onTap: () =>
-                                context.push<Object?>('/game/${game.slug}/reports'),
-                            child: Text(
-                              l10n.seeAllReports,
-                              style: context.texts.labelMedium?.copyWith(
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _CommunityReports(gameId: game.id),
-                      const SizedBox(height: AppSpacing.xxl),
-                      _BlockTitle(title: l10n.infoTitle),
-                      const SizedBox(height: AppSpacing.md),
-                      _InfoPanel(game: game, ports: detail.ports.length),
-                      if (detail.ports.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: AppSpacing.xxl),
-                        _BlockTitle(
-                          title: l10n.portsTitle,
-                          trailing: l10n.portCount(detail.ports.length),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        for (final GamePort port in detail.ports)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                            child: _PortCard(port: port, onOpen: () => _openLink(port.url)),
-                          ),
-                      ],
-                      if (detail.related.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: AppSpacing.lg),
-                        _BlockTitle(title: l10n.relatedTitle),
-                        const SizedBox(height: AppSpacing.md),
-                        SizedBox(
-                          height: 236,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: detail.related.length,
-                            separatorBuilder: (BuildContext context, int index) =>
-                                const SizedBox(width: AppSpacing.md),
-                            itemBuilder: (BuildContext context, int index) {
-                              final Game related = detail.related[index];
-                              return GameCard(
-                                game: related,
-                                width: 142,
-                                heroTag: 'detail-${game.id}-related-${related.id}',
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: context.systemBottomInset + AppSpacing.xxxl),
+                      SizedBox(height: context.systemBottomInset + 140),
                     ],
                   ),
                 ),
@@ -705,11 +669,612 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
             right: 0,
             child: _TopBar(visible: _barTitle, title: game.title, onBack: _back),
           ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _CtaBar(
+              downloading: downloading,
+              paused: paused,
+              progress: task?.progress ?? 0,
+              label: ctaLabel,
+              icon: ctaIcon,
+              inLibrary: inLibrary,
+              onLibrary: () => _toggleLibrary(detail),
+              onMain: () => _ctaPressed(detail),
+              onPause: () =>
+                  ref.read(downloadsProvider.notifier).pause(detail.game.id),
+              onResume: () =>
+                  ref.read(downloadsProvider.notifier).resume(detail.game.id),
+              onCancel: () =>
+                  ref.read(downloadsProvider.notifier).cancel(detail.game.id),
+            ),
+          ),
         ],
       ),
     );
   }
 }
+
+// ============================================================================
+// Barra de CTA fixa (rodapé): baixar/baixando/instalar/abrir/atualizar.
+// ============================================================================
+
+class _CtaBar extends StatelessWidget {
+  const _CtaBar({
+    required this.downloading,
+    required this.paused,
+    required this.progress,
+    required this.label,
+    required this.icon,
+    required this.inLibrary,
+    required this.onMain,
+    required this.onLibrary,
+    required this.onPause,
+    required this.onResume,
+    required this.onCancel,
+  });
+
+  final bool downloading;
+  final bool paused;
+  final double progress;
+  final String label;
+  final IconData icon;
+  final bool inLibrary;
+  final VoidCallback onMain;
+  final VoidCallback onLibrary;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    final Widget body;
+    if (downloading) {
+      body = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  l10n.progressPercent((progress * 100).round()),
+                  style: context.texts.labelLarge?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              GlassCircleButton(
+                icon: Icons.pause_rounded,
+                size: 40,
+                tooltip: l10n.pause,
+                onTap: onPause,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              GlassCircleButton(
+                icon: Icons.close_rounded,
+                size: 40,
+                tooltip: l10n.cancel,
+                onTap: onCancel,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          GradientProgress(value: progress),
+        ],
+      );
+    } else if (paused) {
+      body = PrimaryButton(
+        label: l10n.continueAction,
+        icon: Icons.play_arrow_rounded,
+        onPressed: onResume,
+      );
+    } else {
+      body = Row(
+        children: <Widget>[
+          Expanded(
+            child: PrimaryButton(
+              label: label,
+              icon: icon,
+              onPressed: onMain,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          GlassCircleButton(
+            icon: inLibrary ? Icons.check_rounded : Icons.download_done_rounded,
+            tooltip: inLibrary ? l10n.inLibrary : l10n.addToLibrary,
+            onTap: onLibrary,
+          ),
+        ],
+      );
+    }
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.bg.withValues(alpha: 0.82),
+            border: const Border(
+              top: BorderSide(color: AppColors.glassBorder),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                10,
+                AppSpacing.screen,
+                10,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: body,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Seções do conteúdo (responsivo: 2 colunas ≥768px).
+// ============================================================================
+
+class _DetailSections extends ConsumerWidget {
+  const _DetailSections({
+    required this.detail,
+    required this.repoOwner,
+    required this.repoId,
+    required this.selected,
+    required this.installedTag,
+    required this.longDescription,
+    required this.expandedDescription,
+    required this.onToggleDescription,
+    required this.onSelectedRelease,
+    required this.onReport,
+    required this.onOpenLink,
+  });
+
+  final GameDetail detail;
+  final String? repoOwner;
+  final String? repoId;
+  final GithubRelease? selected;
+  final String? installedTag;
+  final bool longDescription;
+  final bool expandedDescription;
+  final VoidCallback onToggleDescription;
+  final ValueChanged<GithubRelease> onSelectedRelease;
+  final VoidCallback onReport;
+  final ValueChanged<String?> onOpenLink;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final L10n l10n = context.l10n;
+    final Game game = detail.game;
+    final bool wide = MediaQuery.sizeOf(context).width >= 768;
+
+    final Widget stats = _StatsRow(game: game, selected: selected);
+    final Widget description = _DescriptionCard(
+      game: game,
+      long: longDescription,
+      expanded: expandedDescription,
+      onToggle: onToggleDescription,
+    );
+    final String? repo = repoId;
+    final String? owner = repoOwner;
+    final GithubRelease? picked = selected;
+    final Widget? versions = repo == null
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _BlockTitle(title: l10n.versionsTitle, trailing: l10n.versionsSubtitle),
+              const SizedBox(height: AppSpacing.md),
+              VersionSelector(
+                repoId: repo,
+                selectedTag: picked?.tag,
+                installedTag: installedTag,
+                onSelected: onSelectedRelease,
+              ),
+            ],
+          );
+    final Widget? whatsNew = picked == null ? null : _WhatsNewCard(release: picked);
+    final Widget? developer = owner == null
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _BlockTitle(title: l10n.developerSection),
+              const SizedBox(height: AppSpacing.md),
+              DeveloperCard(owner: owner),
+            ],
+          );
+    final Widget compat = CompatReportCard(
+      summary: detail.compat,
+      onReport: onReport,
+    );
+    final Widget reports = _CommunityReports(gameId: game.id);
+    final Widget info = _InfoPanel(game: game, ports: detail.ports.length);
+    final Widget? ports = detail.ports.isEmpty
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _BlockTitle(
+                title: l10n.portsTitle,
+                trailing: l10n.portCount(detail.ports.length),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              for (final GamePort port in detail.ports)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: _PortCard(port: port, onOpen: () => onOpenLink(port.url)),
+                ),
+            ],
+          );
+    final Widget? related = detail.related.isEmpty
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _BlockTitle(title: l10n.relatedTitle),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                height: 236,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: detail.related.length,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const SizedBox(width: AppSpacing.md),
+                  itemBuilder: (BuildContext context, int index) {
+                    final Game related = detail.related[index];
+                    return GameCard(
+                      game: related,
+                      width: 142,
+                      heroTag: 'detail-${game.id}-related-${related.id}',
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+
+    if (wide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    description,
+                    if (whatsNew != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.xxl),
+                      whatsNew,
+                    ],
+                    const SizedBox(height: AppSpacing.xxl),
+                    compat,
+                    const SizedBox(height: AppSpacing.xxl),
+                    _BlockTitle(title: l10n.compatCommunity),
+                    const SizedBox(height: AppSpacing.md),
+                    reports,
+                    if (ports != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.xxl),
+                      ports,
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xxxl),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    stats,
+                    if (versions != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.xxl),
+                      versions,
+                    ],
+                    if (developer != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.xxl),
+                      developer,
+                    ],
+                    const SizedBox(height: AppSpacing.xxl),
+                    _BlockTitle(title: l10n.infoTitle),
+                    const SizedBox(height: AppSpacing.md),
+                    info,
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (related != null) ...<Widget>[
+            const SizedBox(height: AppSpacing.xxl),
+            related,
+          ],
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        stats,
+        const SizedBox(height: AppSpacing.xxl),
+        if (versions != null) ...<Widget>[
+          versions,
+          const SizedBox(height: AppSpacing.xxl),
+        ],
+        description,
+        if (whatsNew != null) ...<Widget>[
+          const SizedBox(height: AppSpacing.xxl),
+          whatsNew,
+        ],
+        if (developer != null) ...<Widget>[
+          const SizedBox(height: AppSpacing.xxl),
+          developer,
+        ],
+        const SizedBox(height: AppSpacing.xxl),
+        compat,
+        const SizedBox(height: AppSpacing.xxl),
+        _CommunityReportsHeader(gameId: game.id),
+        const SizedBox(height: AppSpacing.md),
+        reports,
+        const SizedBox(height: AppSpacing.xxl),
+        _BlockTitle(title: l10n.infoTitle),
+        const SizedBox(height: AppSpacing.md),
+        info,
+        if (ports != null) ...<Widget>[
+          const SizedBox(height: AppSpacing.xxl),
+          ports,
+        ],
+        if (related != null) ...<Widget>[
+          const SizedBox(height: AppSpacing.xxl),
+          related,
+        ],
+      ],
+    );
+  }
+}
+
+/// Cabeçalho da seção de relatos com o link "ver todos" (apenas mobile; no
+/// layout largo o título já fica na coluna esquerda).
+class _CommunityReportsHeader extends ConsumerWidget {
+  const _CommunityReportsHeader({required this.gameId});
+
+  final String gameId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final L10n l10n = context.l10n;
+    return Row(
+      children: <Widget>[
+        Expanded(child: _BlockTitle(title: l10n.compatCommunity)),
+        Pressable(
+          onTap: () => context.push<Object?>('/game/$gameId/reports'),
+          child: Text(
+            l10n.seeAllReports,
+            style: context.texts.labelMedium?.copyWith(color: AppColors.accent),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// Linha de estatísticas (versão, tamanho, downloads, avaliação).
+// ============================================================================
+
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.game, required this.selected});
+
+  final Game game;
+  final GithubRelease? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    final GithubRelease? release = selected;
+    final List<_StatCell> cells = <_StatCell>[
+      _StatCell(
+        label: l10n.statsVersion,
+        value: release?.tag ?? '—',
+        icon: Icons.verified_rounded,
+      ),
+      _StatCell(
+        label: l10n.statsSize,
+        value: release == null
+            ? '—'
+            : formatBytes(preferredApkAsset(release.assets)?.sizeBytes ?? 0),
+        icon: Icons.data_usage_rounded,
+      ),
+      _StatCell(
+        label: l10n.statsDownloads,
+        value: game.downloadCount > 0 ? compactNumber(game.downloadCount) : '—',
+        icon: Icons.download_rounded,
+      ),
+      _StatCell(
+        label: l10n.statsRating,
+        value: game.hasRating ? formatRating(game.rating) : l10n.statsRatingEmpty,
+        icon: Icons.star_rounded,
+        iconColor: game.hasRating ? AppColors.warning : null,
+      ),
+    ];
+
+    return GlassContainer(
+      radius: AppRadii.lg,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Row(
+        children: <Widget>[
+          for (int index = 0; index < cells.length; index += 1) ...<Widget>[
+            Expanded(child: cells[index]),
+            if (index < cells.length - 1)
+              Container(
+                width: 1,
+                height: 34,
+                color: AppColors.glassBorder,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCell extends StatelessWidget {
+  const _StatCell({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.iconColor,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 17, color: iconColor ?? AppColors.textTertiary),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.texts.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Descrição e Novidades.
+// ============================================================================
+
+class _DescriptionCard extends StatelessWidget {
+  const _DescriptionCard({
+    required this.game,
+    required this.long,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final Game game;
+  final bool long;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _BlockTitle(title: l10n.descriptionTitle),
+        const SizedBox(height: AppSpacing.md),
+        GlassContainer(
+          radius: AppRadii.lg,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                game.description.isEmpty ? l10n.notInformed : game.description,
+                maxLines: expanded ? null : 5,
+                overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              ),
+              if (long) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                Pressable(
+                  onTap: onToggle,
+                  child: Text(
+                    expanded ? l10n.readLess : l10n.readMore,
+                    style: context.texts.labelMedium?.copyWith(color: AppColors.accent),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WhatsNewCard extends StatelessWidget {
+  const _WhatsNewCard({required this.release});
+
+  final GithubRelease release;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    final String? body = release.body;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
+            Expanded(child: _BlockTitle(title: l10n.whatsNewTitle)),
+            Text(
+              release.tag,
+              style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        GlassContainer(
+          radius: AppRadii.lg,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: body == null || body.trim().isEmpty
+              ? Text(
+                  l10n.releasesEmptyNotes,
+                  style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+                )
+              : MarkdownLite(data: body),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// TopBar translúcida (aparece ao rolar).
+// ============================================================================
 
 class _TopBar extends StatelessWidget {
   const _TopBar({
@@ -739,9 +1304,9 @@ class _TopBar extends StatelessWidget {
                 right: AppSpacing.screen,
                 bottom: 10,
               ),
-              decoration: const BoxDecoration(
-                color: Color(0x66000000),
-                border: Border(
+              decoration: BoxDecoration(
+                color: AppColors.bg.withValues(alpha: 0.75),
+                border: const Border(
                   bottom: BorderSide(color: AppColors.glassBorder),
                 ),
               ),
@@ -773,19 +1338,31 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.game, this.heroTag});
+// ============================================================================
+// Header (capa + título + avaliação + chip do desenvolvedor).
+// ============================================================================
+
+class _Header extends ConsumerWidget {
+  const _Header({required this.game, this.heroTag, this.repoOwner});
 
   final Game game;
   final String? heroTag;
+  final String? repoOwner;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final GameCover cover = GameCover(
       imageUrl: game.coverUrl,
       title: game.title,
       memWidth: 360,
       borderRadius: AppRadii.md,
+    );
+    final Widget coverBox = SizedBox(
+      width: 122,
+      height: 164,
+      child: heroTag == null
+          ? cover
+          : Hero(tag: heroTag!, child: cover),
     );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -795,10 +1372,10 @@ class _Header extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadii.md),
             boxShadow: AppShadows.glass,
           ),
-          child: SizedBox(
-            width: 122,
-            height: 164,
-            child: heroTag == null ? cover : Hero(tag: heroTag!, child: cover),
+          child: Semantics(
+            image: true,
+            label: game.title,
+            child: coverBox,
           ),
         ),
         const SizedBox(width: AppSpacing.lg),
@@ -818,8 +1395,11 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
-              if (game.hasRating)
-                RatingLine(rating: game.rating, count: game.ratingCount),
+              if (game.hasRating) RatingLine(rating: game.rating, count: game.ratingCount),
+              if (repoOwner != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                _DeveloperChip(owner: repoOwner!),
+              ],
             ],
           ),
         ),
@@ -827,6 +1407,87 @@ class _Header extends StatelessWidget {
     );
   }
 }
+
+/// Chip compacto "@owner" com avatar do GitHub (toca para abrir o perfil).
+class _DeveloperChip extends ConsumerWidget {
+  const _DeveloperChip({required this.owner});
+
+  final String owner;
+
+  Future<void> _open() async {
+    final Uri? uri = Uri.tryParse('https://github.com/$owner');
+    if (uri == null) {
+      return;
+    }
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on Object {
+      // ignora falha de navegador ausente
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final L10n l10n = context.l10n;
+    final GithubUser? user = ref.watch(githubUserProvider(owner)).value;
+    final Widget avatar = SizedBox(
+      width: 22,
+      height: 22,
+      child: ClipOval(
+        child: user == null
+            ? ColoredBox(
+                color: AppColors.glassStrong,
+                child: Center(
+                  child: Text(
+                    initialsOf(owner),
+                    style: context.texts.labelSmall?.copyWith(
+                      color: AppColors.accent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              )
+            : CachedNetworkImage(
+                imageUrl: user.avatarUrlFor(44),
+                fit: BoxFit.cover,
+                memCacheWidth: 66,
+                fadeInDuration: AppMotion.fast,
+                placeholder: (BuildContext context, String value) =>
+                    const ColoredBox(color: AppColors.glassStrong),
+                errorWidget: (BuildContext context, String value, Object error) =>
+                    const ColoredBox(color: AppColors.glassStrong),
+              ),
+      ),
+    );
+    return Semantics(
+      button: true,
+      label: l10n.developerSection,
+      child: Pressable(
+        onTap: _open,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            avatar,
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '@${user?.login ?? owner}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.labelMedium?.copyWith(color: AppColors.accent),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Componentes preservados das versões anteriores.
+// ============================================================================
 
 class _Chips extends StatelessWidget {
   const _Chips({required this.game});
@@ -1368,64 +2029,6 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
   }
 }
 
-/// Rótulo e cor de cada veredito de compatibilidade.
-class _ApkPickerSheet extends StatelessWidget {
-  const _ApkPickerSheet({required this.assets});
-
-  final List<ApkAsset> assets;
-
-  @override
-  Widget build(BuildContext context) {
-    final L10n l10n = context.l10n;
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
-        borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-        border: Border(top: BorderSide(color: AppColors.glassBorder)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.textTertiary,
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                l10n.chooseApk,
-                style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              for (final ApkAsset asset in assets)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: SecondaryButton(
-                    label: asset.sizeBytes > 0
-                        ? '${asset.name} · ${(asset.sizeBytes / 1048576).toStringAsFixed(1)} MB'
-                        : asset.name,
-                    icon: Icons.android_rounded,
-                    onPressed: () => Navigator.of(context).pop(asset),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _CommunityReports extends ConsumerWidget {
   const _CommunityReports({required this.gameId});
 
@@ -1697,16 +2300,19 @@ class _DetailSkeleton extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xl),
-            const SkeletonBox(width: 200, height: 32, radius: AppRadii.pill),
-            const SizedBox(height: AppSpacing.md),
-            const SkeletonBox(width: double.infinity, height: 52, radius: AppRadii.pill),
-            const SizedBox(height: AppSpacing.md),
-            const SkeletonBox(width: double.infinity, height: 48, radius: AppRadii.pill),
             const SizedBox(height: AppSpacing.xxl),
-            const SkeletonBox(width: 140, height: 18),
+            const SkeletonBox(width: double.infinity, height: 72, radius: AppRadii.lg),
+            const SizedBox(height: AppSpacing.xxl),
+            for (int index = 0; index < 3; index += 1) ...<Widget>[
+              const SkeletonBox(width: double.infinity, height: 64, radius: AppRadii.md),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            const SkeletonBox(width: 200, height: 18),
             const SizedBox(height: AppSpacing.md),
             const SkeletonBox(width: double.infinity, height: 110, radius: AppRadii.lg),
+            const SizedBox(height: 120),
+            const SkeletonBox(width: double.infinity, height: 52, radius: AppRadii.pill),
           ],
         ),
       ),

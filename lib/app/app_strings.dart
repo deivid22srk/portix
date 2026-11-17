@@ -278,6 +278,55 @@ class L10n {
   String get chooseApk => _t('Escolha o APK', 'Choose the APK');
   String get searchingRelease => _t('Buscando a release…', 'Looking up the release…');
 
+  // -------------------------------------------------------- versões / GitHub
+  String get versionsTitle => _t('Versões', 'Versions');
+  String get versionsSubtitle => _t('3 releases mais recentes', '3 latest releases');
+  String get latestBadge => _t('Mais recente', 'Latest');
+  String get betaBadge => _t('Beta', 'Beta');
+  String get installedBadge => _t('Instalada', 'Installed');
+  String get otherVersions => _t('Outras versões', 'Other versions');
+  String chooseVersionTitle(String tag) => _t('Versão $tag', 'Version $tag');
+  String get versionSheetHint =>
+      _t('Selecione a versão que você quer baixar.', 'Pick the version you want to download.');
+  String downloadVersion(String tag) => _t('Baixar v$tag', 'Download v$tag');
+  String get noReleases => _t('Sem versões publicadas', 'No published releases');
+  String get noReleasesBody =>
+      _t('Este projeto ainda não publicou releases com APK.', 'This project has not published any releases with APKs yet.');
+  String get noCompatibleApk => _t('Sem APK compatível', 'No compatible APK');
+  String get noCompatibleApkBody => _t(
+      'Nenhum arquivo .apk nesta release. Abra a fonte para pegar o build.',
+      'No .apk file attached to this release. Open the source to grab the build.');
+  String get oldVersionTitle => _t('Versão mais antiga', 'Older version');
+  String oldVersionBody(String installed) => _t(
+      'A v$installed já está instalada no seu aparelho. Você pode manter a atual ou baixar esta versão mesmo assim.',
+      'v$installed is already installed on your device. You can keep it or still download this version.');
+  String get downloadAnyway => _t('Baixar assim mesmo', 'Download anyway');
+  String get whatsNewTitle => _t('Novidades desta versão', "What's new in this version");
+  String get releasesEmptyNotes =>
+      _t('Esta release não tem notas publicadas.', 'This release has no release notes.');
+  String get developerSection => _t('Desenvolvedor', 'Developer');
+  String get viewGithubProfile => _t('Ver perfil no GitHub', 'View GitHub profile');
+  String get organizationLabel => _t('Organização', 'Organization');
+  String get userLabel => _t('Usuário', 'User');
+  String get repositoriesLabel => _t('repositórios', 'repos');
+  String get followersLabel => _t('seguidores', 'followers');
+  String get developerFallback => _t(
+      'Não foi possível carregar o perfil no GitHub agora.',
+      'Could not load the GitHub profile right now.');
+  String get rateLimitTitle => _t('Limite do GitHub atingido', 'GitHub rate limit reached');
+  String get rateLimitBody => _t(
+      'O acesso público ao GitHub está temporariamente esgotado. Tentaremos novamente em alguns minutos.',
+      'Public GitHub access is temporarily exhausted. We will retry in a few minutes.');
+  String get githubOfflineBody => _t(
+      'Sem conexão com o GitHub agora. Os dados salvos continuam visíveis.',
+      'No connection to GitHub right now. Saved data stays visible.');
+  String get statsVersion => _t('Versão', 'Version');
+  String get statsSize => _t('Tamanho', 'Size');
+  String get statsDownloads => _t('Downloads', 'Downloads');
+  String get statsRating => _t('Avaliação', 'Rating');
+  String get statsRatingEmpty => _t('Sem notas', 'No ratings');
+  String get cachedDataHint => _t('Mostrando dados salvos (offline)', 'Showing saved data (offline)');
+
   // -------------------------------------------------------------- contagens
   String gameCount(int n) => _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');
   String portCount(int n) => _t('$n ${n == 1 ? 'port' : 'ports'}', '$n ${n == 1 ? 'port' : 'ports'}');
