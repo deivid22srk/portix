@@ -138,7 +138,7 @@ class HomePage extends ConsumerWidget {
       slivers.add(
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 44,
+            height: 48,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(

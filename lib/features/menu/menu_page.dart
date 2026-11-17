@@ -34,24 +34,12 @@ class MenuPage extends ConsumerWidget {
   /// Destrutivo nunca é sem volta: confirmação antes de sair da conta.
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final L10n l10n = context.l10n;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialog) => AlertDialog(
-        title: Text(l10n.signOut),
-        content: Text(l10n.signOutConfirm),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+    final bool ok = await showAppConfirm(
+      context,
+      title: l10n.signOut,
+      message: l10n.signOutConfirm,
     );
-    if (ok == true && context.mounted) {
+    if (ok && context.mounted) {
       await ref.read(accountProvider.notifier).signOut();
     }
   }

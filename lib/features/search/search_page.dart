@@ -109,24 +109,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ref.read(recentSearchesProvider.notifier).clear();
       return;
     }
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialog) => AlertDialog(
-        title: Text(l10n.clearHistory),
-        content: Text(l10n.clearHistoryConfirm),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialog).pop(true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+    final bool ok = await showAppConfirm(
+      context,
+      title: l10n.clearHistory,
+      message: l10n.clearHistoryConfirm,
     );
-    if (ok != true) {
+    if (!ok) {
       return;
     }
     if (!mounted) {

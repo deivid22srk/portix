@@ -1323,3 +1323,60 @@ class AppContentMax extends StatelessWidget {
     );
   }
 }
+
+/// Diálogo de confirmação do sistema de vidro — substitui `AlertDialog` cru:
+/// superfície elevada do tema, raio do sheet, textos e botões do design
+/// system. Retorno: true só se o usuário confirmar.
+Future<bool> showAppConfirm(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String? confirmLabel,
+  String? cancelLabel,
+}) async {
+  final L10n l10n = context.l10n;
+  final bool? ok = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialog) => AlertDialog(
+      backgroundColor: AppColors.bgElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      title: Text(
+        title,
+        style: context.texts.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      content: Text(
+        message,
+        style: context.texts.bodyMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(dialog).pop(false),
+          child: Text(
+            cancelLabel ?? l10n.cancel,
+            style: context.texts.labelLarge?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialog).pop(true),
+          child: Text(
+            confirmLabel ?? l10n.confirm,
+            style: context.texts.labelLarge?.copyWith(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
+}
