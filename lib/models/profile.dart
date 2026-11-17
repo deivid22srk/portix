@@ -4,7 +4,7 @@ import 'parsing.dart';
 class UserProfile {
   const UserProfile({
     required this.id,
-    this.displayName = 'Jogador',
+    this.displayName = '',
     this.coverUrl,
     this.handle,
   });
@@ -16,7 +16,7 @@ class UserProfile {
 
   factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
     id: asTextOr(map['id'], ''),
-    displayName: asTextOr(map['display_name'], 'Jogador'),
+    displayName: asTextOr(map['display_name'], ''),
     coverUrl: asText(map['cover_url']),
     handle: asText(map['handle']),
   );

@@ -49,25 +49,25 @@ class GamePort {
   }
 
   factory GamePort.fromMap(Map<String, dynamic> map) => GamePort(
-        id: asTextOr(map['id'], ''),
-        portKey: asTextOr(map['port_key'], ''),
-        platformName: asTextOr(map['platform_name'], '—'),
-        platformSlug: asTextOr(map['platform_slug'], ''),
-        project: asText(map['project']),
-        source: asText(map['source']),
-        url: asText(map['url']),
-        dataUrl: asText(map['data_url']),
-        developer: asText(map['developer']),
-        version: asText(map['version']),
-        lastUpdate: asDate(map['last_update']),
-        dateAdded: asDate(map['date_added']),
-        needsGameFiles: map['needs_game_files'] == true,
-        needsGameFilesNote: asText(map['needs_game_files_note']),
-        works: asText(map['works']),
-        controllerSupport: asText(map['controller_support']),
-        notes: asText(map['notes']),
-        visits: asInt(map['visits']),
-      );
+    id: asTextOr(map['id'], ''),
+    portKey: asTextOr(map['port_key'], ''),
+    platformName: asTextOr(map['platform_name'], '—'),
+    platformSlug: asTextOr(map['platform_slug'], ''),
+    project: asText(map['project']),
+    source: asText(map['source']),
+    url: asText(map['url']),
+    dataUrl: asText(map['data_url']),
+    developer: asText(map['developer']),
+    version: asText(map['version']),
+    lastUpdate: asDate(map['last_update']),
+    dateAdded: asDate(map['date_added']),
+    needsGameFiles: map['needs_game_files'] == true,
+    needsGameFilesNote: asText(map['needs_game_files_note']),
+    works: asText(map['works']),
+    controllerSupport: asText(map['controller_support']),
+    notes: asText(map['notes']),
+    visits: asInt(map['visits']),
+  );
 }
 
 class Review {
@@ -116,22 +116,22 @@ class Review {
   }
 
   factory Review.fromMap(Map<String, dynamic> map) => Review(
-        id: asTextOr(map['id'], ''),
-        rating: asInt(map['rating']),
-        body: asTextOr(map['body'], ''),
-        author: asTextOr(map['author'], 'Jogador'),
-        createdAt: asDate(map['created_at']),
-        verdict: asTextOr(map['verdict'], 'good'),
-        fps: map['fps'] == null ? null : asInt(map['fps']),
-        brand: asText(map['brand']),
-        model: asText(map['model']),
-        soc: asText(map['soc']),
-        gpu: asText(map['gpu']),
-        ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
-        authorId: asText(map['author_id']),
-        authorHandle: asText(map['author_handle']),
-        authorCover: asText(map['author_cover']),
-      );
+    id: asTextOr(map['id'], ''),
+    rating: asInt(map['rating']),
+    body: asTextOr(map['body'], ''),
+    author: asTextOr(map['author'], ''),
+    createdAt: asDate(map['created_at']),
+    verdict: asTextOr(map['verdict'], 'good'),
+    fps: map['fps'] == null ? null : asInt(map['fps']),
+    brand: asText(map['brand']),
+    model: asText(map['model']),
+    soc: asText(map['soc']),
+    gpu: asText(map['gpu']),
+    ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
+    authorId: asText(map['author_id']),
+    authorHandle: asText(map['author_handle']),
+    authorCover: asText(map['author_cover']),
+  );
 }
 
 class GameDetail {
@@ -165,9 +165,15 @@ class GameDetail {
     }
     return GameDetail(
       game: Game.fromMap(game),
-      ports: asMapList(map['ports']).map(GamePort.fromMap).toList(growable: false),
-      reviews: asMapList(map['reviews']).map(Review.fromMap).toList(growable: false),
-      related: asMapList(map['related']).map(Game.fromMap).toList(growable: false),
+      ports: asMapList(
+        map['ports'],
+      ).map(GamePort.fromMap).toList(growable: false),
+      reviews: asMapList(
+        map['reviews'],
+      ).map(Review.fromMap).toList(growable: false),
+      related: asMapList(
+        map['related'],
+      ).map(Game.fromMap).toList(growable: false),
       compat: CompatSummary.fromMap(asMap(map['compat'])),
     );
   }

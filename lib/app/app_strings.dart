@@ -270,8 +270,8 @@ class L10n {
   String get settingsCatAboutDesc =>
       _t('Versão, legal e créditos', 'Version, legal and credits');
   String get settingsClearCacheConfirm => _t(
-    'O cache do catálogo e das imagens será apagado e baixado de novo quando precisar.',
-    'Catalog and image cache will be cleared and re-downloaded when needed.',
+    'O cache local de dados do catálogo será apagado e baixado de novo quando necessário.',
+    'The local catalog data cache will be cleared and re-downloaded when needed.',
   );
   String get profileEmailLabel => _t('E-mail', 'Email');
 

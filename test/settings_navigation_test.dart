@@ -310,6 +310,130 @@ void main() {
     });
   });
 
+  group('regressões da iteração 5 (CRÍTICO)', () {
+    testWidgets(
+      'header do convidado: nome via l10n e Convidado uma única vez',
+      (WidgetTester tester) async {
+        final ProviderContainer container = await _container(signedIn: false);
+        addTearDown(container.dispose);
+        await _pumpRouter(tester, container);
+        _go(container, '/menu');
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+        expect(
+          find.text('Jogador'),
+          findsOneWidget,
+          reason: 'fallback do nome resolve via l10n (não pt hardcoded)',
+        );
+        expect(
+          find.text('Convidado'),
+          findsOneWidget,
+          reason: 'sem duplicação de estado no header',
+        );
+      },
+    );
+
+    testWidgets('busca sobrevive à troca de categoria (provider)', (
+      WidgetTester tester,
+    ) async {
+      final ProviderContainer container = await _container(signedIn: true);
+      addTearDown(container.dispose);
+      await _pumpRouter(tester, container);
+      _go(container, '/menu');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      await tester.enterText(find.byType(TextField), 'tema');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      _go(container, '/menu/conta');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      _go(container, '/menu');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      expect(
+        find.text('Aparência e Temas'),
+        findsOneWidget,
+        reason: 'filtro ativo após voltar ao hub',
+      );
+      expect(find.text('Dados e Armazenamento'), findsNothing);
+      expect(
+        (tester.widget(find.byType(TextField)) as TextField).controller!.text,
+        'tema',
+        reason: 'campo semeado do provider (não em branco)',
+      );
+    });
+
+    testWidgets(
+      'recarregar catálogo sem rede mostra erro (sucesso falso resolvido)',
+      (WidgetTester tester) async {
+        final ProviderContainer container = await _container(signedIn: true);
+        addTearDown(container.dispose);
+        await _pumpRouter(tester, container);
+        _go(container, '/menu/dados');
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+        await tester.tap(find.text('Recarregar catálogo'));
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+        expect(
+          find.text('Não foi possível atualizar agora'),
+          findsOneWidget,
+          reason: 'sem "Catálogo atualizado" quando a revalidação falha',
+        );
+      },
+    );
+
+    testWidgets('limpar cache limpa os dados locais (cache.profile sai)', (
+      WidgetTester tester,
+    ) async {
+      final ProviderContainer container = await _container(signedIn: true);
+      addTearDown(container.dispose);
+      await _pumpRouter(tester, container);
+      // O perfil entra no cache quando o hub renderiza (header lê o
+      // profileProvider) — passa pelo hub antes da categoria de dados.
+      _go(container, '/menu');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      _go(container, '/menu/dados');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.text('Limpar cache local'), findsOneWidget);
+
+      // O perfil do usuário está no cache local (SWR da iteração 2).
+      expect(
+        container.read(cacheStoreProvider).readMap('profile'),
+        isNotNull,
+        reason: 'pré-condição: o perfil está em cache',
+      );
+
+      await tester.tap(find.text('Limpar cache local'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      expect(
+        container.read(cacheStoreProvider).readMap('profile'),
+        isNull,
+        reason: 'a confirmação promete exatamente o que o código faz',
+      );
+    });
+
+    testWidgets(
+      '/menu em telas largas sem categoria mostra painel de orientação',
+      (WidgetTester tester) async {
+        final ProviderContainer container = await _container(signedIn: true);
+        addTearDown(container.dispose);
+        await _pumpRouter(tester, container, size: const Size(1200, 800));
+        _go(container, '/menu');
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+        expect(
+          find.text('Selecione uma categoria para ver as opções'),
+          findsOneWidget,
+        );
+        expect(find.text('Conta e Perfil'), findsOneWidget);
+      },
+    );
+  });
+
   group('responsividade', () {
     testWidgets(
       '768px+: master-detail (lista à esquerda, conteúdo à direita)',

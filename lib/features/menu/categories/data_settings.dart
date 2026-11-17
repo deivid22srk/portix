@@ -29,7 +29,7 @@ class DataSettingsBody extends ConsumerWidget {
     }
     // Sucesso honesto: o refresh com AsyncValue.guard não lança — o estado
     // pós-refresh é quem diz se a revalidação funcionou.
-    final bool ok = ref.watch(homeFeedProvider).hasValue;
+    final bool ok = ref.read(homeFeedProvider).hasValue;
     showAppSnackBar(
       context,
       message: ok ? l10n.catalogReloaded : l10n.catalogReloadFailed,

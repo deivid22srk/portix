@@ -43,22 +43,26 @@ class SettingsCategoryPage extends ConsumerWidget {
           final bool wide =
               constraints.maxWidth >= AppBreakpoints.settingsDetail;
           if (wide) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                SizedBox(
-                  width: _hubColumnWidth,
-                  child: SettingsHub(selectedId: categoryId),
-                ),
-                Container(width: 1, color: context.colors.glassBorder),
-                Expanded(
-                  child: CategoryContent(
-                    category: category,
-                    showBack: false,
-                    detailMode: true,
+            // Mesmo teto de largura do resto do app: nada estica por um
+            // monitor inteiro (Linear/Vercel também limitam a largura).
+            return AppContentMax(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  SizedBox(
+                    width: _hubColumnWidth,
+                    child: SettingsHub(selectedId: categoryId),
                   ),
-                ),
-              ],
+                  Container(width: 1, color: context.colors.glassBorder),
+                  Expanded(
+                    child: CategoryContent(
+                      category: category,
+                      showBack: false,
+                      detailMode: true,
+                    ),
+                  ),
+                ],
+              ),
             );
           }
           return CategoryContent(category: category, showBack: true);

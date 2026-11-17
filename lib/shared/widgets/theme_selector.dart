@@ -144,7 +144,6 @@ class _ThemeCard extends StatelessWidget {
       button: true,
       selected: selected,
       label: l10n.themeOptionSemantic(option.name),
-      hint: selected ? l10n.themeSelected : null,
       child: Pressable(
         onTap: onTap,
         scale: 0.97,

@@ -35,7 +35,15 @@ class SettingsHub extends ConsumerStatefulWidget {
 }
 
 class _SettingsHubState extends ConsumerState<SettingsHub> {
-  final TextEditingController _search = TextEditingController();
+  late final TextEditingController _search;
+
+  @override
+  void initState() {
+    super.initState();
+    // Semeia o campo com o termo já pesquisado (o estado sobrevive às trocas
+    // de rota do master-detail — a lista é recriada por categoria).
+    _search = TextEditingController(text: ref.read(settingsSearchProvider));
+  }
 
   @override
   void dispose() {

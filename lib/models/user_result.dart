@@ -4,7 +4,7 @@ import 'parsing.dart';
 class UserResult {
   const UserResult({
     required this.id,
-    this.displayName = 'Jogador',
+    this.displayName = '',
     this.handle,
     this.coverUrl,
     this.level,
@@ -17,12 +17,12 @@ class UserResult {
   final String? level;
 
   factory UserResult.fromMap(Map<String, dynamic> map) => UserResult(
-        id: asTextOr(map['id'], ''),
-        displayName: asTextOr(map['display_name'], 'Jogador'),
-        handle: asText(map['handle']),
-        coverUrl: asText(map['cover_url']),
-        level: asText(map['level']),
-      );
+    id: asTextOr(map['id'], ''),
+    displayName: asTextOr(map['display_name'], ''),
+    handle: asText(map['handle']),
+    coverUrl: asText(map['cover_url']),
+    level: asText(map['level']),
+  );
 }
 
 class UserSearchPayload {

@@ -77,27 +77,9 @@ class PortixApp extends ConsumerWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppSettings settings = ref.watch(settingsProvider);
-    final AsyncValue<void> bootstrap = ref.watch(supabaseBootstrapProvider);
-    final AppThemePair pair = appThemePairFor(settings.themeId);
-    final ThemeMode mode = themeModeFor(settings.themeId);
-    final ThemeData lightTheme = AppTheme.build(pair.light);
-    final ThemeData darkTheme = AppTheme.build(pair.dark);
-
-    // Ícones das barras do sistema seguem o tema resolvido (Sistema resolve
-    // pela plataforma aqui — o MaterialApp re-resolve sozinho nas telas).
-    final Brightness resolved = switch (mode) {
-      ThemeMode.light => Brightness.light,
-      ThemeMode.dark => Brightness.dark,
-      ThemeMode.system => View.of(
-        context,
-      ).platformDispatcher.platformBrightness,
-    };
-    final AppColorsTheme colors = resolved == Brightness.light
-        ? pair.light
-        : pair.dark;
+  /// Aplica os ícones das barras do sistema conforme a paleta resolvida
+  /// (operação idempotente — pode ser chamada a cada mudança de tema).
+  void _applySystemChrome(AppColorsTheme colors) {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: AppContentColors.transparent,
@@ -112,6 +94,39 @@ class PortixApp extends ConsumerWidget {
         systemNavigationBarContrastEnforced: false,
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppSettings settings = ref.watch(settingsProvider);
+    final AsyncValue<void> bootstrap = ref.watch(supabaseBootstrapProvider);
+    final AppThemePair pair = appThemePairFor(settings.themeId);
+    final ThemeMode mode = themeModeFor(settings.themeId);
+    final ThemeData lightTheme = AppTheme.build(pair.light);
+    final ThemeData darkTheme = AppTheme.build(pair.dark);
+
+    // Ícones das barras do sistema seguem o tema resolvido. O listener cobre
+    // a troca; o apply direto cobre o primeiro frame (operação idempotente).
+    ref.listen<AppSettings>(settingsProvider, (_, AppSettings next) {
+      final AppThemePair pairNext = appThemePairFor(next.themeId);
+      final AppColorsTheme colors = switch (themeModeFor(next.themeId)) {
+        // No modo Sistema a paleta escuro é o design de referência do app.
+        ThemeMode.light => pairNext.light,
+        ThemeMode.dark || ThemeMode.system => pairNext.dark,
+      };
+      _applySystemChrome(colors);
+    });
+    final Brightness resolved = switch (mode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system => View.of(
+        context,
+      ).platformDispatcher.platformBrightness,
+    };
+    final AppColorsTheme colors = resolved == Brightness.light
+        ? pair.light
+        : pair.dark;
+    _applySystemChrome(colors);
 
     if (bootstrap.isLoading) {
       return _app(
