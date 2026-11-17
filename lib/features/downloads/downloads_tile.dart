@@ -38,22 +38,22 @@ class DownloadTile extends ConsumerWidget {
     }
   }
 
-  Color _statusColor() {
+  Color _statusColor(BuildContext context) {
     switch (task.status) {
       case DownloadStatus.queued:
-        return AppColors.warning;
+        return context.colors.warning;
       case DownloadStatus.connecting:
-        return AppColors.textSecondary;
+        return context.colors.textSecondary;
       case DownloadStatus.downloading:
-        return AppColors.accent;
+        return context.colors.accent;
       case DownloadStatus.verifying:
-        return AppColors.accentAlt;
+        return context.colors.accentAlt;
       case DownloadStatus.paused:
-        return AppColors.textSecondary;
+        return context.colors.textSecondary;
       case DownloadStatus.done:
-        return AppColors.success;
+        return context.colors.success;
       case DownloadStatus.failed:
-        return AppColors.danger;
+        return context.colors.danger;
     }
   }
 
@@ -151,7 +151,10 @@ class DownloadTile extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    BadgeChip(label: _statusLabel(l10n), color: _statusColor()),
+                    BadgeChip(
+                      label: _statusLabel(l10n),
+                      color: _statusColor(context),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -160,7 +163,7 @@ class DownloadTile extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.texts.labelSmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 // Corpo por estado com transição: crossfade entre grupos
@@ -211,10 +214,10 @@ class DownloadTile extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
                 size: 15,
-                color: AppColors.danger,
+                color: context.colors.danger,
               ),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
@@ -223,7 +226,7 @@ class DownloadTile extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: context.texts.labelSmall?.copyWith(
-                    color: AppColors.danger,
+                    color: context.colors.danger,
                   ),
                 ),
               ),
@@ -287,7 +290,7 @@ class DownloadTile extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.texts.labelSmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -295,7 +298,7 @@ class DownloadTile extends ConsumerWidget {
                 Text(
                   l10n.timeLeft(_etaOrEmpty()),
                   style: context.texts.labelSmall?.copyWith(
-                    color: AppColors.textTertiary,
+                    color: context.colors.textTertiary,
                   ),
                 ),
             ],
@@ -329,7 +332,7 @@ class DownloadTile extends ConsumerWidget {
                 Text(
                   relativeDay(task.startedAt, en: l10n.isEn),
                   style: context.texts.labelSmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
             ],
@@ -344,17 +347,17 @@ class DownloadTile extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         Row(
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.check_circle_rounded,
               size: 15,
-              color: AppColors.success,
+              color: context.colors.success,
             ),
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Text(
                 l10n.downloadDone,
                 style: context.texts.labelSmall?.copyWith(
-                  color: AppColors.success,
+                  color: context.colors.success,
                 ),
               ),
             ),

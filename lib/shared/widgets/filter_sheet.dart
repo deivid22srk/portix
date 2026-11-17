@@ -32,15 +32,15 @@ Future<SearchFilters?> showFilterSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.6),
+    backgroundColor: AppContentColors.transparent,
+    barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
     builder: (BuildContext context) =>
         _FilterSheet(initial: initial, facets: facets),
   );
 }
 
 class _FilterSheet extends StatefulWidget {
-  const _FilterSheet({required this.initial, required this.facets});
+  _FilterSheet({required this.initial, required this.facets});
 
   final SearchFilters initial;
   final CatalogFacets facets;
@@ -64,10 +64,10 @@ class _FilterSheetState extends State<_FilterSheet> {
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bgElevated,
+        decoration: BoxDecoration(
+          color: context.colors.bgElevated,
           borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-          border: Border(top: BorderSide(color: AppColors.glassBorder)),
+          border: Border(top: BorderSide(color: context.colors.glassBorder)),
         ),
         child: SafeArea(
           top: false,
@@ -87,7 +87,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                       borderRadius: BorderRadius.circular(AppRadii.pill),
                     ),
                   ),
@@ -246,7 +246,7 @@ class _SheetLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: context.texts.labelSmall?.copyWith(
-          color: AppColors.textTertiary,
+          color: context.colors.textTertiary,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
         ),

@@ -1,106 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../core/theme/tokens.dart';
+import '../core/theme/themes.dart';
 
 // ============================================================================
-// Tema do PORTIX — escuro único, montado a partir dos tokens "Aurora".
-// `AppPalette` expõe apelidos curtos (bg/text/muted/primary...) para o restante
-// do código, sempre derivados de AppColors. Nada de cor solta nas telas.
+// Tema do PORTIX — ThemeData montado a partir de uma `AppColorsTheme`
+// (paleta do tema ativo, ver core/theme/themes.dart). Nada de cor solta nas
+// telas: elas resolvem por `context.colors`.
 // ============================================================================
-class AppPalette {
-  const AppPalette();
-
-  // ---- apelidos curtos ----
-  Color get bg => AppColors.bg;
-  Color get bgSoft => AppColors.bgElevated;
-  Color get surface => AppColors.glassStrong;
-  Color get surfaceHigh => AppColors.glass;
-  Color get line => AppColors.glassBorder;
-  Color get text => AppColors.textPrimary;
-  Color get muted => AppColors.textSecondary;
-  Color get faint => AppColors.textTertiary;
-  Color get primary => AppColors.accent;
-  Color get secondary => AppColors.accentAlt;
-  Color get danger => AppColors.danger;
-  Color get success => AppColors.success;
-  Color get warning => AppColors.warning;
-  Color get favorite => AppColors.favorite;
-  Color get onAccent => AppColors.onAccent;
-  bool get dark => true;
-
-  LinearGradient get brand => AppColors.accentGradient;
-
-  LinearGradient get brandSoft => LinearGradient(
-    colors: <Color>[
-      AppColors.accent.withValues(alpha: 0.22),
-      AppColors.accentAlt.withValues(alpha: 0.08),
-    ],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  LinearGradient get cardGradient => const LinearGradient(
-    colors: <Color>[AppColors.glass, Color(0x0AFFFFFF)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  /// Escurecimento sobre capas para legibilidade de texto.
-  LinearGradient get coverScrim => const LinearGradient(
-    colors: <Color>[
-      Colors.transparent,
-      Color(0x00000000),
-      Color(0xA6000000),
-      Color(0xD9000000),
-    ],
-    stops: <double>[0, 0.5, 0.82, 1],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  /// Transição do topo da tela de detalhes para o fundo.
-  LinearGradient get scrim => LinearGradient(
-    colors: <Color>[
-      Colors.transparent,
-      AppColors.bg.withValues(alpha: 0.55),
-      AppColors.bg.withValues(alpha: 0.94),
-      AppColors.bg,
-    ],
-    stops: const <double>[0, 0.42, 0.78, 1],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  static const AppPalette darkPalette = AppPalette();
-
-  static AppPalette of(Brightness brightness) => darkPalette;
-}
-
-extension AppPaletteContext on BuildContext {
-  AppPalette get palette => AppPalette.darkPalette;
-  TextTheme get texts => Theme.of(this).textTheme;
-  ColorScheme get scheme => Theme.of(this).colorScheme;
-}
-
-// Áreas seguras do sistema (edge-to-edge). `viewPadding` reflete a barra de
-// navegação real do aparelho (gestos/3 botões), que varia por modelo.
-extension SystemInsets on BuildContext {
-  double get systemBottomInset => MediaQuery.viewPaddingOf(this).bottom;
-
-  /// Espaço extra para o conteúdo não ficar sob a barra de navegação flutuante.
-  double get bottomChromePadding => systemBottomInset + 140;
-}
-
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData dark() {
+  /// Tema escuro padrão (compatibilidade com testes).
+  static ThemeData dark() => build(auroraDark);
+
+  static ThemeData build(AppColorsTheme c) {
     // Poppins embutida em assets/fonts (OFL) — funciona offline, renderiza
     // igual no primeiro boot e deixa os testes de golden determinísticos.
-    final TextTheme base = Typography.material2021().black.apply(
-      fontFamily: 'Poppins',
-    );
+    final TextTheme base =
+        (c.isDark
+                ? Typography.material2021().white
+                : Typography.material2021().black)
+            .apply(fontFamily: 'Poppins');
     final TextTheme textTheme = base.copyWith(
       // Títulos de tela grandes (~34–40).
       displayLarge: base.displayLarge?.copyWith(
@@ -171,31 +92,49 @@ class AppTheme {
 
     final ColorScheme scheme =
         ColorScheme.fromSeed(
-          seedColor: AppColors.accent,
-          brightness: Brightness.dark,
+          seedColor: c.accent,
+          brightness: c.brightness,
         ).copyWith(
-          primary: AppColors.accent,
-          secondary: AppColors.accentAlt,
-          surface: AppColors.bg,
-          onSurface: AppColors.textPrimary,
-          error: AppColors.danger,
-          outline: AppColors.glassBorder,
+          primary: c.accent,
+          secondary: c.accentAlt,
+          surface: c.bg,
+          onSurface: c.textPrimary,
+          error: c.danger,
+          outline: c.glassBorder,
         );
 
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: c.brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.bg,
-      canvasColor: AppColors.bg,
+      scaffoldBackgroundColor: c.bg,
+      canvasColor: c.bg,
       textTheme: textTheme.apply(
-        bodyColor: AppColors.textPrimary,
-        displayColor: AppColors.textPrimary,
+        bodyColor: c.textPrimary,
+        displayColor: c.textPrimary,
       ),
       splashFactory: InkRipple.splashFactory,
       visualDensity: VisualDensity.standard,
+      extensions: <ThemeExtension<Object?>>[c],
     );
   }
 }
 
-// Tema resolvido uma única vez por sessão.
-final darkThemeProvider = Provider<ThemeData>((ref) => AppTheme.dark());
+/// Tema resolvido uma única vez por sessão (padrão: Aurora escuro).
+final darkThemeProvider = Provider<ThemeData>(
+  (ref) => AppTheme.build(auroraDark),
+);
+
+// ---- acesso conveniente ao tema pelo BuildContext --------------------------
+extension AppThemeContext on BuildContext {
+  TextTheme get texts => Theme.of(this).textTheme;
+  ColorScheme get scheme => Theme.of(this).colorScheme;
+}
+
+// Áreas seguras do sistema (edge-to-edge). `viewPadding` reflete a barra de
+// navegação real do aparelho (gestos/3 botões), que varia por modelo.
+extension SystemInsets on BuildContext {
+  double get systemBottomInset => MediaQuery.viewPaddingOf(this).bottom;
+
+  /// Espaço extra para o conteúdo não ficar sob a barra de navegação flutuante.
+  double get bottomChromePadding => systemBottomInset + 140;
+}

@@ -17,7 +17,7 @@ import 'profile_controller.dart';
 
 /// Perfil público de um usuário: capa, nome, @, coroa e a biblioteca.
 class UserProfilePage extends ConsumerWidget {
-  const UserProfilePage({super.key, required this.id});
+  UserProfilePage({super.key, required this.id});
 
   final String id;
 
@@ -37,18 +37,18 @@ class UserProfilePage extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           bottom: false,
           child: async.when(
-            loading: () => const Center(
+            loading: () => Center(
               child: SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                 ),
               ),
             ),
@@ -107,13 +107,13 @@ class _Content extends StatelessWidget {
                     memWidth: 900,
                     borderRadius: 0,
                   ),
-                  const DecoratedBox(
+                  DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: <Color>[
-                          Color(0x66000000),
-                          Color(0x00000000),
-                          Color(0xCC000000),
+                          AppContentColors.scrim.withValues(alpha: 0.40),
+                          AppContentColors.transparent,
+                          AppContentColors.scrim.withValues(alpha: 0.80),
                         ],
                         stops: <double>[0, 0.45, 1],
                         begin: Alignment.topCenter,
@@ -168,7 +168,7 @@ class _Content extends StatelessWidget {
                         Text(
                           handle,
                           style: context.texts.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         if (profile.level != null) ...<Widget>[

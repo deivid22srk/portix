@@ -24,13 +24,13 @@ class ProfileAvatar extends StatelessWidget {
 
   Widget _initials(BuildContext context) {
     return ColoredBox(
-      color: AppColors.glassStrong,
+      color: context.colors.glassStrong,
       child: Center(
         child: Text(
           initialsOf(name),
           style: context.texts.labelSmall?.copyWith(
             fontWeight: FontWeight.w700,
-            color: AppColors.accent,
+            color: context.colors.accent,
             fontSize: size * 0.36,
           ),
         ),
@@ -52,9 +52,11 @@ class ProfileAvatar extends StatelessWidget {
                 fit: BoxFit.cover,
                 memCacheWidth: (size * 3).round(),
                 fadeInDuration: AppMotion.fast,
-                placeholder: (BuildContext context, String value) => _initials(context),
-                errorWidget: (BuildContext context, String value, Object error) =>
+                placeholder: (BuildContext context, String value) =>
                     _initials(context),
+                errorWidget:
+                    (BuildContext context, String value, Object error) =>
+                        _initials(context),
               ),
       ),
     );
@@ -74,8 +76,8 @@ class ProfileAvatar extends StatelessWidget {
             bottom: -3,
             child: Container(
               padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                color: AppColors.bgElevated,
+              decoration: BoxDecoration(
+                color: context.colors.bgElevated,
                 shape: BoxShape.circle,
               ),
               child: AdminCrown(level: level!, size: size * 0.42),

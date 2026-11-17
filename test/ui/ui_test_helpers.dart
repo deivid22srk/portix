@@ -62,7 +62,7 @@ Future<void> pumpUi(
       child: inner!,
     ),
     home: Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: auroraDark.bg,
       // Corpo rolável: o conteúdo sob teste cresce como numa tela real
       // (SliverList) em vez de estourar o Scaffold no modo paisagem.
       body: SingleChildScrollView(

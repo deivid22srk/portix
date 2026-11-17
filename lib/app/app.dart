@@ -1,8 +1,11 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/env.dart';
 import '../core/providers.dart';
+import '../core/theme/tokens.dart';
 import '../features/splash/splash_page.dart';
 import 'router.dart';
 import 'settings.dart';
@@ -31,50 +34,113 @@ class PortixApp extends ConsumerWidget {
     child: child ?? const SizedBox.shrink(),
   );
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppSettings settings = ref.watch(settingsProvider);
-    final AsyncValue<void> bootstrap = ref.watch(supabaseBootstrapProvider);
-    final ThemeData theme = ref.watch(darkThemeProvider);
-
-    if (bootstrap.isLoading) {
-      return MaterialApp(
+  /// Monte o MaterialApp uma única vez — as variantes com router e as de
+  /// boot/erro (home) compartilham a mesma configuração de tema/localização.
+  Widget _app({
+    required ThemeData theme,
+    required ThemeData darkTheme,
+    required ThemeMode mode,
+    required AppSettings settings,
+    Widget? home,
+    GoRouter? router,
+  }) {
+    if (router != null) {
+      return MaterialApp.router(
         title: 'PORTIX',
         debugShowCheckedModeBanner: false,
         theme: theme,
+        darkTheme: darkTheme,
+        themeMode: mode,
+        // Troca de tema animada e sutil (ver setThemeId).
+        themeAnimationDuration: AppMotion.base,
+        themeAnimationCurve: AppMotion.emphasized,
         locale: settings.locale,
         supportedLocales: _locales,
         localizationsDelegates: _delegates,
         builder: (BuildContext context, Widget? child) => _withTextScale(child),
+        routerConfig: router,
+      );
+    }
+    return MaterialApp(
+      title: 'PORTIX',
+      debugShowCheckedModeBanner: false,
+      theme: theme,
+      darkTheme: darkTheme,
+      themeMode: mode,
+      themeAnimationDuration: AppMotion.base,
+      themeAnimationCurve: AppMotion.emphasized,
+      locale: settings.locale,
+      supportedLocales: _locales,
+      localizationsDelegates: _delegates,
+      builder: (BuildContext context, Widget? child) => _withTextScale(child),
+      home: home,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppSettings settings = ref.watch(settingsProvider);
+    final AsyncValue<void> bootstrap = ref.watch(supabaseBootstrapProvider);
+    final AppThemePair pair = appThemePairFor(settings.themeId);
+    final ThemeMode mode = themeModeFor(settings.themeId);
+    final ThemeData lightTheme = AppTheme.build(pair.light);
+    final ThemeData darkTheme = AppTheme.build(pair.dark);
+
+    // Ícones das barras do sistema seguem o tema resolvido (Sistema resolve
+    // pela plataforma aqui — o MaterialApp re-resolve sozinho nas telas).
+    final Brightness resolved = switch (mode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system => View.of(
+        context,
+      ).platformDispatcher.platformBrightness,
+    };
+    final AppColorsTheme colors = resolved == Brightness.light
+        ? pair.light
+        : pair.dark;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: AppContentColors.transparent,
+        statusBarIconBrightness: colors.isDark
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: AppContentColors.transparent,
+        systemNavigationBarIconBrightness: colors.isDark
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
+
+    if (bootstrap.isLoading) {
+      return _app(
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        mode: mode,
+        settings: settings,
         home: const SplashPage(),
       );
     }
 
     if (bootstrap.hasError) {
-      return MaterialApp(
-        title: 'PORTIX',
-        debugShowCheckedModeBanner: false,
-        theme: theme,
-        locale: settings.locale,
-        supportedLocales: _locales,
-        localizationsDelegates: _delegates,
-        builder: (BuildContext context, Widget? child) => _withTextScale(child),
+      return _app(
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        mode: mode,
+        settings: settings,
         home: BootstrapErrorPage(
           error: bootstrap.error ?? const AppFailure(FailureKind.unknown),
         ),
       );
     }
 
-    return MaterialApp.router(
-      title: 'PORTIX',
-      debugShowCheckedModeBanner: false,
-      theme: theme,
-      themeAnimationDuration: const Duration(milliseconds: 240),
-      locale: settings.locale,
-      supportedLocales: _locales,
-      localizationsDelegates: _delegates,
-      builder: (BuildContext context, Widget? child) => _withTextScale(child),
-      routerConfig: ref.watch(routerProvider),
+    return _app(
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      mode: mode,
+      settings: settings,
+      router: ref.watch(routerProvider),
     );
   }
 }

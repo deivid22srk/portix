@@ -19,10 +19,10 @@ void showAppSnackBar(
         content: Text(
           message,
           style: context.texts.bodyMedium?.copyWith(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
-        backgroundColor: AppColors.bgElevated,
+        backgroundColor: context.colors.bgElevated,
         behavior: SnackBarBehavior.floating,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -41,7 +41,7 @@ void showAppSnackBar(
             ? null
             : SnackBarAction(
                 label: actionLabel,
-                textColor: AppColors.accent,
+                textColor: context.colors.accent,
                 onPressed: onAction ?? () {},
               ),
       ),

@@ -45,7 +45,9 @@ class _UpdateGateState extends ConsumerState<UpdateGate> {
   }
 
   Future<void> _maybeShow(AppUpdate? update) async {
-    if (update == null || update.version.isEmpty || update.version == kAppVersion) {
+    if (update == null ||
+        update.version.isEmpty ||
+        update.version == kAppVersion) {
       return;
     }
     final SharedPreferences prefs = ref.read(sharedPreferencesProvider);
@@ -55,7 +57,7 @@ class _UpdateGateState extends ConsumerState<UpdateGate> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.72),
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.72),
       builder: (BuildContext context) => UpdateDialog(update: update),
     );
   }
@@ -175,14 +177,14 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
     final L10n l10n = context.l10n;
     final bool hasUrl = widget.update.url != null;
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.bgElevated,
+          color: context.colors.bgElevated,
           borderRadius: BorderRadius.circular(AppRadii.lg),
-          border: Border.all(color: AppColors.glassBorder),
-          boxShadow: AppShadows.floating,
+          border: Border.all(color: context.colors.glassBorder),
+          boxShadow: context.colors.floatingShadow,
         ),
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
@@ -191,22 +193,32 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
           children: <Widget>[
             Row(
               children: <Widget>[
-                const Icon(Icons.system_update_alt_rounded, color: AppColors.accent),
+                Icon(
+                  Icons.system_update_alt_rounded,
+                  color: context.colors.accent,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     l10n.updateAvailable,
-                    style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: context.texts.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                BadgeChip(label: 'v${widget.update.version}', color: AppColors.accent),
+                BadgeChip(
+                  label: 'v${widget.update.version}',
+                  color: context.colors.accent,
+                ),
               ],
             ),
             if (widget.update.message.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
               Text(
                 widget.update.message,
-                style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: context.texts.bodyMedium?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
             ],
             if (_downloading) ...<Widget>[
@@ -215,12 +227,19 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.progressPercent((_progress * 100).round()),
-                style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+                style: context.texts.labelSmall?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
             ],
             if (_error != null) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
-              Text(_error!, style: context.texts.bodySmall?.copyWith(color: AppColors.danger)),
+              Text(
+                _error!,
+                style: context.texts.bodySmall?.copyWith(
+                  color: context.colors.danger,
+                ),
+              ),
             ],
             const SizedBox(height: AppSpacing.xl),
             if (_downloading)
@@ -237,10 +256,7 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
                   onPressed: _download,
                 ),
               if (hasUrl) const SizedBox(height: AppSpacing.sm),
-              SecondaryButton(
-                label: l10n.later,
-                onPressed: _later,
-              ),
+              SecondaryButton(label: l10n.later, onPressed: _later),
             ],
           ],
         ),

@@ -40,8 +40,8 @@ class _HubPageState extends ConsumerState<HubPage> {
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
-        color: context.palette.primary,
-        backgroundColor: context.palette.surface,
+        color: context.colors.accent,
+        backgroundColor: context.colors.glassStrong,
         onRefresh: () => ref.read(collectionsProvider.notifier).refresh(),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(
@@ -70,7 +70,7 @@ class _HubPageState extends ConsumerState<HubPage> {
                     Text(
                       l10n.anonymousHint,
                       style: context.texts.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -198,10 +198,10 @@ class _HubPageState extends ConsumerState<HubPage> {
                 AppPill(
                   label: l10n.clearCompleted,
                   dense: true,
-                  leading: const Icon(
+                  leading: Icon(
                     Icons.delete_sweep_rounded,
                     size: 16,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                   onTap: () => controller.clearCompleted(),
                 ),

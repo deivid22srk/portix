@@ -49,7 +49,7 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: Column(
@@ -84,7 +84,7 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: context.texts.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ],
@@ -104,24 +104,24 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                   ),
                   child: Row(
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.search_rounded,
                         size: 18,
-                        color: AppColors.textTertiary,
+                        color: context.colors.textTertiary,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
+                      SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: TextField(
                           controller: _query,
                           onChanged: (String _) => setState(() {}),
                           style: context.texts.bodyLarge,
-                          cursorColor: AppColors.accent,
+                          cursorColor: context.colors.accent,
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
                             hintText: l10n.reportsSearchHint,
                             hintStyle: context.texts.bodyMedium?.copyWith(
-                              color: AppColors.textTertiary,
+                              color: context.colors.textTertiary,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 14,
@@ -135,26 +135,26 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
                             _query.clear();
                             setState(() {});
                           },
-                          child: const Icon(
+                          child: Icon(
                             Icons.close_rounded,
                             size: 18,
-                            color: AppColors.textTertiary,
+                            color: context.colors.textTertiary,
                           ),
                         ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              SizedBox(height: AppSpacing.md),
               Expanded(
                 child: detail.value == null
-                    ? const Center(
+                    ? Center(
                         child: SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.accent,
+                            color: context.colors.accent,
                           ),
                         ),
                       )
@@ -172,7 +172,7 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
 }
 
 class _ReportsList extends ConsumerWidget {
-  const _ReportsList({required this.gameId, required this.query});
+  _ReportsList({required this.gameId, required this.query});
 
   final String gameId;
   final String query;
@@ -208,13 +208,13 @@ class _ReportsList extends ConsumerWidget {
     final List<CompatReport> reports = async.value ?? const <CompatReport>[];
 
     if (async.isLoading && reports.isEmpty) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 22,
           height: 22,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: AppColors.accent,
+            color: context.colors.accent,
           ),
         ),
       );

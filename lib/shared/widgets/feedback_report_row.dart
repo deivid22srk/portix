@@ -27,19 +27,19 @@ String compatVerdictLabel(L10n l10n, String status) {
   }
 }
 
-Color compatVerdictColor(String status) {
+Color compatVerdictColor(String status, AppColorsTheme colors) {
   switch (status) {
     case 'perfect':
-      return AppColors.success;
+      return colors.success;
     case 'stutter':
-      return AppColors.warning;
+      return colors.warning;
     case 'unplayable':
-      return AppColors.danger;
+      return colors.danger;
     case 'not_run':
-      return AppColors.textSecondary;
+      return colors.textSecondary;
     case 'good':
     default:
-      return AppColors.accentAlt;
+      return colors.accentAlt;
   }
 }
 
@@ -101,7 +101,10 @@ class FeedbackReportRow extends StatelessWidget {
                       const SizedBox(width: 6),
                       BadgeChip(
                         label: compatVerdictLabel(l10n, report.status),
-                        color: compatVerdictColor(report.status),
+                        color: compatVerdictColor(
+                          report.status,
+                          context.colors,
+                        ),
                       ),
                     ],
                   ),
@@ -128,15 +131,15 @@ class FeedbackReportRow extends StatelessWidget {
                                       : Icons.star_outline_rounded,
                                   size: 12,
                                   color: i <= report.rating
-                                      ? AppColors.warning
-                                      : AppColors.textTertiary,
+                                      ? context.colors.warning
+                                      : context.colors.textTertiary,
                                 ),
                             ],
                           ),
                         if (report.fps != null)
                           BadgeChip(
                             label: '${report.fps} FPS',
-                            color: AppColors.accent,
+                            color: context.colors.accent,
                             icon: Icons.speed_rounded,
                           ),
                         if (report.authorRole != null)
@@ -152,7 +155,7 @@ class FeedbackReportRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                   ..._deviceSpecsLine(context),
@@ -163,7 +166,7 @@ class FeedbackReportRow extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: context.texts.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -171,7 +174,7 @@ class FeedbackReportRow extends StatelessWidget {
                     const SizedBox(height: 6),
                     BadgeChip(
                       label: l10n.compatSameSoc,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                       icon: Icons.memory_rounded,
                     ),
                   ],
@@ -190,10 +193,10 @@ class FeedbackReportRow extends StatelessWidget {
   /// não conseguia ver qual processador gerou o relato.
   List<Widget> _deviceSpecsLine(BuildContext context) {
     final TextStyle? base = context.texts.labelSmall?.copyWith(
-      color: AppColors.textTertiary,
+      color: context.colors.textTertiary,
     );
     final TextStyle? strong = base?.copyWith(
-      color: AppColors.textSecondary,
+      color: context.colors.textSecondary,
       fontWeight: FontWeight.w600,
     );
     final List<InlineSpan> spans = <InlineSpan>[];
@@ -223,10 +226,10 @@ class FeedbackReportRow extends StatelessWidget {
       const SizedBox(height: 6),
       Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.memory_rounded,
             size: 12,
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
           const SizedBox(width: 4),
           Expanded(

@@ -25,7 +25,7 @@ class AppBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.bg,
+      color: context.colors.bg,
       child: Stack(
         children: <Widget>[
           Positioned(
@@ -39,8 +39,8 @@ class AppBackdrop extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: <Color>[
-                      AppColors.accent.withValues(alpha: 0.13),
-                      AppColors.accent.withValues(alpha: 0),
+                      context.colors.accent.withValues(alpha: 0.13),
+                      context.colors.accent.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -58,8 +58,8 @@ class AppBackdrop extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: <Color>[
-                      AppColors.accentAlt.withValues(alpha: 0.07),
-                      AppColors.accentAlt.withValues(alpha: 0),
+                      context.colors.accentAlt.withValues(alpha: 0.07),
+                      context.colors.accentAlt.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -105,8 +105,8 @@ class GlassContainer extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        color: color ?? AppColors.glass,
-        border: Border.all(color: borderColor ?? AppColors.glassBorder),
+        color: color ?? context.colors.glass,
+        border: Border.all(color: borderColor ?? context.colors.glassBorder),
         boxShadow: shadow,
       ),
       child: child,
@@ -222,7 +222,7 @@ class GlassCircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color tone =
-        color ?? (active ? AppColors.accent : AppColors.textPrimary);
+        color ?? (active ? context.colors.accent : context.colors.textPrimary);
     final Widget button = Pressable(
       onTap: onTap,
       child: SizedBox(
@@ -232,11 +232,11 @@ class GlassCircleButton extends StatelessWidget {
           radius: AppRadii.pill,
           blur: blur,
           color: active
-              ? AppColors.accent.withValues(alpha: 0.18)
-              : AppColors.glassStrong,
+              ? context.colors.accent.withValues(alpha: 0.18)
+              : context.colors.glassStrong,
           borderColor: active
-              ? AppColors.accent.withValues(alpha: 0.5)
-              : AppColors.glassBorder,
+              ? context.colors.accent.withValues(alpha: 0.5)
+              : context.colors.glassBorder,
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
@@ -285,13 +285,13 @@ class PrimaryButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        gradient: enabled ? AppColors.accentGradient : null,
-        color: enabled ? null : AppColors.glassStrong,
-        border: enabled ? null : Border.all(color: AppColors.glassBorder),
+        gradient: enabled ? context.colors.accentGradient : null,
+        color: enabled ? null : context.colors.glassStrong,
+        border: enabled ? null : Border.all(color: context.colors.glassBorder),
         boxShadow: enabled
             ? <BoxShadow>[
                 BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.30),
+                  color: context.colors.accent.withValues(alpha: 0.30),
                   blurRadius: 26,
                   offset: const Offset(0, 12),
                 ),
@@ -303,19 +303,23 @@ class PrimaryButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           if (isLoading)
-            const SizedBox(
+            SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.onAccent),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  context.colors.onAccent,
+                ),
               ),
             )
           else if (icon != null)
             Icon(
               icon,
               size: 20,
-              color: enabled ? AppColors.onAccent : AppColors.textTertiary,
+              color: enabled
+                  ? context.colors.onAccent
+                  : context.colors.textTertiary,
             ),
           if (isLoading || icon != null) const SizedBox(width: 10),
           Flexible(
@@ -324,7 +328,9 @@ class PrimaryButton extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.texts.titleSmall?.copyWith(
-                color: enabled ? AppColors.onAccent : AppColors.textTertiary,
+                color: enabled
+                    ? context.colors.onAccent
+                    : context.colors.textTertiary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -376,12 +382,12 @@ class SecondaryButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
           color: active
-              ? AppColors.accent.withValues(alpha: 0.16)
-              : AppColors.glass,
+              ? context.colors.accent.withValues(alpha: 0.16)
+              : context.colors.glass,
           border: Border.all(
             color: active
-                ? AppColors.accent.withValues(alpha: 0.5)
-                : AppColors.glassBorder,
+                ? context.colors.accent.withValues(alpha: 0.5)
+                : context.colors.glassBorder,
           ),
         ),
         child: Row(
@@ -394,7 +400,9 @@ class SecondaryButton extends StatelessWidget {
                 size: 19,
                 color:
                     iconColor ??
-                    (active ? AppColors.accent : AppColors.textPrimary),
+                    (active
+                        ? context.colors.accent
+                        : context.colors.textPrimary),
               ),
               const SizedBox(width: 8),
             ],
@@ -404,7 +412,9 @@ class SecondaryButton extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.texts.labelLarge?.copyWith(
-                  color: active ? AppColors.accent : AppColors.textPrimary,
+                  color: active
+                      ? context.colors.accent
+                      : context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -433,7 +443,7 @@ class InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = color ?? AppColors.accent;
+    final Color tone = color ?? context.colors.accent;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: dense ? AppSpacing.md : AppSpacing.lg,
@@ -441,8 +451,8 @@ class InfoChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        color: AppColors.glass,
-        border: Border.all(color: AppColors.glassBorder),
+        color: context.colors.glass,
+        border: Border.all(color: context.colors.glassBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -454,7 +464,7 @@ class InfoChip extends StatelessWidget {
           Text(
             label,
             style: context.texts.labelMedium?.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -480,43 +490,43 @@ class StatBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        color: const Color(0x8A000000),
-        border: Border.all(color: AppColors.glassBorder),
+        color: AppContentColors.scrim.withValues(alpha: 0.54),
+        border: Border.all(color: context.colors.glassBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (rating > 0) ...<Widget>[
-            const Icon(Icons.star_rounded, size: 13, color: AppColors.warning),
+            Icon(Icons.star_rounded, size: 13, color: context.colors.warning),
             const SizedBox(width: 3),
             Text(
               formatPercent(rating / 5),
               style: context.texts.labelSmall?.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
           if (rating > 0 && downloads > 0)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 6),
               child: SizedBox(
                 width: 1,
                 height: 11,
-                child: ColoredBox(color: AppColors.glassBorder),
+                child: ColoredBox(color: context.colors.glassBorder),
               ),
             ),
           if (downloads > 0) ...<Widget>[
-            const Icon(
+            Icon(
               Icons.download_rounded,
               size: 13,
-              color: AppColors.accentAlt,
+              color: context.colors.accentAlt,
             ),
             const SizedBox(width: 3),
             Text(
               compactNumber(downloads),
               style: context.texts.labelSmall?.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -537,7 +547,7 @@ class BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = color ?? AppColors.textSecondary;
+    final Color tone = color ?? context.colors.textSecondary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
@@ -602,12 +612,12 @@ class AppPill extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
           color: selected
-              ? AppColors.accent.withValues(alpha: 0.18)
-              : AppColors.glass,
+              ? context.colors.accent.withValues(alpha: 0.18)
+              : context.colors.glass,
           border: Border.all(
             color: selected
-                ? AppColors.accent.withValues(alpha: 0.55)
-                : AppColors.glassBorder,
+                ? context.colors.accent.withValues(alpha: 0.55)
+                : context.colors.glassBorder,
           ),
         ),
         child: Row(
@@ -621,8 +631,8 @@ class AppPill extends StatelessWidget {
               label,
               style: context.texts.labelMedium?.copyWith(
                 color: selected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -681,7 +691,7 @@ class SectionHeader extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: context.texts.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -698,14 +708,14 @@ class SectionHeader extends StatelessWidget {
                     Text(
                       actionLabel!,
                       style: context.texts.labelMedium?.copyWith(
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 18,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ],
                 ),
@@ -743,8 +753,8 @@ class SectionTile extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: 20, color: AppColors.accent),
-          const SizedBox(width: AppSpacing.md),
+          Icon(icon, size: 20, color: context.colors.accent),
+          SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               label,
@@ -756,10 +766,10 @@ class SectionTile extends StatelessWidget {
             ),
           ),
           trailing ??
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
-                color: AppColors.textTertiary,
+                color: context.colors.textTertiary,
               ),
         ],
       ),
@@ -769,7 +779,7 @@ class SectionTile extends StatelessWidget {
 
 /// Botão de busca circular, flutuante, ao lado da barra de navegação.
 class SearchFab extends StatelessWidget {
-  const SearchFab({super.key, required this.tooltip, this.onTap});
+  SearchFab({super.key, required this.tooltip, this.onTap});
 
   final String tooltip;
   final VoidCallback? onTap;
@@ -787,13 +797,13 @@ class SearchFab extends StatelessWidget {
           child: GlassContainer(
             radius: AppRadii.pill,
             blur: true,
-            color: const Color(0x66090B12),
-            shadow: AppShadows.floating,
-            child: const Center(
+            color: context.colors.glassFloating,
+            shadow: context.colors.floatingShadow,
+            child: Center(
               child: Icon(
                 Icons.search_rounded,
                 size: 30,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
           ),
@@ -840,9 +850,9 @@ class GlassNavBar extends StatelessWidget {
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.pill),
-            color: const Color(0x66000000),
-            border: Border.all(color: AppColors.glassBorder),
-            boxShadow: AppShadows.floating,
+            color: context.colors.glassFloating,
+            border: Border.all(color: context.colors.glassBorder),
+            boxShadow: context.colors.floatingShadow,
           ),
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -861,8 +871,8 @@ class GlassNavBar extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(AppRadii.pill),
-                          color: AppColors.glassStrong,
-                          border: Border.all(color: AppColors.glassBorder),
+                          color: context.colors.glassStrong,
+                          border: Border.all(color: context.colors.glassBorder),
                         ),
                       ),
                     ),
@@ -902,7 +912,9 @@ class _NavTap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = active ? AppColors.textPrimary : AppColors.textTertiary;
+    final Color tone = active
+        ? context.colors.textPrimary
+        : context.colors.textTertiary;
     return Semantics(
       // TalkBack anuncia a aba como "selecionada" quando ativa.
       selected: active,
@@ -950,7 +962,7 @@ class RatingLine extends StatelessWidget {
       return Text(
         '—',
         style: context.texts.labelMedium?.copyWith(
-          color: AppColors.textSecondary,
+          color: context.colors.textSecondary,
         ),
       );
     }
@@ -960,13 +972,13 @@ class RatingLine extends StatelessWidget {
         Icon(
           Icons.star_rounded,
           size: compact ? 14 : 16,
-          color: AppColors.warning,
+          color: context.colors.warning,
         ),
         const SizedBox(width: 3),
         Text(
           formatRating(rating),
           style: context.texts.labelMedium?.copyWith(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -975,7 +987,7 @@ class RatingLine extends StatelessWidget {
           Text(
             '($count)',
             style: context.texts.labelSmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ],
@@ -1022,8 +1034,8 @@ class StarPicker extends StatelessWidget {
                         : Icons.star_outline_rounded,
                     size: size,
                     color: index <= value
-                        ? AppColors.warning
-                        : AppColors.textTertiary,
+                        ? context.colors.warning
+                        : context.colors.textTertiary,
                   ),
                 ),
               ),
@@ -1080,9 +1092,13 @@ class AppToggle extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadii.pill),
-                color: value ? AppColors.accent : AppColors.glassStrong,
+                color: value
+                    ? context.colors.accent
+                    : context.colors.glassStrong,
                 border: Border.all(
-                  color: value ? AppColors.accent : AppColors.glassBorder,
+                  color: value
+                      ? context.colors.accent
+                      : context.colors.glassBorder,
                 ),
               ),
               child: AnimatedAlign(
@@ -1094,7 +1110,9 @@ class AppToggle extends StatelessWidget {
                   height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: value ? AppColors.onAccent : AppColors.textTertiary,
+                    color: value
+                        ? context.colors.onAccent
+                        : context.colors.textTertiary,
                   ),
                 ),
               ),
@@ -1108,7 +1126,7 @@ class AppToggle extends StatelessWidget {
 
 /// Barra de progresso com gradiente de destaque.
 class GradientProgress extends StatelessWidget {
-  const GradientProgress({
+  GradientProgress({
     super.key,
     required this.value,
     this.height = 8,
@@ -1136,13 +1154,13 @@ class GradientProgress extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                const ColoredBox(color: AppColors.glassStrong),
+                ColoredBox(color: context.colors.glassStrong),
                 FractionallySizedBox(
                   alignment: Alignment.centerLeft,
                   widthFactor: animated,
-                  child: const DecoratedBox(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: AppColors.accentGradient,
+                      gradient: context.colors.accentGradient,
                     ),
                   ),
                 ),
@@ -1201,8 +1219,8 @@ class SegmentedControl<T> extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                     color: item.value == value
-                        ? AppColors.glassStrong
-                        : Colors.transparent,
+                        ? context.colors.glassStrong
+                        : AppContentColors.transparent,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1212,8 +1230,8 @@ class SegmentedControl<T> extends StatelessWidget {
                           item.icon,
                           size: 15,
                           color: item.value == value
-                              ? AppColors.accent
-                              : AppColors.textTertiary,
+                              ? context.colors.accent
+                              : context.colors.textTertiary,
                         ),
                         const SizedBox(width: 5),
                       ],
@@ -1225,8 +1243,8 @@ class SegmentedControl<T> extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: context.texts.labelMedium?.copyWith(
                             color: item.value == value
-                                ? AppColors.textPrimary
-                                : AppColors.textTertiary,
+                                ? context.colors.textPrimary
+                                : context.colors.textTertiary,
                             fontWeight: item.value == value
                                 ? FontWeight.w700
                                 : FontWeight.w500,
@@ -1338,7 +1356,7 @@ Future<bool> showAppConfirm(
   final bool? ok = await showDialog<bool>(
     context: context,
     builder: (BuildContext dialog) => AlertDialog(
-      backgroundColor: AppColors.bgElevated,
+      backgroundColor: context.colors.bgElevated,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.md),
       ),
@@ -1346,13 +1364,13 @@ Future<bool> showAppConfirm(
         title,
         style: context.texts.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         ),
       ),
       content: Text(
         message,
         style: context.texts.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
+          color: context.colors.textSecondary,
         ),
       ),
       actions: <Widget>[
@@ -1361,7 +1379,7 @@ Future<bool> showAppConfirm(
           child: Text(
             cancelLabel ?? l10n.cancel,
             style: context.texts.labelLarge?.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),
@@ -1370,7 +1388,7 @@ Future<bool> showAppConfirm(
           child: Text(
             confirmLabel ?? l10n.confirm,
             style: context.texts.labelLarge?.copyWith(
-              color: AppColors.accent,
+              color: context.colors.accent,
               fontWeight: FontWeight.w700,
             ),
           ),

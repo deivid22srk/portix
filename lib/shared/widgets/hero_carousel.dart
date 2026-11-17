@@ -192,8 +192,10 @@ class _HeroCarouselState extends State<HeroCarousel> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(AppRadii.pill),
                             color: i == _index
-                                ? AppColors.textPrimary
-                                : AppColors.textPrimary.withValues(alpha: 0.4),
+                                ? context.colors.textPrimary
+                                : context.colors.textPrimary.withValues(
+                                    alpha: 0.4,
+                                  ),
                           ),
                         ),
                       ),
@@ -257,13 +259,13 @@ class _CarouselCard extends StatelessWidget {
                 borderRadius: 0,
               ),
             ),
-            const DecoratedBox(
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: <Color>[
-                    Color(0x33000000),
-                    Color(0x00000000),
-                    Color(0xCC000000),
+                    AppContentColors.scrim.withValues(alpha: 0.20),
+                    AppContentColors.transparent,
+                    AppContentColors.scrim.withValues(alpha: 0.80),
                   ],
                   stops: <double>[0, 0.4, 1],
                   begin: Alignment.topCenter,
@@ -281,14 +283,14 @@ class _CarouselCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0x66000000),
+                    color: AppContentColors.scrim.withValues(alpha: 0.40),
                     borderRadius: BorderRadius.circular(AppRadii.pill),
-                    border: Border.all(color: AppColors.glassBorder),
+                    border: Border.all(color: context.colors.glassBorder),
                   ),
                   child: Text(
                     game.primaryPlatform,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -303,7 +305,7 @@ class _CarouselCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: context.texts.headlineSmall?.copyWith(
-                  color: Colors.white,
+                  color: AppContentColors.onMedia,
                   fontWeight: FontWeight.w700,
                   height: 1.06,
                 ),

@@ -58,7 +58,7 @@ class NewsArticlePage extends ConsumerWidget {
     final NewsItem? item = async.value ?? initial;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           bottom: false,
@@ -101,7 +101,7 @@ class NewsArticlePage extends ConsumerWidget {
                       Text(
                         item.category.toUpperCase(),
                         style: context.texts.labelSmall?.copyWith(
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.4,
                         ),
@@ -119,7 +119,7 @@ class NewsArticlePage extends ConsumerWidget {
                         Text(
                           item.titleOriginal!,
                           style: context.texts.bodySmall?.copyWith(
-                            color: AppColors.textTertiary,
+                            color: context.colors.textTertiary,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -131,7 +131,7 @@ class NewsArticlePage extends ConsumerWidget {
                         Text(
                           item.summary,
                           style: context.texts.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                             height: 1.55,
                           ),
                         ),
@@ -182,7 +182,7 @@ class NewsArticlePage extends ConsumerWidget {
 }
 
 class _ArticleMeta extends StatelessWidget {
-  const _ArticleMeta({required this.item, required this.l10n});
+  _ArticleMeta({required this.item, required this.l10n});
 
   final NewsItem item;
   final L10n l10n;
@@ -199,13 +199,15 @@ class _ArticleMeta extends StatelessWidget {
     }
     return Text(
       parts.join('  ·  '),
-      style: context.texts.bodySmall?.copyWith(color: AppColors.textTertiary),
+      style: context.texts.bodySmall?.copyWith(
+        color: context.colors.textTertiary,
+      ),
     );
   }
 }
 
 class _KeyPoint extends StatelessWidget {
-  const _KeyPoint({required this.text});
+  _KeyPoint({required this.text});
 
   final String text;
 
@@ -221,18 +223,18 @@ class _KeyPoint extends StatelessWidget {
             child: Container(
               width: 6,
               height: 6,
-              decoration: const BoxDecoration(
-                color: AppColors.accent,
+              decoration: BoxDecoration(
+                color: context.colors.accent,
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,
               style: context.texts.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -244,7 +246,7 @@ class _KeyPoint extends StatelessWidget {
 }
 
 class _MissingArticle extends StatelessWidget {
-  const _MissingArticle({
+  _MissingArticle({
     required this.loading,
     required this.message,
     required this.retryLabel,
@@ -280,13 +282,13 @@ class _MissingArticle extends StatelessWidget {
         ),
         Expanded(
           child: loading
-              ? const Center(
+              ? Center(
                   child: SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
                 )

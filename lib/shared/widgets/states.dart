@@ -25,7 +25,7 @@ class SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.glassStrong,
+        color: context.colors.glassStrong,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -34,7 +34,7 @@ class SkeletonBox extends StatelessWidget {
 
 /// Um único controlador de shimmer para a página inteira (barato e suave).
 class SkeletonPulse extends StatefulWidget {
-  const SkeletonPulse({super.key, required this.child});
+  SkeletonPulse({super.key, required this.child});
 
   final Widget child;
 
@@ -64,10 +64,10 @@ class _SkeletonPulseState extends State<SkeletonPulse>
         return ShaderMask(
           blendMode: BlendMode.srcATop,
           shaderCallback: (Rect bounds) => LinearGradient(
-            colors: const <Color>[
-              AppColors.glassStrong,
-              AppColors.glass,
-              AppColors.glassStrong,
+            colors: <Color>[
+              context.colors.glassStrong,
+              context.colors.glass,
+              context.colors.glassStrong,
             ],
             stops: <double>[
               (t - 0.3).clamp(0.0, 1.0),
@@ -100,7 +100,10 @@ class GameCardSkeleton extends StatelessWidget {
         children: <Widget>[
           AspectRatio(
             aspectRatio: 3 / 4,
-            child: const SkeletonBox(height: double.infinity, radius: AppRadii.md),
+            child: const SkeletonBox(
+              height: double.infinity,
+              radius: AppRadii.md,
+            ),
           ),
           const SizedBox(height: 10),
           SkeletonBox(width: width * 0.86, height: 11),
@@ -132,7 +135,11 @@ class HomeSkeleton extends StatelessWidget {
             const SizedBox(height: 10),
             const SkeletonBox(width: 220, height: 14),
             const SizedBox(height: 20),
-            const SkeletonBox(width: double.infinity, height: 230, radius: AppRadii.lg),
+            const SkeletonBox(
+              width: double.infinity,
+              height: 230,
+              radius: AppRadii.lg,
+            ),
             const SizedBox(height: 24),
             const SkeletonBox(width: 180, height: 22),
             const SizedBox(height: 14),
@@ -169,7 +176,10 @@ class SearchSkeleton extends StatelessWidget {
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final double itemWidth =
-              (constraints.maxWidth - AppSpacing.screen * 2 - AppSpacing.gridGap) / 2;
+              (constraints.maxWidth -
+                  AppSpacing.screen * 2 -
+                  AppSpacing.gridGap) /
+              2;
           return Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.screen,
@@ -215,7 +225,10 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl, vertical: 40),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxxl,
+          vertical: 40,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -224,22 +237,26 @@ class EmptyState extends StatelessWidget {
               height: 88,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadii.lg),
-                color: AppColors.glass,
-                border: Border.all(color: AppColors.glassBorder),
+                color: context.colors.glass,
+                border: Border.all(color: context.colors.glassBorder),
               ),
-              child: Icon(icon, size: 36, color: AppColors.accent),
+              child: Icon(icon, size: 36, color: context.colors.accent),
             ),
             const SizedBox(height: AppSpacing.xl),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              style: context.texts.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               body,
               textAlign: TextAlign.center,
-              style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: context.texts.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
             if (actionLabel != null && onAction != null) ...<Widget>[
               const SizedBox(height: AppSpacing.xxl),
@@ -275,7 +292,10 @@ class ErrorStateView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl, vertical: 40),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxxl,
+          vertical: 40,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -284,16 +304,24 @@ class ErrorStateView extends StatelessWidget {
               height: 88,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadii.lg),
-                color: AppColors.danger.withValues(alpha: 0.12),
-                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                color: context.colors.danger.withValues(alpha: 0.12),
+                border: Border.all(
+                  color: context.colors.danger.withValues(alpha: 0.3),
+                ),
               ),
-              child: const Icon(Icons.cloud_off_rounded, size: 36, color: AppColors.danger),
+              child: Icon(
+                Icons.cloud_off_rounded,
+                size: 36,
+                color: context.colors.danger,
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: context.texts.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
             if (onRetry != null) ...<Widget>[
               const SizedBox(height: AppSpacing.xxl),

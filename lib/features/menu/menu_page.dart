@@ -18,6 +18,7 @@ import '../../shared/widgets/app_mark.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
+import '../../shared/widgets/theme_selector.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/downloads_controller.dart';
 import '../home/home_controller.dart';
@@ -149,7 +150,7 @@ class MenuPage extends ConsumerWidget {
                                   Text(
                                     '@${profile.handle}',
                                     style: context.texts.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -166,8 +167,8 @@ class MenuPage extends ConsumerWidget {
                                           : Icons.lock_rounded,
                                       size: 12,
                                       color: account.isSignedIn
-                                          ? AppColors.accent
-                                          : AppColors.success,
+                                          ? context.colors.accent
+                                          : context.colors.success,
                                     ),
                                     const SizedBox(width: 4),
                                     Flexible(
@@ -180,8 +181,8 @@ class MenuPage extends ConsumerWidget {
                                         style: context.texts.labelSmall
                                             ?.copyWith(
                                               color: account.isSignedIn
-                                                  ? AppColors.accent
-                                                  : AppColors.success,
+                                                  ? context.colors.accent
+                                                  : context.colors.success,
                                             ),
                                       ),
                                     ),
@@ -220,7 +221,7 @@ class MenuPage extends ConsumerWidget {
                         icon: Icons.login_rounded,
                         onPressed: () => context.push<Object?>('/auth'),
                       ),
-                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(height: AppSpacing.md),
                     GlassContainer(
                       radius: AppRadii.lg,
                       padding: const EdgeInsets.symmetric(
@@ -252,16 +253,16 @@ class MenuPage extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xxl),
+                    SizedBox(height: AppSpacing.xxl),
                     _SectionLabel(l10n.activity),
-                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(height: AppSpacing.md),
                     SectionTile(
                       icon: Icons.layers_rounded,
                       label: l10n.hubTitle,
-                      trailing: const Icon(
+                      trailing: Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
-                        color: AppColors.textTertiary,
+                        color: context.colors.textTertiary,
                       ),
                       onTap: () => context.go('/hub'),
                     ),
@@ -274,6 +275,22 @@ class MenuPage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
+                          Text(
+                            l10n.theme,
+                            style: context.texts.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.themeHint,
+                            style: context.texts.labelSmall?.copyWith(
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          const ThemeSelector(),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             l10n.language,
                             style: context.texts.labelMedium?.copyWith(
@@ -318,7 +335,7 @@ class MenuPage extends ConsumerWidget {
                                     Text(
                                       l10n.notificationsHint,
                                       style: context.texts.labelSmall?.copyWith(
-                                        color: AppColors.textSecondary,
+                                        color: context.colors.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -379,7 +396,7 @@ class MenuPage extends ConsumerWidget {
                                     Text(
                                       l10n.tagline,
                                       style: context.texts.labelSmall?.copyWith(
-                                        color: AppColors.textSecondary,
+                                        color: context.colors.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -388,7 +405,7 @@ class MenuPage extends ConsumerWidget {
                               Text(
                                 'v$kAppVersion',
                                 style: context.texts.labelSmall?.copyWith(
-                                  color: AppColors.textTertiary,
+                                  color: context.colors.textTertiary,
                                 ),
                               ),
                             ],
@@ -397,23 +414,23 @@ class MenuPage extends ConsumerWidget {
                           Text(
                             l10n.dataSource,
                             style: context.texts.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
                           Row(
                             children: <Widget>[
-                              const Icon(
+                              Icon(
                                 Icons.code_rounded,
                                 size: 14,
-                                color: AppColors.accent,
+                                color: context.colors.accent,
                               ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   l10n.madeWith,
                                   style: context.texts.labelSmall?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -448,7 +465,7 @@ class MenuPage extends ConsumerWidget {
 }
 
 class _MenuStat extends StatelessWidget {
-  const _MenuStat({required this.value, required this.label});
+  _MenuStat({required this.value, required this.label});
 
   final String value;
   final String label;
@@ -461,7 +478,7 @@ class _MenuStat extends StatelessWidget {
           value,
           style: context.texts.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
-            color: AppColors.accent,
+            color: context.colors.accent,
           ),
         ),
         const SizedBox(height: 2),
@@ -470,7 +487,7 @@ class _MenuStat extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: context.texts.labelSmall?.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       ],
@@ -483,10 +500,10 @@ class _MenuDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SizedBox(
       width: 1,
       height: 30,
-      child: ColoredBox(color: AppColors.glassBorder),
+      child: ColoredBox(color: context.colors.glassBorder),
     );
   }
 }
@@ -501,7 +518,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label.toUpperCase(),
       style: context.texts.labelSmall?.copyWith(
-        color: AppColors.textTertiary,
+        color: context.colors.textTertiary,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.3,
       ),

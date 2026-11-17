@@ -54,7 +54,7 @@ class NewsCoverFallback extends StatelessWidget {
         child: Icon(
           Icons.newspaper_rounded,
           size: 42,
-          color: Colors.white.withValues(alpha: 0.32),
+          color: AppContentColors.onMedia.withValues(alpha: 0.32),
         ),
       ),
     );

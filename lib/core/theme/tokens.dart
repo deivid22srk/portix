@@ -1,57 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 
+export 'themes.dart';
+
 // ============================================================================
 // PORTIX — design tokens ("Aurora")
-// Único ponto de verdade para cores, raios, espaçamentos, durações e sombras.
+// Único ponto de verdade para raios, espaçamentos, durações, breakpoints e
+// SOMBRAS. Cores de tema ficam em themes.dart (AppColorsTheme); cores de
+// CONTEÚDO (scrims sobre mídia, marca) ficam aqui — são invariantes de tema.
 // Nenhuma tela deve declarar cor/tamanho solto: use estes tokens.
 // ============================================================================
-
-/// Cores da identidade Aurora. Tema único (escuro).
-class AppColors {
-  const AppColors._();
-
-  /// Fundo base das telas.
-  static const Color bg = Color(0xFF07090E);
-
-  /// Fundo de sheets e áreas elevadas.
-  static const Color bgElevated = Color(0xFF0D1017);
-
-  /// Preenchimento de vidro padrão (branco 6%).
-  static const Color glass = Color(0x0FFFFFFF);
-
-  /// Vidro reforçado: item selecionado, pressionado, botões circulares (branco 10%).
-  static const Color glassStrong = Color(0x1AFFFFFF);
-
-  /// Borda fina de todo elemento de vidro (branco 12%).
-  static const Color glassBorder = Color(0x1FFFFFFF);
-
-  static const Color textPrimary = Color(0xFFF4F6FA);
-  static const Color textSecondary = Color(0x9EFFFFFF); // branco 62%
-  // Terceiro nível com 55% (antes 42%): contraste ≥ 4,5:1 sobre o vidro —
-  // exigência AA verificada por textContrastGuideline em test/ui/.
-  static const Color textTertiary = Color(0x8CFFFFFF); // branco 55%
-
-  /// Destaque principal (ciano).
-  static const Color accent = Color(0xFF22D3EE);
-
-  /// Segundo tom do gradiente de destaque (esmeralda).
-  static const Color accentAlt = Color(0xFF34D399);
-
-  /// Texto/ícone sobre o gradiente de destaque.
-  static const Color onAccent = Color(0xFF031317);
-
-  static const Color favorite = Color(0xFFFB7185);
-  static const Color success = Color(0xFF34D399);
-  static const Color warning = Color(0xFFFBBF24);
-  static const Color danger = Color(0xFFF87171);
-
-  /// Gradiente do botão principal e da barra de progresso.
-  static const LinearGradient accentGradient = LinearGradient(
-    colors: <Color>[accent, accentAlt],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-}
 
 /// Raios de canto.
 class AppRadii {
@@ -149,15 +106,32 @@ class AppBreakpoints {
   }
 }
 
-/// Sombras suaves reutilizadas pelos elementos de vidro.
-class AppShadows {
-  const AppShadows._();
+/// Cores de CONTEÚDO — aparecem sobre mídia (capa, foto, vídeo) e não mudam
+/// com o tema: legibilidade sobre imagem é sempre a mesma.
+class AppContentColors {
+  const AppContentColors._();
 
-  static const List<BoxShadow> glass = <BoxShadow>[
-    BoxShadow(color: Color(0x59000000), blurRadius: 24, offset: Offset(0, 12)),
-  ];
+  /// Ausência de cor (scrims que começam transparentes).
+  static const Color transparent = Color(0x00000000);
 
-  static const List<BoxShadow> floating = <BoxShadow>[
-    BoxShadow(color: Color(0x8C000000), blurRadius: 32, offset: Offset(0, 16)),
-  ];
+  /// Texto/ícone sobre mídia (capa, notícia, vídeo).
+  static const Color onMedia = Color(0xFFFFFFFF);
+
+  /// Scrim preto puro — use com `withValues(alpha: …)` para cada caso.
+  static const Color scrim = Color(0xFF000000);
+
+  /// Scrim padrão do rodapé de card (gradiente de título).
+  static const Color scrimSoft = Color(0x22000000);
+
+  /// Scrim forte de rodapé de card.
+  static const Color scrimStrong = Color(0xD9000000);
+}
+
+/// Cores da MARCA (logo PORTIX) — invariantes de tema: a identidade não muda
+/// com a aparência escolhida.
+class AppBrandColors {
+  const AppBrandColors._();
+
+  /// Céu claro do gradiente de brilho do logo.
+  static const Color skyLight = Color(0xFFCFFAFE);
 }

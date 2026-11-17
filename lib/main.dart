@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'core/providers.dart';
+import 'core/theme/tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,12 +18,12 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
+      statusBarColor: AppContentColors.transparent,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarColor: AppContentColors.transparent,
       systemNavigationBarIconBrightness: Brightness.light,
-      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarDividerColor: AppContentColors.transparent,
       systemNavigationBarContrastEnforced: false,
     ),
   );
@@ -31,9 +32,7 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const PortixApp(),
     ),
   );

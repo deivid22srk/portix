@@ -5,16 +5,16 @@ import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 
 /// Cor da coroa conforme o nível de ADM.
-Color adminLevelColor(String level) {
+Color adminLevelColor(String level, AppColorsTheme colors) {
   switch (level) {
     case 'root':
-      return AppColors.warning;
+      return colors.warning;
     case 'admin':
-      return AppColors.accent;
+      return colors.accent;
     case 'moderator':
-      return AppColors.accentAlt;
+      return colors.accentAlt;
     default:
-      return AppColors.textSecondary;
+      return colors.textSecondary;
   }
 }
 
@@ -57,7 +57,7 @@ class AdminCrown extends StatelessWidget {
     return Icon(
       adminLevelIcon(level),
       size: size,
-      color: adminLevelColor(level),
+      color: adminLevelColor(level, context.colors),
     );
   }
 }
@@ -71,7 +71,7 @@ class AdminBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = adminLevelColor(level);
+    final Color color = adminLevelColor(level, context.colors);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 9, vertical: 3),
       decoration: BoxDecoration(

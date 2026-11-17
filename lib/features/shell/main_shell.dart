@@ -55,7 +55,7 @@ class MainShell extends StatelessWidget {
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: Stack(children: <Widget>[navigationShell, const UpdateGate()]),
       ),

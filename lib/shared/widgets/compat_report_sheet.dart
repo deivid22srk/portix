@@ -20,8 +20,8 @@ Future<void> showCompatReportSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.6),
+    backgroundColor: AppContentColors.transparent,
+    barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
     builder: (BuildContext context) => _CompatReportSheet(report: report),
   );
 }
@@ -29,7 +29,7 @@ Future<void> showCompatReportSheet(
 /// Conteúdo do relato: autor, veredito, aparelho, especificações e texto
 /// completo (sem o limite de linhas da lista).
 class _CompatReportSheet extends StatelessWidget {
-  const _CompatReportSheet({required this.report});
+  _CompatReportSheet({required this.report});
 
   final CompatReport report;
 
@@ -58,10 +58,10 @@ class _CompatReportSheet extends StatelessWidget {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.86,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
+      decoration: BoxDecoration(
+        color: context.colors.bgElevated,
         borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+        border: Border(top: BorderSide(color: context.colors.glassBorder)),
       ),
       child: SafeArea(
         top: false,
@@ -76,7 +76,7 @@ class _CompatReportSheet extends StatelessWidget {
                   width: 38,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textTertiary,
+                    color: context.colors.textTertiary,
                     borderRadius: BorderRadius.circular(AppRadii.pill),
                   ),
                 ),
@@ -85,7 +85,7 @@ class _CompatReportSheet extends StatelessWidget {
               Text(
                 l10n.reportDetails,
                 style: context.texts.labelSmall?.copyWith(
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
                 ),
@@ -127,21 +127,21 @@ class _CompatReportSheet extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: context.texts.labelSmall?.copyWith(
-                                    color: AppColors.textTertiary,
+                                    color: context.colors.textTertiary,
                                   ),
                                 ),
                               ),
                               Text(
                                 '  ·  ',
                                 style: context.texts.labelSmall?.copyWith(
-                                  color: AppColors.textTertiary,
+                                  color: context.colors.textTertiary,
                                 ),
                               ),
                             ],
                             Text(
                               relativeDay(report.createdAt, en: l10n.isEn),
                               style: context.texts.labelSmall?.copyWith(
-                                color: AppColors.textTertiary,
+                                color: context.colors.textTertiary,
                               ),
                             ),
                           ],
@@ -167,12 +167,15 @@ class _CompatReportSheet extends StatelessWidget {
                       children: <Widget>[
                         BadgeChip(
                           label: compatVerdictLabel(l10n, report.status),
-                          color: compatVerdictColor(report.status),
+                          color: compatVerdictColor(
+                            report.status,
+                            context.colors,
+                          ),
                         ),
                         if (report.fps != null)
                           BadgeChip(
                             label: '${report.fps} FPS',
-                            color: AppColors.accent,
+                            color: context.colors.accent,
                             icon: Icons.speed_rounded,
                           ),
                       ],
@@ -189,8 +192,8 @@ class _CompatReportSheet extends StatelessWidget {
                                 : Icons.star_outline_rounded,
                             size: 16,
                             color: i <= report.rating
-                                ? AppColors.warning
-                                : AppColors.textTertiary,
+                                ? context.colors.warning
+                                : context.colors.textTertiary,
                           ),
                       ],
                     ),
@@ -213,7 +216,7 @@ class _CompatReportSheet extends StatelessWidget {
                       Text(
                         specs,
                         style: context.texts.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -227,7 +230,7 @@ class _CompatReportSheet extends StatelessWidget {
                   child: Text(
                     report.body,
                     style: context.texts.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -280,7 +283,7 @@ class _SheetSection extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: context.texts.labelSmall?.copyWith(
-              color: AppColors.textTertiary,
+              color: context.colors.textTertiary,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.1,
             ),

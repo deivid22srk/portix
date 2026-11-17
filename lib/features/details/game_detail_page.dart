@@ -310,9 +310,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
     final _FeedbackResult? result = await showModalBottomSheet<_FeedbackResult>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       useSafeArea: true,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
       builder: (BuildContext context) => _FeedbackSheet(specs: specs),
     );
     if (result == null || !mounted) {
@@ -402,9 +402,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {
     return showModalBottomSheet<ApkAsset>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       useSafeArea: true,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
       builder: (BuildContext context) => _ApkPickerSheet(assets: assets),
     );
   }
@@ -420,7 +420,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: AppContentMax(
@@ -518,7 +518,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final bool longDescription = game.description.length > 320;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: Stack(
         children: <Widget>[
           Positioned.fill(
@@ -643,7 +643,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                                       ? TextOverflow.visible
                                       : TextOverflow.ellipsis,
                                   style: context.texts.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                                 if (longDescription) ...<Widget>[
@@ -658,7 +658,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                                           ? l10n.readLess
                                           : l10n.readMore,
                                       style: context.texts.labelMedium
-                                          ?.copyWith(color: AppColors.accent),
+                                          ?.copyWith(
+                                            color: context.colors.accent,
+                                          ),
                                     ),
                                   ),
                                 ],
@@ -683,7 +685,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                                 child: Text(
                                   l10n.seeAllReports,
                                   style: context.texts.labelMedium?.copyWith(
-                                    color: AppColors.accent,
+                                    color: context.colors.accent,
                                   ),
                                 ),
                               ),
@@ -765,11 +767,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.visible,
-    required this.title,
-    required this.onBack,
-  });
+  _TopBar({required this.visible, required this.title, required this.onBack});
 
   final bool visible;
   final String title;
@@ -792,10 +790,10 @@ class _TopBar extends StatelessWidget {
                 right: AppSpacing.screen,
                 bottom: 10,
               ),
-              decoration: const BoxDecoration(
-                color: Color(0x66000000),
+              decoration: BoxDecoration(
+                color: context.colors.glassFloating,
                 border: Border(
-                  bottom: BorderSide(color: AppColors.glassBorder),
+                  bottom: BorderSide(color: context.colors.glassBorder),
                 ),
               ),
               child: Row(
@@ -846,7 +844,7 @@ class _Header extends StatelessWidget {
         DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.md),
-            boxShadow: AppShadows.glass,
+            boxShadow: context.colors.glassShadow,
           ),
           child: SizedBox(
             width: 122,
@@ -900,25 +898,25 @@ class _Chips extends StatelessWidget {
         InfoChip(
           label: formatPercent(game.rating / 5),
           icon: Icons.star_rounded,
-          color: AppColors.warning,
+          color: context.colors.warning,
         ),
       if (game.downloadCount > 0)
         InfoChip(
           label: '${compactNumber(game.downloadCount)} ${l10n.downloadsLabel}',
           icon: Icons.download_rounded,
-          color: AppColors.accentAlt,
+          color: context.colors.accentAlt,
         ),
       if (game.isFree)
         InfoChip(
           label: l10n.freeBadge,
           icon: Icons.bolt_rounded,
-          color: AppColors.success,
+          color: context.colors.success,
         ),
       if (game.needsRom)
         InfoChip(
           label: l10n.needsFiles,
           icon: Icons.folder_rounded,
-          color: AppColors.warning,
+          color: context.colors.warning,
         ),
     ];
     return Wrap(spacing: 10, runSpacing: 10, children: chips);
@@ -987,12 +985,12 @@ class _FavoritePillState extends State<_FavoritePill>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
           color: active
-              ? AppColors.accent.withValues(alpha: 0.16)
-              : AppColors.glass,
+              ? context.colors.accent.withValues(alpha: 0.16)
+              : context.colors.glass,
           border: Border.all(
             color: active
-                ? AppColors.accent.withValues(alpha: 0.5)
-                : AppColors.glassBorder,
+                ? context.colors.accent.withValues(alpha: 0.5)
+                : context.colors.glassBorder,
           ),
         ),
         child: Row(
@@ -1006,7 +1004,9 @@ class _FavoritePillState extends State<_FavoritePill>
               child: Icon(
                 active ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 size: 19,
-                color: active ? AppColors.favorite : AppColors.textPrimary,
+                color: active
+                    ? context.colors.favorite
+                    : context.colors.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -1016,7 +1016,9 @@ class _FavoritePillState extends State<_FavoritePill>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.texts.labelLarge?.copyWith(
-                  color: active ? AppColors.accent : AppColors.textPrimary,
+                  color: active
+                      ? context.colors.accent
+                      : context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1052,7 +1054,7 @@ class _BlockTitle extends StatelessWidget {
           Text(
             trailing!,
             style: context.texts.labelSmall?.copyWith(
-              color: AppColors.textTertiary,
+              color: context.colors.textTertiary,
             ),
           ),
       ],
@@ -1061,11 +1063,7 @@ class _BlockTitle extends StatelessWidget {
 }
 
 class CompatReportCard extends StatelessWidget {
-  const CompatReportCard({
-    super.key,
-    required this.summary,
-    required this.onReport,
-  });
+  CompatReportCard({super.key, required this.summary, required this.onReport});
 
   final CompatSummary summary;
   final VoidCallback onReport;
@@ -1086,14 +1084,14 @@ class CompatReportCard extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadii.sm),
-                  color: AppColors.accent.withValues(alpha: 0.14),
+                  color: context.colors.accent.withValues(alpha: 0.14),
                   border: Border.all(
-                    color: AppColors.accent.withValues(alpha: 0.32),
+                    color: context.colors.accent.withValues(alpha: 0.32),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.phone_android_rounded,
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -1111,7 +1109,7 @@ class CompatReportCard extends StatelessWidget {
                     Text(
                       l10n.compatSubtitle,
                       style: context.texts.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -1120,7 +1118,7 @@ class CompatReportCard extends StatelessWidget {
               Text(
                 l10n.compatReports(summary.total),
                 style: context.texts.labelSmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ],
@@ -1130,7 +1128,7 @@ class CompatReportCard extends StatelessWidget {
             Text(
               l10n.notInformed,
               style: context.texts.bodySmall?.copyWith(
-                color: AppColors.textTertiary,
+                color: context.colors.textTertiary,
               ),
             )
           else
@@ -1141,27 +1139,27 @@ class CompatReportCard extends StatelessWidget {
                 _CompatPill(
                   label: l10n.compatPerfect,
                   count: summary.perfect,
-                  color: AppColors.success,
+                  color: context.colors.success,
                 ),
                 _CompatPill(
                   label: l10n.compatGood,
                   count: summary.good,
-                  color: AppColors.accentAlt,
+                  color: context.colors.accentAlt,
                 ),
                 _CompatPill(
                   label: l10n.compatStutter,
                   count: summary.stutter,
-                  color: AppColors.warning,
+                  color: context.colors.warning,
                 ),
                 _CompatPill(
                   label: l10n.compatUnplayable,
                   count: summary.unplayable,
-                  color: AppColors.danger,
+                  color: context.colors.danger,
                 ),
                 _CompatPill(
                   label: l10n.compatNotRun,
                   count: summary.notRun,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ],
             ),
@@ -1210,7 +1208,7 @@ class _CompatPill extends StatelessWidget {
           Text(
             count.toString(),
             style: context.texts.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1294,10 +1292,10 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
     ].join(' · ');
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
+      decoration: BoxDecoration(
+        color: context.colors.bgElevated,
         borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+        border: Border(top: BorderSide(color: context.colors.glassBorder)),
       ),
       child: SafeArea(
         top: false,
@@ -1313,7 +1311,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                       borderRadius: BorderRadius.circular(AppRadii.pill),
                     ),
                   ),
@@ -1329,21 +1327,21 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 Text(
                   device.isEmpty ? l10n.compatYourDevice : device,
                   style: context.texts.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 if (details.isNotEmpty)
                   Text(
                     details,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   l10n.ratingLabel,
                   style: context.texts.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -1355,7 +1353,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 Text(
                   l10n.verdictLabel,
                   style: context.texts.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -1398,8 +1396,8 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                           max: 120,
                           divisions: 120,
                           value: _fps,
-                          activeColor: AppColors.accent,
-                          inactiveColor: AppColors.glassStrong,
+                          activeColor: context.colors.accent,
+                          inactiveColor: context.colors.glassStrong,
                           label: '${_fps.round()}',
                           onChanged: (double value) =>
                               setState(() => _fps = value),
@@ -1422,14 +1420,14 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                   minLines: 2,
                   maxLength: 1000,
                   style: context.texts.bodyMedium,
-                  cursorColor: AppColors.accent,
+                  cursorColor: context.colors.accent,
                   decoration: InputDecoration(
                     hintText: l10n.reviewHint,
                     hintStyle: context.texts.bodySmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                     filled: true,
-                    fillColor: AppColors.glassStrong,
+                    fillColor: context.colors.glassStrong,
                     counterText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadii.md),
@@ -1455,7 +1453,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
 
 /// Rótulo e cor de cada veredito de compatibilidade.
 class _ApkPickerSheet extends StatelessWidget {
-  const _ApkPickerSheet({required this.assets});
+  _ApkPickerSheet({required this.assets});
 
   final List<ApkAsset> assets;
 
@@ -1463,10 +1461,10 @@ class _ApkPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
+      decoration: BoxDecoration(
+        color: context.colors.bgElevated,
         borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+        border: Border(top: BorderSide(color: context.colors.glassBorder)),
       ),
       child: SafeArea(
         top: false,
@@ -1481,19 +1479,19 @@ class _ApkPickerSheet extends StatelessWidget {
                   width: 38,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textTertiary,
+                    color: context.colors.textTertiary,
                     borderRadius: BorderRadius.circular(AppRadii.pill),
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              SizedBox(height: AppSpacing.lg),
               Text(
                 l10n.chooseApk,
                 style: context.texts.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              SizedBox(height: AppSpacing.md),
               for (final ApkAsset asset in assets)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -1514,7 +1512,7 @@ class _ApkPickerSheet extends StatelessWidget {
 }
 
 class _CommunityReports extends ConsumerWidget {
-  const _CommunityReports({required this.gameId});
+  _CommunityReports({required this.gameId});
 
   final String gameId;
 
@@ -1527,7 +1525,7 @@ class _CommunityReports extends ConsumerWidget {
     final List<CompatReport> reports = async.value ?? const <CompatReport>[];
 
     if (async.isLoading && reports.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
         child: Center(
           child: SizedBox(
@@ -1535,7 +1533,7 @@ class _CommunityReports extends ConsumerWidget {
             height: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: AppColors.accent,
+              color: context.colors.accent,
             ),
           ),
         ),
@@ -1548,7 +1546,7 @@ class _CommunityReports extends ConsumerWidget {
         child: Text(
           l10n.compatNoReports,
           style: context.texts.bodySmall?.copyWith(
-            color: AppColors.textTertiary,
+            color: context.colors.textTertiary,
           ),
         ),
       );
@@ -1618,7 +1616,7 @@ class _InfoPanel extends StatelessWidget {
                     child: Text(
                       rows[index][0],
                       style: context.texts.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ),
@@ -1635,7 +1633,7 @@ class _InfoPanel extends StatelessWidget {
               ),
             ),
             if (index < rows.length - 1)
-              const Divider(height: 1, color: AppColors.glassBorder),
+              Divider(height: 1, color: context.colors.glassBorder),
           ],
         ],
       ),
@@ -1654,19 +1652,19 @@ class _PortCard extends StatelessWidget {
     final L10n l10n = context.l10n;
     final String? works = port.works;
     String worksLabel = l10n.worksUntested;
-    Color worksColor = AppColors.textSecondary;
+    Color worksColor = context.colors.textSecondary;
     if (works == 'yes') {
       worksLabel = l10n.worksYes;
-      worksColor = AppColors.success;
+      worksColor = context.colors.success;
     } else if (works == 'no') {
       worksLabel = l10n.worksNo;
-      worksColor = AppColors.danger;
+      worksColor = context.colors.danger;
     } else if (works == 'bug') {
       worksLabel = l10n.worksBug;
-      worksColor = AppColors.warning;
+      worksColor = context.colors.warning;
     } else if (works == 'partial') {
       worksLabel = l10n.worksPartial;
-      worksColor = AppColors.accentAlt;
+      worksColor = context.colors.accentAlt;
     }
 
     return GlassContainer(
@@ -1677,12 +1675,15 @@ class _PortCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              BadgeChip(label: port.platformName, color: AppColors.accent),
+              BadgeChip(label: port.platformName, color: context.colors.accent),
               const SizedBox(width: 6),
               BadgeChip(label: worksLabel, color: worksColor),
               const Spacer(),
               if (port.url == null)
-                BadgeChip(label: l10n.noLink, color: AppColors.textSecondary),
+                BadgeChip(
+                  label: l10n.noLink,
+                  color: context.colors.textSecondary,
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1704,7 +1705,7 @@ class _PortCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.texts.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -1715,7 +1716,7 @@ class _PortCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: context.texts.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -1725,17 +1726,17 @@ class _PortCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Icon(
+                Icon(
                   Icons.folder_rounded,
                   size: 13,
-                  color: AppColors.warning,
+                  color: context.colors.warning,
                 ),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     port.needsGameFilesNote!,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.warning,
+                      color: context.colors.warning,
                     ),
                   ),
                 ),
@@ -1760,7 +1761,7 @@ class _PortCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                 ),
@@ -1805,24 +1806,24 @@ class _DetailSkeleton extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xl),
-            const SkeletonBox(width: 200, height: 32, radius: AppRadii.pill),
-            const SizedBox(height: AppSpacing.md),
-            const SkeletonBox(
+            SizedBox(height: AppSpacing.xl),
+            SkeletonBox(width: 200, height: 32, radius: AppRadii.pill),
+            SizedBox(height: AppSpacing.md),
+            SkeletonBox(
               width: double.infinity,
               height: 52,
               radius: AppRadii.pill,
             ),
-            const SizedBox(height: AppSpacing.md),
-            const SkeletonBox(
+            SizedBox(height: AppSpacing.md),
+            SkeletonBox(
               width: double.infinity,
               height: 48,
               radius: AppRadii.pill,
             ),
-            const SizedBox(height: AppSpacing.xxl),
-            const SkeletonBox(width: 140, height: 18),
-            const SizedBox(height: AppSpacing.md),
-            const SkeletonBox(
+            SizedBox(height: AppSpacing.xxl),
+            SkeletonBox(width: 140, height: 18),
+            SizedBox(height: AppSpacing.md),
+            SkeletonBox(
               width: double.infinity,
               height: 110,
               radius: AppRadii.lg,
@@ -1837,7 +1838,7 @@ class _DetailSkeleton extends StatelessWidget {
 /// Fundo da tela de detalhes: a própria capa ampliada e desfocada, com camada
 /// escura e gradiente para o fundo. Atualiza sozinho quando a capa muda.
 class _CoverBackdrop extends StatelessWidget {
-  const _CoverBackdrop({required this.coverUrl, required this.title});
+  _CoverBackdrop({required this.coverUrl, required this.title});
 
   final String? coverUrl;
   final String title;
@@ -1847,7 +1848,7 @@ class _CoverBackdrop extends StatelessWidget {
     final double screenHeight = MediaQuery.sizeOf(context).height;
     return Stack(
       children: <Widget>[
-        const ColoredBox(color: AppColors.bg, child: SizedBox.expand()),
+        ColoredBox(color: context.colors.bg, child: SizedBox.expand()),
         if (coverUrl != null)
           // A capa ocupa a tela inteira e perde opacidade gradualmente por uma
           // máscara de alfa vertical: nada de corte reto, some no fundo.
@@ -1855,15 +1856,15 @@ class _CoverBackdrop extends StatelessWidget {
             child: IgnorePointer(
               child: ShaderMask(
                 blendMode: BlendMode.dstIn,
-                shaderCallback: (Rect bounds) => const LinearGradient(
+                shaderCallback: (Rect bounds) => LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: <Color>[
-                    Color(0xFFFFFFFF),
-                    Color(0xE6FFFFFF),
-                    Color(0x99FFFFFF),
-                    Color(0x40FFFFFF),
-                    Color(0x00FFFFFF),
+                    AppContentColors.onMedia,
+                    AppContentColors.onMedia.withValues(alpha: 0.90),
+                    AppContentColors.onMedia.withValues(alpha: 0.60),
+                    AppContentColors.onMedia.withValues(alpha: 0.25),
+                    AppContentColors.transparent,
                   ],
                   stops: <double>[0.0, 0.28, 0.5, 0.72, 0.92],
                 ).createShader(bounds),
@@ -1896,8 +1897,8 @@ class _CoverBackdrop extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   colors: <Color>[
-                    AppColors.accent.withValues(alpha: 0.16),
-                    AppColors.accent.withValues(alpha: 0),
+                    context.colors.accent.withValues(alpha: 0.16),
+                    context.colors.accent.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -1915,8 +1916,8 @@ class _CoverBackdrop extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: <Color>[
-                  Colors.black.withValues(alpha: 0.28),
-                  Colors.black.withValues(alpha: 0),
+                  AppContentColors.scrim.withValues(alpha: 0.28),
+                  AppContentColors.scrim.withValues(alpha: 0),
                 ],
               ),
             ),

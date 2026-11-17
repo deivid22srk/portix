@@ -151,7 +151,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     });
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: AppContentMax(
@@ -180,7 +180,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 Text(
                   l10n.authSubtitle,
                   style: context.texts.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
@@ -216,7 +216,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         Text(
                           _error!,
                           style: context.texts.bodySmall?.copyWith(
-                            color: AppColors.danger,
+                            color: context.colors.danger,
                           ),
                         ),
                       ],
@@ -253,7 +253,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     l10n.googleUnavailable,
                     textAlign: TextAlign.center,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                 ],
@@ -288,7 +288,7 @@ class _Field extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: 18, color: AppColors.textTertiary),
+          Icon(icon, size: 18, color: context.colors.textTertiary),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: TextField(
@@ -296,13 +296,13 @@ class _Field extends StatelessWidget {
               obscureText: obscure,
               keyboardType: keyboard,
               style: context.texts.bodyLarge,
-              cursorColor: AppColors.accent,
+              cursorColor: context.colors.accent,
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: hint,
                 hintStyle: context.texts.bodyMedium?.copyWith(
-                  color: AppColors.textTertiary,
+                  color: context.colors.textTertiary,
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),

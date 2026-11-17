@@ -159,7 +159,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     });
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: AppContentMax(
@@ -196,12 +196,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 ),
                                 child: Row(
                                   children: <Widget>[
-                                    const Icon(
+                                    Icon(
                                       Icons.search_rounded,
                                       size: 20,
-                                      color: AppColors.textTertiary,
+                                      color: context.colors.textTertiary,
                                     ),
-                                    const SizedBox(width: AppSpacing.sm),
+                                    SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: TextField(
                                         controller: _text,
@@ -215,16 +215,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                         textInputAction: TextInputAction.search,
                                         style: context.texts.bodyLarge
                                             ?.copyWith(
-                                              color: AppColors.textPrimary,
+                                              color: context.colors.textPrimary,
                                             ),
-                                        cursorColor: AppColors.accent,
+                                        cursorColor: context.colors.accent,
                                         decoration: InputDecoration(
                                           isDense: true,
                                           border: InputBorder.none,
                                           hintText: l10n.searchHint,
                                           hintStyle: context.texts.bodyMedium
                                               ?.copyWith(
-                                                color: AppColors.textTertiary,
+                                                color:
+                                                    context.colors.textTertiary,
                                               ),
                                           contentPadding:
                                               const EdgeInsets.symmetric(
@@ -244,12 +245,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                               )
                                               .setQuery('');
                                         },
-                                        child: const Padding(
+                                        child: Padding(
                                           padding: EdgeInsets.all(6),
                                           child: Icon(
                                             Icons.close_rounded,
                                             size: 18,
-                                            color: AppColors.textTertiary,
+                                            color: context.colors.textTertiary,
                                           ),
                                         ),
                                       ),
@@ -295,17 +296,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           const SizedBox(height: AppSpacing.xl),
                           Row(
                             children: <Widget>[
-                              const Icon(
+                              Icon(
                                 Icons.history_rounded,
                                 size: 15,
-                                color: AppColors.textTertiary,
+                                color: context.colors.textTertiary,
                               ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   l10n.recentSearches,
                                   style: context.texts.labelMedium?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -314,7 +315,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 child: Text(
                                   l10n.clearHistory,
                                   style: context.texts.labelSmall?.copyWith(
-                                    color: AppColors.accent,
+                                    color: context.colors.accent,
                                   ),
                                 ),
                               ),
@@ -339,17 +340,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           const SizedBox(height: AppSpacing.xl),
                           Row(
                             children: <Widget>[
-                              const Icon(
+                              Icon(
                                 Icons.auto_awesome_rounded,
                                 size: 15,
-                                color: AppColors.accent,
+                                color: context.colors.accent,
                               ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   l10n.sectionGenres,
                                   style: context.texts.labelMedium?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -431,7 +432,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       child: Text(
                         l10n.resultsCount(state.total),
                         style: context.texts.labelMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -459,12 +460,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       ),
                       child: Center(
                         child: state.isLoadingMore
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: AppColors.accent,
+                                  color: context.colors.accent,
                                 ),
                               )
                             : state.hasMore
@@ -479,7 +480,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             : Text(
                                 '— PORTIX —',
                                 style: context.texts.labelSmall?.copyWith(
-                                  color: AppColors.textTertiary,
+                                  color: context.colors.textTertiary,
                                   letterSpacing: 3,
                                 ),
                               ),
@@ -579,8 +580,10 @@ class _ActiveChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: AppColors.accent.withValues(alpha: 0.14),
-          border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
+          color: context.colors.accent.withValues(alpha: 0.14),
+          border: Border.all(
+            color: context.colors.accent.withValues(alpha: 0.4),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -588,15 +591,15 @@ class _ActiveChip extends StatelessWidget {
             Text(
               label,
               style: context.texts.labelSmall?.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 5),
-            const Icon(
+            SizedBox(width: 5),
+            Icon(
               Icons.close_rounded,
               size: 13,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ],
         ),
@@ -607,7 +610,7 @@ class _ActiveChip extends StatelessWidget {
 
 /// Resultados da busca por usuários (por @ ou nome).
 class _UsersResults extends ConsumerWidget {
-  const _UsersResults({required this.query});
+  _UsersResults({required this.query});
 
   final String query;
 
@@ -620,7 +623,7 @@ class _UsersResults extends ConsumerWidget {
     final List<UserResult> users = async.value ?? const <UserResult>[];
 
     if (async.isLoading && users.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
           child: Center(
@@ -629,7 +632,7 @@ class _UsersResults extends ConsumerWidget {
               height: 22,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors.accent,
+                color: context.colors.accent,
               ),
             ),
           ),
@@ -707,16 +710,16 @@ class _UserTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.texts.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.chevron_right_rounded,
             size: 20,
-            color: AppColors.textTertiary,
+            color: context.colors.textTertiary,
           ),
         ],
       ),

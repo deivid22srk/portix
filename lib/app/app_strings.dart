@@ -234,6 +234,27 @@ class L10n {
   String get notifications => _t('Notificações', 'Notifications');
   String get notificationsHint =>
       _t('Avisos de novos ports (simulado)', 'New port alerts (simulated)');
+
+  // ----------------------------------------------------------------- temas
+  String get theme => _t('Tema', 'Theme');
+  String get themeHint => _t(
+    'Aparência do app, aplicada na hora',
+    'App appearance, applied instantly',
+  );
+  String get themeSystem => _t('Sistema', 'System');
+  String get themeSystemHint =>
+      _t('Segue o claro/escuro do aparelho', 'Follows your device light/dark');
+  String get themeLight => _t('Claro', 'Light');
+  String get themeDark => _t('Escuro', 'Dark');
+  String get themeMidnight => 'Midnight';
+  String get themeMidnightHint =>
+      _t('AMOLED: preto puro', 'AMOLED: pure black');
+  String get themeOcean => _t('Oceano', 'Ocean');
+  String get themeForest => _t('Floresta', 'Forest');
+  String get themeSelected => _t('Selecionado', 'Selected');
+  String get themePreviewLabel => _t('Prévia do tema', 'Theme preview');
+  String themeOptionSemantic(String name) =>
+      _t('Selecionar o tema $name', 'Select the $name theme');
   String get about => _t('Sobre o PORTIX', 'About PORTIX');
   String get activity => _t('Atividade', 'Activity');
   String get dataSource => _t(

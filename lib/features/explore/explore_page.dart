@@ -78,8 +78,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       child: GlassHeader(
         title: l10n.exploreTitle,
         child: RefreshIndicator(
-          color: context.palette.primary,
-          backgroundColor: context.palette.surface,
+          color: context.colors.accent,
+          backgroundColor: context.colors.glassStrong,
           onRefresh: () =>
               ref.read(searchControllerProvider.notifier).refresh(),
           child: CustomScrollView(
@@ -245,7 +245,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 }
 
 class _FilterBadge extends StatelessWidget {
-  const _FilterBadge({required this.count});
+  _FilterBadge({required this.count});
 
   final int count;
 
@@ -258,15 +258,15 @@ class _FilterBadge extends StatelessWidget {
       width: 17,
       height: 17,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.accent,
+        color: context.colors.accent,
       ),
       child: Text(
         count.toString(),
         style: context.texts.labelSmall?.copyWith(
           fontSize: 9,
-          color: AppColors.onAccent,
+          color: context.colors.onAccent,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -275,7 +275,7 @@ class _FilterBadge extends StatelessWidget {
 }
 
 class _ResultsFooter extends StatelessWidget {
-  const _ResultsFooter({required this.state, required this.onLoadMore});
+  _ResultsFooter({required this.state, required this.onLoadMore});
 
   final SearchState state;
   final VoidCallback onLoadMore;
@@ -283,13 +283,13 @@ class _ResultsFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.isLoadingMore) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 22,
           height: 22,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: AppColors.accent,
+            color: context.colors.accent,
           ),
         ),
       );
@@ -309,7 +309,7 @@ class _ResultsFooter extends StatelessWidget {
         child: Text(
           '— PORTIX —',
           style: context.texts.labelSmall?.copyWith(
-            color: AppColors.textTertiary,
+            color: context.colors.textTertiary,
             letterSpacing: 3,
           ),
         ),

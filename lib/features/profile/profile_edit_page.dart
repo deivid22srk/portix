@@ -98,7 +98,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: AppContentMax(
@@ -134,7 +134,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                         Text(
                           l10n.loginRequired,
                           style: context.texts.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -213,7 +213,7 @@ class _Label extends StatelessWidget {
     return Text(
       text,
       style: context.texts.labelMedium?.copyWith(
-        color: AppColors.textSecondary,
+        color: context.colors.textSecondary,
       ),
     );
   }
@@ -233,13 +233,13 @@ class _Input extends StatelessWidget {
       child: TextField(
         controller: controller,
         style: context.texts.bodyLarge,
-        cursorColor: AppColors.accent,
+        cursorColor: context.colors.accent,
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
           hintText: hint,
           hintStyle: context.texts.bodyMedium?.copyWith(
-            color: AppColors.textTertiary,
+            color: context.colors.textTertiary,
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),

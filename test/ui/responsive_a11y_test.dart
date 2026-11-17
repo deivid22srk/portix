@@ -38,7 +38,7 @@ Future<void> pumpScroll(
         child: inner!,
       ),
       home: Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: auroraDark.bg,
         body: CustomScrollView(slivers: slivers),
       ),
     ),

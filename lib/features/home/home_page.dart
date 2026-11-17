@@ -31,8 +31,8 @@ class HomePage extends ConsumerWidget {
       child: GlassHeader(
         title: l10n.navHome,
         child: RefreshIndicator(
-          color: context.palette.primary,
-          backgroundColor: context.palette.surface,
+          color: context.colors.accent,
+          backgroundColor: context.colors.glassStrong,
           onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
@@ -110,7 +110,7 @@ class HomePage extends ConsumerWidget {
                 Text(
                   l10n.homeIntroBody,
                   style: context.texts.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
