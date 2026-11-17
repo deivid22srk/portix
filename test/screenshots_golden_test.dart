@@ -70,6 +70,8 @@ final List<GithubRelease> _sporeReleases = <GithubRelease>[
   ),
 ];
 
+bool get _goldensEnabled => Platform.environment['GOLDENS'] == '1';
+
 Future<void> _pumpAt(WidgetTester tester, Size size, Widget child) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -129,12 +131,21 @@ Future<void> _snap(WidgetTester tester, String name) async {
 
 void main() {
   setUpAll(() async {
+    // Ferramenta local de evidência visual (GOLDENS=1 para gerar PNGs).
+    // No CI não existem arquivos de referência nem a mesma fonte — pula.
+    if (Platform.environment['GOLDENS'] != '1') {
+      stderr.writeln('goldens pulado (defina GOLDENS=1 para gerar)');
+      return;
+    }
     await Directory(_outDir).create(recursive: true);
     await _loadFonts();
   });
 
   testWidgets('mobile 375px — seletor + novidades (3 releases reais)',
       (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
     await _pumpAt(
       tester,
       const Size(375, 860),
@@ -170,6 +181,9 @@ void main() {
 
   testWidgets('wide 768px — seletor segmentado + desenvolvedor',
       (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
     await _pumpAt(
       tester,
       const Size(768, 760),
@@ -211,6 +225,9 @@ void main() {
 
   testWidgets('estado rate limit (403/429) da seção de versões',
       (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
     tester.view.physicalSize = const Size(375, 420);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -248,6 +265,9 @@ void main() {
 
   testWidgets('hero com capa procedural (sem rede) — header real',
       (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
     await _pumpAt(
       tester,
       const Size(375, 240),

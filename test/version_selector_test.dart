@@ -41,6 +41,14 @@ final List<GithubRelease> _fixtures = <GithubRelease>[
   _release('v0.9.0-beta', publishedAt: DateTime(2026, 9, 1), prerelease: true),
 ];
 
+void _mobileViewport(WidgetTester tester) {
+  // Testes em viewport de celular: os goldens/testes padrão do tester usam
+  // 800x600, o que cairia no variante segmentado (≥768px).
+  tester.view.physicalSize = const Size(375, 860);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+}
+
 Widget _host(Widget child) {
   return MaterialApp(
     locale: const Locale('pt'),
@@ -91,6 +99,7 @@ void main() {
   testWidgets('seletor mostra as 3 releases com badges (mais recente/beta/instalada)',
       (WidgetTester tester) async {
     GithubRelease? selected;
+    _mobileViewport(tester);
     await _pumpReleases(
       tester,
       SizedBox(
@@ -124,6 +133,7 @@ void main() {
   testWidgets('pré-seleção padrão = mais nova COM APK; card sem APK não seleciona',
       (WidgetTester tester) async {
     GithubRelease? selected;
+    _mobileViewport(tester);
     await _pumpReleases(
       tester,
       SizedBox(
@@ -145,6 +155,7 @@ void main() {
   });
 
   testWidgets('rate limit: estado dedicado com retry', (WidgetTester tester) async {
+    _mobileViewport(tester);
     await _pumpReleases(
       tester,
       SizedBox(
@@ -167,6 +178,7 @@ void main() {
 
   testWidgets('repo com apenas 1 release: um card, sem badge de outras',
       (WidgetTester tester) async {
+    _mobileViewport(tester);
     await _pumpReleases(
       tester,
       SizedBox(
@@ -195,6 +207,7 @@ void main() {
 
   testWidgets('nenhuma release: estado vazio explicativo',
       (WidgetTester tester) async {
+    _mobileViewport(tester);
     await _pumpReleases(
       tester,
       SizedBox(
