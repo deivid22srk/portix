@@ -283,6 +283,33 @@ void main() {
     });
   });
 
+  group('busca nas configurações', () {
+    testWidgets('filtra categorias por título e mostra estado vazio', (
+      WidgetTester tester,
+    ) async {
+      final ProviderContainer container = await _container(signedIn: true);
+      addTearDown(container.dispose);
+      await _pumpRouter(tester, container);
+      _go(container, '/menu');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      await tester.enterText(find.byType(TextField), 'tema');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      expect(find.text('Aparência e Temas'), findsOneWidget);
+      expect(find.text('Dados e Armazenamento'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'zzz');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.text('Nenhuma configuração encontrada'), findsOneWidget);
+
+      // Limpar busca restaura todas.
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.text('Dados e Armazenamento'), findsOneWidget);
+    });
+  });
+
   group('responsividade', () {
     testWidgets(
       '768px+: master-detail (lista à esquerda, conteúdo à direita)',

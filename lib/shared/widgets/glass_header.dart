@@ -64,7 +64,7 @@ class GlassSliverAppBar extends StatelessWidget {
                 ),
               ),
               if (subtitle != null) ...<Widget>[
-                SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle!,
                   maxLines: 2,

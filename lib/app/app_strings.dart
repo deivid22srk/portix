@@ -241,6 +241,11 @@ class L10n {
   String get settingsTitle => _t('Configurações', 'Settings');
   String get settingsSubtitle =>
       _t('Ajuste o PORTIX do seu jeito', 'Tune PORTIX your way');
+  String get settingsSearchHint =>
+      _t('Buscar configurações', 'Search settings');
+  String get settingsSearchEmpty =>
+      _t('Nenhuma configuração encontrada', 'No settings found');
+  String get settingsSearchClear => _t('Limpar busca', 'Clear search');
   String get settingsSelectHint => _t(
     'Selecione uma categoria para ver as opções',
     'Pick a category to see its options',

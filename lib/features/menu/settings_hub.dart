@@ -9,17 +9,43 @@ import 'settings_categories.dart';
 import 'settings_profile_header.dart';
 import '../../shared/widgets/primitives.dart';
 
-/// Hub de configurações: título + perfil resumido + lista de categorias.
-/// Usado no /menu e como coluna esquerda do master-detail (≥768px).
-class SettingsHub extends ConsumerWidget {
+/// Hub de configurações: título + perfil resumido + busca + lista de
+/// categorias. Usado no /menu e como coluna esquerda do master-detail (≥768px).
+class SettingsHub extends ConsumerStatefulWidget {
   const SettingsHub({super.key, this.selectedId});
 
   /// Categoria destacada quando a página abre em master-detail.
   final String? selectedId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsHub> createState() => _SettingsHubState();
+}
+
+class _SettingsHubState extends ConsumerState<SettingsHub> {
+  final TextEditingController _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  bool _matches(SettingsCategory category, L10n l10n) {
+    final String needle = _query.trim().toLowerCase();
+    if (needle.isEmpty) {
+      return true;
+    }
+    return category.title(l10n).toLowerCase().contains(needle) ||
+        category.description(l10n).toLowerCase().contains(needle);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    final List<SettingsCategory> visible = kSettingsCategories
+        .where((SettingsCategory category) => _matches(category, l10n))
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,31 +79,145 @@ class SettingsHub extends ConsumerWidget {
         const SizedBox(height: AppSpacing.lg),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-          child: SettingsProfileHeader(selectedId: selectedId),
+          child: SettingsProfileHeader(selectedId: widget.selectedId),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        Expanded(
-          child: ListView.separated(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.screen,
-              0,
-              AppSpacing.screen,
-              context.bottomChromePadding,
-            ),
-            itemCount: kSettingsCategories.length,
-            separatorBuilder: (BuildContext context, int index) =>
-                const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (BuildContext context, int index) {
-              final SettingsCategory category = kSettingsCategories[index];
-              return SettingsCategoryCard(
-                category: category,
-                selected: selectedId == category.id,
-                onTap: () => context.go('/menu/${category.id}'),
-              );
-            },
+        const SizedBox(height: AppSpacing.md),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+          child: _SettingsSearchField(
+            controller: _search,
+            onChanged: (String value) => setState(() => _query = value),
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        Expanded(
+          child: visible.isEmpty
+              ? _SettingsEmptySearch(l10n: l10n)
+              : ListView.separated(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.screen,
+                    0,
+                    AppSpacing.screen,
+                    context.bottomChromePadding,
+                  ),
+                  itemCount: visible.length,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const SizedBox(height: AppSpacing.sm),
+                  itemBuilder: (BuildContext context, int index) {
+                    final SettingsCategory category = visible[index];
+                    return SettingsCategoryCard(
+                      category: category,
+                      selected: widget.selectedId == category.id,
+                      onTap: () => context.go('/menu/${category.id}'),
+                    );
+                  },
+                ),
+        ),
       ],
+    );
+  }
+}
+
+/// Campo de busca dentro das configurações: filtra categorias por título e
+/// descrição (client-side, sem rede).
+class _SettingsSearchField extends StatelessWidget {
+  const _SettingsSearchField({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    return GlassContainer(
+      radius: AppRadii.md,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (BuildContext context, TextEditingValue value, _) {
+          return Row(
+            children: <Widget>[
+              Icon(
+                Icons.search_rounded,
+                size: 20,
+                color: context.colors.textTertiary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  onChanged: onChanged,
+                  decoration: InputDecoration(
+                    hintText: l10n.settingsSearchHint,
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                  style: context.texts.bodyMedium,
+                ),
+              ),
+              if (value.text.isNotEmpty)
+                Tooltip(
+                  message: l10n.settingsSearchClear,
+                  child: Pressable(
+                    onTap: () {
+                      controller.clear();
+                      onChanged('');
+                    },
+                    scale: 0.9,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Estado vazio da busca: nada casa com o termo digitado.
+class _SettingsEmptySearch extends StatelessWidget {
+  const _SettingsEmptySearch({required this.l10n});
+
+  final L10n l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.search_off_rounded,
+              size: 40,
+              color: context.colors.textTertiary,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              l10n.settingsSearchEmpty,
+              textAlign: TextAlign.center,
+              style: context.texts.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
