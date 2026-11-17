@@ -178,13 +178,15 @@ class _MarkdownLiteState extends State<MarkdownLite> {
 
       blocks.add(
         Padding(
-          padding: EdgeInsets.only(bottom: isHeading ? AppSpacing.sm : 6),
+          padding: EdgeInsets.only(
+            bottom: isHeading ? AppSpacing.sm : AppSpacing.xxs,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               if (isBullet) ...<Widget>[
                 Padding(
-                  padding: const EdgeInsets.only(top: 7),
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Container(
                     width: 5,
                     height: 5,
@@ -194,7 +196,7 @@ class _MarkdownLiteState extends State<MarkdownLite> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.compact),
               ] else if (chunk.type == 'ordered') ...<Widget>[
                 Text(
                   '${chunk.url}. ',

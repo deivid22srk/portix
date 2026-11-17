@@ -53,9 +53,9 @@ class DeveloperCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     const SkeletonBox(width: 140, height: 16),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     const SkeletonBox(width: 90, height: 12),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     const SkeletonBox(width: double.infinity, height: 12),
                   ],
                 ),
@@ -119,7 +119,7 @@ class DeveloperCard extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.hairline),
                     Text(
                       '@${user?.login ?? owner}',
                       style: context.texts.labelSmall?.copyWith(

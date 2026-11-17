@@ -289,9 +289,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {
     return showModalBottomSheet<ApkAsset>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       useSafeArea: true,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
       builder: (BuildContext context) => ApkPickerSheet(assets: assets),
     );
   }
@@ -449,9 +449,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
     final _FeedbackResult? result = await showModalBottomSheet<_FeedbackResult>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       useSafeArea: true,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
       builder: (BuildContext context) => _FeedbackSheet(specs: specs),
     );
     if (result == null || !mounted) {
@@ -496,7 +496,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: Stack(
@@ -614,7 +614,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final bool longDescription = game.description.length > 320;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: Stack(
         children: <Widget>[
           Positioned.fill(
@@ -1205,12 +1205,12 @@ class _StatCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, size: 17, color: iconColor ?? context.colors.textTertiary),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             value,
             maxLines: 1,
@@ -1220,7 +1220,7 @@ class _StatCell extends StatelessWidget {
               color: context.colors.textPrimary,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.hairline),
           // AA em texto pequeno: textSecondary (não textTertiary).
           Text(
             label,
@@ -1519,7 +1519,7 @@ class _DeveloperChip extends ConsumerWidget {
                     initialsOf(owner),
                     style: context.texts.labelSmall?.copyWith(
                       color: context.colors.accent,
-                      fontSize: 9,
+                      fontSize: AppTypography.miniInitials,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1547,7 +1547,7 @@ class _DeveloperChip extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             avatar,
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xxs),
             Flexible(
               child: Text(
                 '@${user?.login ?? owner}',
@@ -1577,6 +1577,9 @@ class _Chips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    // Rótulo computado a partir do l10n — hoisted para fora da árvore.
+    final String downloadsChipLabel =
+        '${compactNumber(game.downloadCount)} ${l10n.downloadsLabel}';
     final List<Widget> chips = <Widget>[
       if (game.genre != null)
         InfoChip(label: game.genre!, icon: Icons.category_rounded),
@@ -1592,7 +1595,7 @@ class _Chips extends StatelessWidget {
         ),
       if (game.downloadCount > 0)
         InfoChip(
-          label: '${compactNumber(game.downloadCount)} ${l10n.downloadsLabel}',
+          label: downloadsChipLabel,
           icon: Icons.download_rounded,
           color: context.colors.accentAlt,
         ),
@@ -1699,7 +1702,7 @@ class _FavoritePillState extends State<_FavoritePill>
                     : context.colors.textPrimary,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Flexible(
               child: Text(
                 widget.label,
@@ -1799,7 +1802,7 @@ class CompatReportCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.hairline),
                     Text(
                       l10n.compatSubtitle,
                       style: context.texts.labelSmall?.copyWith(
@@ -1884,7 +1887,10 @@ class _CompatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.compact,
+        vertical: AppSpacing.compact,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.sm),
         color: color.withValues(alpha: 0.12),
@@ -1899,7 +1905,7 @@ class _CompatPill extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: context.texts.labelSmall?.copyWith(color: color),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.hairline),
           Text(
             count.toString(),
             style: context.texts.titleMedium?.copyWith(
@@ -1976,6 +1982,8 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    // Rótulo do tooltip do slider (valor atual do FPS).
+    final String fpsThumbLabel = '${_fps.round()}';
     final String device = <String>[
       ?widget.specs.brand,
       ?widget.specs.model,
@@ -2093,7 +2101,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                           value: _fps,
                           activeColor: context.colors.accent,
                           inactiveColor: context.colors.glassStrong,
-                          label: '${_fps.round()}',
+                          label: fpsThumbLabel,
                           onChanged: (double value) =>
                               setState(() => _fps = value),
                         ),
@@ -2242,7 +2250,7 @@ class _InfoPanel extends StatelessWidget {
         children: <Widget>[
           for (int index = 0; index < rows.length; index += 1) ...<Widget>[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.compact),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -2311,7 +2319,7 @@ class _PortCard extends StatelessWidget {
           Row(
             children: <Widget>[
               BadgeChip(label: port.platformName, color: context.colors.accent),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xxs),
               BadgeChip(label: worksLabel, color: worksColor),
               const Spacer(),
               if (port.url == null)
@@ -2331,7 +2339,7 @@ class _PortCard extends StatelessWidget {
             ),
           ),
           if (port.developer != null || port.version != null) ...<Widget>[
-            const SizedBox(height: 3),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               <String>[
                 ?port.developer,
@@ -2366,7 +2374,7 @@ class _PortCard extends StatelessWidget {
                   size: 13,
                   color: context.colors.warning,
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     port.needsGameFilesNote!,
@@ -2435,7 +2443,7 @@ class _DetailSkeleton extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       const SkeletonBox(width: double.infinity, height: 24),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSpacing.compact),
                       const SkeletonBox(width: 140, height: 14),
                     ],
                   ),
@@ -2465,7 +2473,7 @@ class _DetailSkeleton extends StatelessWidget {
               height: 110,
               radius: AppRadii.lg,
             ),
-            const SizedBox(height: 120),
+            const SizedBox(height: AppSpacing.skeletonBodyGap),
             const SkeletonBox(
               width: double.infinity,
               height: 52,
@@ -2499,15 +2507,15 @@ class _CoverBackdrop extends StatelessWidget {
             child: IgnorePointer(
               child: ShaderMask(
                 blendMode: BlendMode.dstIn,
-                shaderCallback: (Rect bounds) => const LinearGradient(
+                shaderCallback: (Rect bounds) => LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: <Color>[
-                    Color(0xFFFFFFFF),
-                    Color(0xE6FFFFFF),
-                    Color(0x99FFFFFF),
-                    Color(0x40FFFFFF),
-                    Color(0x00FFFFFF),
+                    AppContentColors.onMedia.withValues(alpha: 1.0),
+                    AppContentColors.onMedia.withValues(alpha: 0.9),
+                    AppContentColors.onMedia.withValues(alpha: 0.6),
+                    AppContentColors.onMedia.withValues(alpha: 0.25),
+                    AppContentColors.onMedia.withValues(alpha: 0.0),
                   ],
                   stops: <double>[0.0, 0.28, 0.5, 0.72, 0.92],
                 ).createShader(bounds),
@@ -2559,8 +2567,8 @@ class _CoverBackdrop extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: <Color>[
-                  Colors.black.withValues(alpha: 0.28),
-                  Colors.black.withValues(alpha: 0),
+                  AppContentColors.scrim.withValues(alpha: 0.28),
+                  AppContentColors.scrim.withValues(alpha: 0),
                 ],
               ),
             ),

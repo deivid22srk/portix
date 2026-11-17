@@ -73,6 +73,9 @@ class AppSpacing {
 
   /// Diâmetro do spinner pequeno em tiles/botões (estado ocupado).
   static const double inlineSpinner = 18;
+
+  /// Intervalo entre blocos do skeleton de detalhes (área de corpo/mídia).
+  static const double skeletonBodyGap = 120;
 }
 
 /// Durações e curvas de animação.
@@ -156,4 +159,14 @@ class AppBrandColors {
 
   /// Céu claro do gradiente de brilho do logo.
   static const Color skyLight = Color(0xFFCFFAFE);
+}
+
+/// Tamanhos ópticos pontuais de tipografia que fogem da escala do tema.
+/// Use apenas quando a escala de texto não cobre o caso (ex.: iniciais de
+/// avatar mini). Todo o restante deve vir de `context.texts.*`.
+class AppTypography {
+  const AppTypography._();
+
+  /// Iniciais do avatar mini do chip de desenvolvedor.
+  static const double miniInitials = 9;
 }

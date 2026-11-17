@@ -78,7 +78,7 @@ class VersionSelector extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(l10n.noReleases, style: context.texts.titleSmall),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.hairline),
                   Text(
                     l10n.noReleasesBody,
                     style: context.texts.bodySmall?.copyWith(
@@ -232,7 +232,7 @@ class VersionCard extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
                             date,
                             maxLines: 1,
@@ -241,7 +241,7 @@ class VersionCard extends StatelessWidget {
                               color: context.colors.textSecondary,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: AppSpacing.hairline),
                           Text(
                             meta,
                             maxLines: 1,
@@ -253,7 +253,7 @@ class VersionCard extends StatelessWidget {
                             ),
                           ),
                           if (asset == null) ...<Widget>[
-                            const SizedBox(height: 3),
+                            const SizedBox(height: AppSpacing.xs),
                             Text(
                               l10n.noCompatibleApkBody,
                               style: context.texts.bodySmall?.copyWith(
