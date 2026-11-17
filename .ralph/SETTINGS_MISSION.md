@@ -78,6 +78,39 @@ aplicado em app.dart (3 MaterialApp; splash incluído) via `darkThemeProvider`.
 Allowlist raw_color: 20 arquivos fora de core/theme. Sem claro/sistema/extras,
 sem seletor, sem persistência de tema.
 
+## Execução
+
+- **iter 1** (3bd465b) `feat(settings): sistema de temas com 6 paletas AA e seletor`
+  — AppColorsTheme (ThemeExtension) + Aurora escuro/claro, Midnight (AMOLED),
+  Oceano, Floresta + modo Sistema; migração de 345 usos de AppColors.* estático
+  para context.colors.* (raw_color drenado a ZERO — allowlist de cor removida);
+  tokens de conteúdo (AppContentColors/AppBrandColors) para scrims/marca;
+  settings.themeId persistido (default escuro Aurora preservado; id inválido
+  normalizado); seletor com miniaturas reais + Semantics + reduced motion;
+  SystemChrome por tema; MaterialApp theme/darkTheme/themeMode sem flash.
+  Testes: contraste WCAG (15 grupos, todas as paletas), persistência/reinício,
+  id inválido, 1º frame sem flash, troca pelo seletor. **CI 44091086142 success.**
+- **iter 2** (c218395) `fix(settings): perfil com stale-while-revalidate e cache do avatar`
+  — profileProvider → AsyncNotifier keepAlive com SWR (cache.profile no
+  CacheStore; abre instantâneo, revalida em bg, zero flicker); ProfileAvatar no
+  menu (antes GameCover); troca de foto invalida o arquivo no
+  DefaultCacheManager (cobre reupload na mesma URL); logout limpa cache do
+  perfil + imagem em disco; flutter_cache_manager dependência direta.
+  Evidências: HttpClient sintético contando downloads — 5 aberturas = 0
+  downloads, URL nova = 1, removeFile = 1; SWR com repo fake. **CI 44095990091
+  success.**
+- **iter 3** (3a4d6bf) `feat(settings): configurações em categorias com hub e
+  master-detail` — hub com perfil resumido + 6 categorias (Conta e Perfil,
+  Aparência e Temas, Notificações, Idioma e Região, Dados e Armazenamento,
+  Ajuda e Sobre); rotas/deep link /menu/<id>; drill-down mobile com voltar do
+  sistema; master-detail ≥768px (rota como fonte do estado); limpar cache com
+  confirmação; GlassHeader com expandedHeight adaptativo (overflow em texto
+  2.0 corrigido) + estado de erro da home → SliverFillRemaining.
+  Testes: tabela por categoria, tap+voltar, deep link, 768px, 375px, texto 2.0.
+  **CI 44099472112 em andamento.**
+
+Baseline: CI 44087292104 success (4713dfa).
+
 ## Série de notas (CRÍTICO — critérios da missão)
 
 Base: 5/10; notas >5 exigem evidência de código/teste. Máximos: build quebrado ≤6
