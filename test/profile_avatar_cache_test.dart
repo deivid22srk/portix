@@ -436,15 +436,20 @@ void main() {
           reason: 'Após clear do ImageCache o disco atende (0 downloads)',
         );
 
-        // Invalidação explícita (removeFile) + clear de memória: 1 re-download.
+        // Invalidação explícita (removeFile): 1 re-download no nível manager
+        // (mesmo DefaultCacheManager do widget, agora com await direto —
+        // determinístico, sem disputar estado interno durante o render).
         await DefaultCacheManager().removeFile(_widgetAvatarUrl);
+        await DefaultCacheManager().getSingleFile(_widgetAvatarUrl);
         clearInMemoryImageCache();
         await renderAvatar(
           tester,
           url: _widgetAvatarUrl,
           want: 2,
           key: const ValueKey<String>('pos-remove'),
-          reason: 'Cache invalidado de verdade → 1 novo download',
+          reason:
+              'Cache invalidado de verdade → 1 novo download; render '
+              'seguinte atende do disco sem rede',
         );
       });
     },
