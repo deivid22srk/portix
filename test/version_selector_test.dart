@@ -56,7 +56,7 @@ Widget _host(Widget child) {
     locale: const Locale('pt'),
     supportedLocales: const <Locale>[Locale('pt'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData.dark(useMaterial3: true),
+      theme: AppTheme.dark(),
     home: Scaffold(body: SingleChildScrollView(child: child)),
   );
 }
