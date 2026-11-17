@@ -452,6 +452,14 @@ class L10n {
   String starPickerSummary(int value) =>
       _t('Avaliação: $value de 5 estrelas', 'Rating: $value out of 5 stars');
 
+  // ------------------------------------------------- confirmação / feedback
+  String get clearHistoryConfirm =>
+      _t('Apagar todas as buscas recentes?', 'Delete all recent searches?');
+  String get historyCleared => _t('Histórico limpo', 'History cleared');
+  String get signOutConfirm =>
+      _t('Sair da sua conta neste dispositivo?', 'Sign out on this device?');
+  String get confirm => _t('Confirmar', 'Confirm');
+
   // -------------------------------------------------------------- contagens
   String gameCount(int n) =>
       _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');

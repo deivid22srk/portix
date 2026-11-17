@@ -903,25 +903,29 @@ class _NavTap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color tone = active ? AppColors.textPrimary : AppColors.textTertiary;
-    return Pressable(
-      onTap: onTap,
-      haptics: true,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(active ? item.activeIcon : item.icon, size: 21, color: tone),
-          const SizedBox(height: 3),
-          Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.texts.labelSmall?.copyWith(
-              fontSize: 10,
-              color: tone,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    return Semantics(
+      // TalkBack anuncia a aba como "selecionada" quando ativa.
+      selected: active,
+      child: Pressable(
+        onTap: onTap,
+        haptics: true,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(active ? item.activeIcon : item.icon, size: 21, color: tone),
+            const SizedBox(height: 3),
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.texts.labelSmall?.copyWith(
+                fontSize: 10,
+                color: tone,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1296,6 +1300,26 @@ class ResponsiveCoverGrid extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Teto de largura de conteúdo para páginas não-grade (detalhe, menu, busca,
+/// autenticação): em telas largas centraliza o corpo em 1200px, igual às
+/// grades de capas — nada estica por um monitor inteiro.
+class AppContentMax extends StatelessWidget {
+  const AppContentMax({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      widthFactor: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppBreakpoints.contentMax),
+        child: child,
+      ),
     );
   }
 }

@@ -8,6 +8,7 @@ import '../../core/auth.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/profile.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import 'profile_controller.dart';
@@ -36,9 +37,8 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    // Padrão único do app — ver showAppSnackBar (app_snackbar.dart).
+    showAppSnackBar(context, message: message);
   }
 
   void _close() {
@@ -75,13 +75,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.profileSaved),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.bgElevated,
-        ),
-      );
+      showAppSnackBar(context, message: context.l10n.profileSaved);
       _close();
     } on Object {
       if (mounted) {
@@ -107,99 +101,101 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
       backgroundColor: Colors.transparent,
       body: AppBackdrop(
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screen,
-              AppSpacing.md,
-              AppSpacing.screen,
-              AppSpacing.xxl,
-            ),
-            children: <Widget>[
-              GlassCircleButton(
-                icon: Icons.arrow_back_rounded,
-                tooltip: context.l10n.tooltipBack,
-                onTap: _close,
+          child: AppContentMax(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.md,
+                AppSpacing.screen,
+                AppSpacing.xxl,
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Text(
-                l10n.editProfile,
-                style: context.texts.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -1,
+              children: <Widget>[
+                GlassCircleButton(
+                  icon: Icons.arrow_back_rounded,
+                  tooltip: context.l10n.tooltipBack,
+                  onTap: _close,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              if (!signedIn)
-                GlassContainer(
-                  radius: AppRadii.lg,
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        l10n.loginRequired,
-                        style: context.texts.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      PrimaryButton(
-                        label: l10n.signIn,
-                        icon: Icons.login_rounded,
-                        onPressed: () => context.push<Object?>('/auth'),
-                      ),
-                    ],
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  l10n.editProfile,
+                  style: context.texts.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1,
                   ),
-                )
-              else
-                GlassContainer(
-                  radius: AppRadii.lg,
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Center(
-                        child: SizedBox(
-                          width: 96,
-                          height: 96,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                            child: GameCover(
-                              title: _name.text.isEmpty
-                                  ? l10n.guestLabel
-                                  : _name.text,
-                              imageUrl: _cover.text.trim().isEmpty
-                                  ? null
-                                  : _cover.text.trim(),
-                              memWidth: 240,
-                              borderRadius: 0,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                if (!signedIn)
+                  GlassContainer(
+                    radius: AppRadii.lg,
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          l10n.loginRequired,
+                          style: context.texts.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        PrimaryButton(
+                          label: l10n.signIn,
+                          icon: Icons.login_rounded,
+                          onPressed: () => context.push<Object?>('/auth'),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  GlassContainer(
+                    radius: AppRadii.lg,
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Center(
+                          child: SizedBox(
+                            width: 96,
+                            height: 96,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              child: GameCover(
+                                title: _name.text.isEmpty
+                                    ? l10n.guestLabel
+                                    : _name.text,
+                                imageUrl: _cover.text.trim().isEmpty
+                                    ? null
+                                    : _cover.text.trim(),
+                                memWidth: 240,
+                                borderRadius: 0,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      _Label(l10n.yourName),
-                      const SizedBox(height: AppSpacing.sm),
-                      _Input(controller: _name, hint: l10n.yourName),
-                      const SizedBox(height: AppSpacing.lg),
-                      _Label(l10n.handleLabel),
-                      const SizedBox(height: AppSpacing.sm),
-                      _Input(controller: _handle, hint: l10n.handleHint),
-                      const SizedBox(height: AppSpacing.lg),
-                      _Label(l10n.coverUrlLabel),
-                      const SizedBox(height: AppSpacing.sm),
-                      _Input(controller: _cover, hint: l10n.coverHint),
-                      const SizedBox(height: AppSpacing.xl),
-                      PrimaryButton(
-                        label: l10n.saveChanges,
-                        icon: Icons.check_rounded,
-                        isLoading: _busy,
-                        onPressed: _save,
-                      ),
-                    ],
+                        const SizedBox(height: AppSpacing.xl),
+                        _Label(l10n.yourName),
+                        const SizedBox(height: AppSpacing.sm),
+                        _Input(controller: _name, hint: l10n.yourName),
+                        const SizedBox(height: AppSpacing.lg),
+                        _Label(l10n.handleLabel),
+                        const SizedBox(height: AppSpacing.sm),
+                        _Input(controller: _handle, hint: l10n.handleHint),
+                        const SizedBox(height: AppSpacing.lg),
+                        _Label(l10n.coverUrlLabel),
+                        const SizedBox(height: AppSpacing.sm),
+                        _Input(controller: _cover, hint: l10n.coverHint),
+                        const SizedBox(height: AppSpacing.xl),
+                        PrimaryButton(
+                          label: l10n.saveChanges,
+                          icon: Icons.check_rounded,
+                          isLoading: _busy,
+                          onPressed: _save,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

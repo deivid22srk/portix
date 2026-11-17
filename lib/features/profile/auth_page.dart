@@ -10,6 +10,7 @@ import '../../core/auth.dart';
 import '../../core/auth_providers.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/primitives.dart';
 
 /// Login/cadastro por e-mail e login com Google.
@@ -95,13 +96,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         if (!hasSession) {
           if (mounted) {
             setState(() => _busy = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.authCheckEmail),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: AppColors.bgElevated,
-              ),
-            );
+            showAppSnackBar(context, message: l10n.authCheckEmail);
           }
           return;
         }
@@ -159,109 +154,111 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       backgroundColor: Colors.transparent,
       body: AppBackdrop(
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screen,
-              AppSpacing.md,
-              AppSpacing.screen,
-              AppSpacing.xxl,
-            ),
-            children: <Widget>[
-              GlassCircleButton(
-                icon: Icons.arrow_back_rounded,
-                tooltip: context.l10n.tooltipBack,
-                onTap: _close,
+          child: AppContentMax(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.md,
+                AppSpacing.screen,
+                AppSpacing.xxl,
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Text(
-                l10n.authTitle,
-                style: context.texts.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -1,
+              children: <Widget>[
+                GlassCircleButton(
+                  icon: Icons.arrow_back_rounded,
+                  tooltip: context.l10n.tooltipBack,
+                  onTap: _close,
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                l10n.authSubtitle,
-                style: context.texts.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              GlassContainer(
-                radius: AppRadii.lg,
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    if (_signUp) ...<Widget>[
-                      _Field(
-                        controller: _name,
-                        hint: l10n.yourName,
-                        icon: Icons.person_rounded,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
-                    _Field(
-                      controller: _email,
-                      hint: l10n.email,
-                      icon: Icons.alternate_email_rounded,
-                      keyboard: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _Field(
-                      controller: _password,
-                      hint: l10n.password,
-                      icon: Icons.lock_rounded,
-                      obscure: true,
-                    ),
-                    if (_error != null) ...<Widget>[
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        _error!,
-                        style: context.texts.bodySmall?.copyWith(
-                          color: AppColors.danger,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.xl),
-                    PrimaryButton(
-                      label: _signUp ? l10n.signUp : l10n.signIn,
-                      icon: Icons.login_rounded,
-                      isLoading: _busy,
-                      onPressed: _submit,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SecondaryButton(
-                      label: _signUp ? l10n.signIn : l10n.signUp,
-                      icon: Icons.person_add_alt_1_rounded,
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() {
-                              _signUp = !_signUp;
-                              _error = null;
-                            }),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SecondaryButton(
-                label: l10n.continueWithGoogle,
-                icon: Icons.g_mobiledata_rounded,
-                onPressed: _busy ? null : _google,
-              ),
-              if (googleKnownOff) ...<Widget>[
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.xl),
                 Text(
-                  l10n.googleUnavailable,
-                  textAlign: TextAlign.center,
-                  style: context.texts.labelSmall?.copyWith(
-                    color: AppColors.textTertiary,
+                  l10n.authTitle,
+                  style: context.texts.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1,
                   ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.authSubtitle,
+                  style: context.texts.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                GlassContainer(
+                  radius: AppRadii.lg,
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (_signUp) ...<Widget>[
+                        _Field(
+                          controller: _name,
+                          hint: l10n.yourName,
+                          icon: Icons.person_rounded,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                      _Field(
+                        controller: _email,
+                        hint: l10n.email,
+                        icon: Icons.alternate_email_rounded,
+                        keyboard: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _Field(
+                        controller: _password,
+                        hint: l10n.password,
+                        icon: Icons.lock_rounded,
+                        obscure: true,
+                      ),
+                      if (_error != null) ...<Widget>[
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          _error!,
+                          style: context.texts.bodySmall?.copyWith(
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl),
+                      PrimaryButton(
+                        label: _signUp ? l10n.signUp : l10n.signIn,
+                        icon: Icons.login_rounded,
+                        isLoading: _busy,
+                        onPressed: _submit,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SecondaryButton(
+                        label: _signUp ? l10n.signIn : l10n.signUp,
+                        icon: Icons.person_add_alt_1_rounded,
+                        onPressed: _busy
+                            ? null
+                            : () => setState(() {
+                                _signUp = !_signUp;
+                                _error = null;
+                              }),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SecondaryButton(
+                  label: l10n.continueWithGoogle,
+                  icon: Icons.g_mobiledata_rounded,
+                  onPressed: _busy ? null : _google,
+                ),
+                if (googleKnownOff) ...<Widget>[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.googleUnavailable,
+                    textAlign: TextAlign.center,
+                    style: context.texts.labelSmall?.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

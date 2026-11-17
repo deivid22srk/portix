@@ -13,6 +13,7 @@ import '../../models/home_feed.dart';
 import '../../models/search.dart';
 import '../../models/user_result.dart';
 import '../../shared/widgets/filter_sheet.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/profile_avatar.dart';
@@ -100,6 +101,47 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     ref.read(searchControllerProvider.notifier).applyFilters(result);
   }
 
+  /// Destrutivo nunca é sem volta: confirmação + undo (mesmo padrão do Hub).
+  Future<void> _confirmClearHistory(WidgetRef ref) async {
+    final L10n l10n = context.l10n;
+    final List<String> removed = ref.read(recentSearchesProvider);
+    if (removed.isEmpty) {
+      ref.read(recentSearchesProvider.notifier).clear();
+      return;
+    }
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialog) => AlertDialog(
+        title: Text(l10n.clearHistory),
+        content: Text(l10n.clearHistoryConfirm),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(true),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    ref.read(recentSearchesProvider.notifier).clear();
+    showAppSnackBar(
+      context,
+      message: l10n.historyCleared,
+      actionLabel: l10n.undo,
+      onAction: () =>
+          ref.read(recentSearchesProvider.notifier).restoreAll(removed),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
@@ -132,320 +174,334 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       backgroundColor: Colors.transparent,
       body: AppBackdrop(
         child: SafeArea(
-          child: CustomScrollView(
-            controller: _scroll,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            slivers: <Widget>[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.screen,
-                    AppSpacing.md,
-                    AppSpacing.screen,
-                    0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          GlassCircleButton(
-                            icon: Icons.arrow_back_rounded,
-                            tooltip: context.l10n.tooltipBack,
-                            onTap: _close,
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: GlassContainer(
-                              radius: AppRadii.pill,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              child: Row(
-                                children: <Widget>[
-                                  const Icon(
-                                    Icons.search_rounded,
-                                    size: 20,
-                                    color: AppColors.textTertiary,
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _text,
-                                      focusNode: _focus,
-                                      onChanged: (String value) => ref
-                                          .read(
-                                            searchControllerProvider.notifier,
-                                          )
-                                          .setQuery(value),
-                                      onSubmitted: _runQuery,
-                                      textInputAction: TextInputAction.search,
-                                      style: context.texts.bodyLarge?.copyWith(
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      cursorColor: AppColors.accent,
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        border: InputBorder.none,
-                                        hintText: l10n.searchHint,
-                                        hintStyle: context.texts.bodyMedium
-                                            ?.copyWith(
-                                              color: AppColors.textTertiary,
-                                            ),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              vertical: 14,
-                                            ),
-                                      ),
+          child: AppContentMax(
+            child: CustomScrollView(
+              controller: _scroll,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: <Widget>[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.screen,
+                      AppSpacing.md,
+                      AppSpacing.screen,
+                      0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: <Widget>[
+                            GlassCircleButton(
+                              icon: Icons.arrow_back_rounded,
+                              tooltip: context.l10n.tooltipBack,
+                              onTap: _close,
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: GlassContainer(
+                                radius: AppRadii.pill,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: Row(
+                                  children: <Widget>[
+                                    const Icon(
+                                      Icons.search_rounded,
+                                      size: 20,
+                                      color: AppColors.textTertiary,
                                     ),
-                                  ),
-                                  if (state.query.isNotEmpty)
-                                    Pressable(
-                                      onTap: () {
-                                        _text.clear();
-                                        ref
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _text,
+                                        focusNode: _focus,
+                                        onChanged: (String value) => ref
                                             .read(
                                               searchControllerProvider.notifier,
                                             )
-                                            .setQuery('');
-                                      },
-                                      child: const Padding(
-                                        padding: EdgeInsets.all(6),
-                                        child: Icon(
-                                          Icons.close_rounded,
-                                          size: 18,
-                                          color: AppColors.textTertiary,
+                                            .setQuery(value),
+                                        onSubmitted: _runQuery,
+                                        textInputAction: TextInputAction.search,
+                                        style: context.texts.bodyLarge
+                                            ?.copyWith(
+                                              color: AppColors.textPrimary,
+                                            ),
+                                        cursorColor: AppColors.accent,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          border: InputBorder.none,
+                                          hintText: l10n.searchHint,
+                                          hintStyle: context.texts.bodyMedium
+                                              ?.copyWith(
+                                                color: AppColors.textTertiary,
+                                              ),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                vertical: 14,
+                                              ),
                                         ),
                                       ),
                                     ),
-                                ],
+                                    if (state.query.isNotEmpty)
+                                      Pressable(
+                                        onTap: () {
+                                          _text.clear();
+                                          ref
+                                              .read(
+                                                searchControllerProvider
+                                                    .notifier,
+                                              )
+                                              .setQuery('');
+                                        },
+                                        child: const Padding(
+                                          padding: EdgeInsets.all(6),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 18,
+                                            color: AppColors.textTertiary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          GlassCircleButton(
-                            icon: Icons.tune_rounded,
-                            active: state.filters.activeCount > 0,
-                            tooltip: l10n.filters,
-                            onTap: () => _openFilters(state, facets),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      SegmentedControl<int>(
-                        items: <SegmentItem<int>>[
-                          SegmentItem<int>(
-                            value: 0,
-                            label: l10n.searchTabGames,
-                          ),
-                          SegmentItem<int>(
-                            value: 1,
-                            label: l10n.searchTabUsers,
-                          ),
-                        ],
-                        value: _mode,
-                        onChanged: (int value) => setState(() => _mode = value),
-                      ),
-                      if (state.filters.activeCount > 0) ...<Widget>[
+                            const SizedBox(width: AppSpacing.md),
+                            GlassCircleButton(
+                              icon: Icons.tune_rounded,
+                              active: state.filters.activeCount > 0,
+                              tooltip: l10n.filters,
+                              onTap: () => _openFilters(state, facets),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: AppSpacing.md),
-                        Wrap(
-                          spacing: 7,
-                          runSpacing: 7,
-                          children: _activeFilters(context, state, facets),
-                        ),
-                      ],
-                      if (state.query.isEmpty && recent.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: AppSpacing.xl),
-                        Row(
-                          children: <Widget>[
-                            const Icon(
-                              Icons.history_rounded,
-                              size: 15,
-                              color: AppColors.textTertiary,
+                        SegmentedControl<int>(
+                          items: <SegmentItem<int>>[
+                            SegmentItem<int>(
+                              value: 0,
+                              label: l10n.searchTabGames,
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                l10n.recentSearches,
-                                style: context.texts.labelMedium?.copyWith(
-                                  color: AppColors.textSecondary,
+                            SegmentItem<int>(
+                              value: 1,
+                              label: l10n.searchTabUsers,
+                            ),
+                          ],
+                          value: _mode,
+                          onChanged: (int value) =>
+                              setState(() => _mode = value),
+                        ),
+                        if (state.filters.activeCount > 0) ...<Widget>[
+                          const SizedBox(height: AppSpacing.md),
+                          Wrap(
+                            spacing: 7,
+                            runSpacing: 7,
+                            children: _activeFilters(context, state, facets),
+                          ),
+                        ],
+                        if (state.query.isEmpty &&
+                            recent.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: AppSpacing.xl),
+                          Row(
+                            children: <Widget>[
+                              const Icon(
+                                Icons.history_rounded,
+                                size: 15,
+                                color: AppColors.textTertiary,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  l10n.recentSearches,
+                                  style: context.texts.labelMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Pressable(
-                              onTap: () => ref
-                                  .read(recentSearchesProvider.notifier)
-                                  .clear(),
-                              child: Text(
-                                l10n.clearHistory,
-                                style: context.texts.labelSmall?.copyWith(
-                                  color: AppColors.accent,
+                              Pressable(
+                                onTap: () => _confirmClearHistory(ref),
+                                child: Text(
+                                  l10n.clearHistory,
+                                  style: context.texts.labelSmall?.copyWith(
+                                    color: AppColors.accent,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.sm,
-                          children: <Widget>[
-                            for (final String term in recent)
-                              AppPill(
-                                label: term,
-                                dense: true,
-                                onTap: () => _runQuery(term),
-                              ),
-                          ],
-                        ),
-                      ],
-                      if (state.query.isEmpty &&
-                          facets.genres.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: AppSpacing.xl),
-                        Row(
-                          children: <Widget>[
-                            const Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 15,
-                              color: AppColors.accent,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                l10n.sectionGenres,
-                                style: context.texts.labelMedium?.copyWith(
-                                  color: AppColors.textSecondary,
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.sm,
+                            children: <Widget>[
+                              for (final String term in recent)
+                                AppPill(
+                                  label: term,
+                                  dense: true,
+                                  onTap: () => _runQuery(term),
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.sm,
-                          children: <Widget>[
-                            for (final GenreInfo genre in facets.genres.take(8))
-                              AppPill(
-                                label: genre.name,
-                                dense: true,
-                                onTap: () => ref
-                                    .read(searchControllerProvider.notifier)
-                                    .applyFilters(
-                                      state.filters.copyWith(genre: genre.name),
-                                    ),
-                              ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.lg),
-                    ],
-                  ),
-                ),
-              ),
-              if (_mode == 0 && state.isInitialLoading)
-                const SliverToBoxAdapter(child: SearchSkeleton()),
-              if (_mode == 0 &&
-                  state.status == SearchStatus.error &&
-                  state.items.isEmpty)
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 380,
-                    child: ErrorStateView(
-                      message: context.failureText(state.error),
-                      retryLabel: l10n.tryAgain,
-                      onRetry: () =>
-                          ref.read(searchControllerProvider.notifier).refresh(),
-                    ),
-                  ),
-                ),
-              if (_mode == 0 && state.status == SearchStatus.empty)
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 380,
-                    child: EmptyState(
-                      icon: Icons.search_off_rounded,
-                      title: l10n.noResultsTitle,
-                      body: l10n.noResultsBody,
-                      actionLabel: state.filters.isDefault ? null : l10n.reset,
-                      actionIcon: Icons.filter_alt_off_rounded,
-                      onAction: state.filters.isDefault
-                          ? null
-                          : () => ref
-                                .read(searchControllerProvider.notifier)
-                                .resetFilters(),
-                    ),
-                  ),
-                ),
-              if (_mode == 0 && state.items.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.screen + 2,
-                      0,
-                      AppSpacing.screen,
-                      AppSpacing.md,
-                    ),
-                    child: Text(
-                      l10n.resultsCount(state.total),
-                      style: context.texts.labelMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-                ResponsiveCoverGrid(
-                  itemBuilder: (BuildContext context, int index) {
-                    final Game game = state.items[index];
-                    return RevealOnMount(
-                      index: index,
-                      child: GameCard(game: game, heroTag: 'search-${game.id}'),
-                    );
-                  },
-                  itemCount: state.items.length,
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.screen,
-                      AppSpacing.xl,
-                      AppSpacing.screen,
-                      context.systemBottomInset + AppSpacing.xxl,
-                    ),
-                    child: Center(
-                      child: state.isLoadingMore
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                            ],
+                          ),
+                        ],
+                        if (state.query.isEmpty &&
+                            facets.genres.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: AppSpacing.xl),
+                          Row(
+                            children: <Widget>[
+                              const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 15,
                                 color: AppColors.accent,
                               ),
-                            )
-                          : state.hasMore
-                          ? SecondaryButton(
-                              label: l10n.seeAll,
-                              icon: Icons.expand_more_rounded,
-                              expand: false,
-                              onPressed: () => ref
-                                  .read(searchControllerProvider.notifier)
-                                  .loadMore(),
-                            )
-                          : Text(
-                              '— PORTIX —',
-                              style: context.texts.labelSmall?.copyWith(
-                                color: AppColors.textTertiary,
-                                letterSpacing: 3,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  l10n.sectionGenres,
+                                  style: context.texts.labelMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.sm,
+                            children: <Widget>[
+                              for (final GenreInfo genre in facets.genres.take(
+                                8,
+                              ))
+                                AppPill(
+                                  label: genre.name,
+                                  dense: true,
+                                  onTap: () => ref
+                                      .read(searchControllerProvider.notifier)
+                                      .applyFilters(
+                                        state.filters.copyWith(
+                                          genre: genre.name,
+                                        ),
+                                      ),
+                                ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
                     ),
                   ),
                 ),
+                if (_mode == 0 && state.isInitialLoading)
+                  const SliverToBoxAdapter(child: SearchSkeleton()),
+                if (_mode == 0 &&
+                    state.status == SearchStatus.error &&
+                    state.items.isEmpty)
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 380,
+                      child: ErrorStateView(
+                        message: context.failureText(state.error),
+                        retryLabel: l10n.tryAgain,
+                        onRetry: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .refresh(),
+                      ),
+                    ),
+                  ),
+                if (_mode == 0 && state.status == SearchStatus.empty)
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 380,
+                      child: EmptyState(
+                        icon: Icons.search_off_rounded,
+                        title: l10n.noResultsTitle,
+                        body: l10n.noResultsBody,
+                        actionLabel: state.filters.isDefault
+                            ? null
+                            : l10n.reset,
+                        actionIcon: Icons.filter_alt_off_rounded,
+                        onAction: state.filters.isDefault
+                            ? null
+                            : () => ref
+                                  .read(searchControllerProvider.notifier)
+                                  .resetFilters(),
+                      ),
+                    ),
+                  ),
+                if (_mode == 0 && state.items.isNotEmpty) ...<Widget>[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.screen + 2,
+                        0,
+                        AppSpacing.screen,
+                        AppSpacing.md,
+                      ),
+                      child: Text(
+                        l10n.resultsCount(state.total),
+                        style: context.texts.labelMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ResponsiveCoverGrid(
+                    itemBuilder: (BuildContext context, int index) {
+                      final Game game = state.items[index];
+                      return RevealOnMount(
+                        index: index,
+                        child: GameCard(
+                          game: game,
+                          heroTag: 'search-${game.id}',
+                        ),
+                      );
+                    },
+                    itemCount: state.items.length,
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.screen,
+                        AppSpacing.xl,
+                        AppSpacing.screen,
+                        context.systemBottomInset + AppSpacing.xxl,
+                      ),
+                      child: Center(
+                        child: state.isLoadingMore
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.accent,
+                                ),
+                              )
+                            : state.hasMore
+                            ? SecondaryButton(
+                                label: l10n.seeAll,
+                                icon: Icons.expand_more_rounded,
+                                expand: false,
+                                onPressed: () => ref
+                                    .read(searchControllerProvider.notifier)
+                                    .loadMore(),
+                              )
+                            : Text(
+                                '— PORTIX —',
+                                style: context.texts.labelSmall?.copyWith(
+                                  color: AppColors.textTertiary,
+                                  letterSpacing: 3,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (_mode == 1) _UsersResults(query: _usersQuery),
               ],
-              if (_mode == 1) _UsersResults(query: _usersQuery),
-            ],
+            ),
           ),
         ),
       ),

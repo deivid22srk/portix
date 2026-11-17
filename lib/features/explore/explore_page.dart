@@ -118,7 +118,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 44,
+                  height: 48,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(

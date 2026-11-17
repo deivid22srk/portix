@@ -15,6 +15,7 @@ import '../../models/download_task.dart';
 import '../../models/profile.dart';
 import '../../shared/widgets/admin_crown.dart';
 import '../../shared/widgets/app_mark.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import '../collections/collections_controller.dart';
@@ -26,19 +27,33 @@ class MenuPage extends ConsumerWidget {
   const MenuPage({super.key});
 
   void _snack(BuildContext context, String message) {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.bgElevated,
-        margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
-        ),
+    // Padrão único do app — ver showAppSnackBar (app_snackbar.dart).
+    showAppSnackBar(context, message: message);
+  }
+
+  /// Destrutivo nunca é sem volta: confirmação antes de sair da conta.
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final L10n l10n = context.l10n;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialog) => AlertDialog(
+        title: Text(l10n.signOut),
+        content: Text(l10n.signOutConfirm),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialog).pop(true),
+            child: Text(l10n.confirm),
+          ),
+        ],
       ),
     );
+    if (ok == true && context.mounted) {
+      await ref.read(accountProvider.notifier).signOut();
+    }
   }
 
   Future<void> _reload(BuildContext context, WidgetRef ref) async {
@@ -92,347 +107,353 @@ class MenuPage extends ConsumerWidget {
 
     return SafeArea(
       bottom: false,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.screen,
-                AppSpacing.lg,
-                AppSpacing.screen,
-                context.bottomChromePadding,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    l10n.menuTitle,
-                    style: context.texts.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -1,
+      child: AppContentMax(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  AppSpacing.lg,
+                  AppSpacing.screen,
+                  context.bottomChromePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.menuTitle,
+                      style: context.texts.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  GlassContainer(
-                    radius: AppRadii.lg,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 62,
-                          height: 62,
-                          child: GameCover(
-                            imageUrl: profile.coverUrl,
-                            title: profile.displayName,
-                            memWidth: 180,
-                            borderRadius: AppRadii.md,
+                    const SizedBox(height: AppSpacing.lg),
+                    GlassContainer(
+                      radius: AppRadii.lg,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 62,
+                            height: 62,
+                            child: GameCover(
+                              imageUrl: profile.coverUrl,
+                              title: profile.displayName,
+                              memWidth: 180,
+                              borderRadius: AppRadii.md,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                profile.displayName,
-                                style: context.texts.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              if (profile.handle != null) ...<Widget>[
-                                const SizedBox(height: 2),
+                          const SizedBox(width: AppSpacing.lg),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
                                 Text(
-                                  '@${profile.handle}',
-                                  style: context.texts.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
+                                  profile.displayName,
+                                  style: context.texts.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ],
-                              if (adminLevel != null) ...<Widget>[
-                                const SizedBox(height: 4),
-                                AdminBadge(level: adminLevel),
-                              ],
-                              const SizedBox(height: 3),
-                              Row(
-                                children: <Widget>[
-                                  Icon(
-                                    account.isSignedIn
-                                        ? Icons.verified_rounded
-                                        : Icons.lock_rounded,
-                                    size: 12,
-                                    color: account.isSignedIn
-                                        ? AppColors.accent
-                                        : AppColors.success,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      account.isSignedIn
-                                          ? l10n.accountSection
-                                          : l10n.guestLabel,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: context.texts.labelSmall?.copyWith(
-                                        color: account.isSignedIn
-                                            ? AppColors.accent
-                                            : AppColors.success,
-                                      ),
+                                if (profile.handle != null) ...<Widget>[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '@${profile.handle}',
+                                    style: context.texts.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
                                     ),
                                   ),
                                 ],
+                                if (adminLevel != null) ...<Widget>[
+                                  const SizedBox(height: 4),
+                                  AdminBadge(level: adminLevel),
+                                ],
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: <Widget>[
+                                    Icon(
+                                      account.isSignedIn
+                                          ? Icons.verified_rounded
+                                          : Icons.lock_rounded,
+                                      size: 12,
+                                      color: account.isSignedIn
+                                          ? AppColors.accent
+                                          : AppColors.success,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        account.isSignedIn
+                                            ? l10n.accountSection
+                                            : l10n.guestLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: context.texts.labelSmall
+                                            ?.copyWith(
+                                              color: account.isSignedIn
+                                                  ? AppColors.accent
+                                                  : AppColors.success,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    if (account.isSignedIn)
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: SecondaryButton(
+                              label: l10n.editProfile,
+                              icon: Icons.edit_rounded,
+                              onPressed: () =>
+                                  context.push<Object?>('/profile/edit'),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          SecondaryButton(
+                            label: l10n.signOut,
+                            icon: Icons.logout_rounded,
+                            expand: false,
+                            onPressed: () => _confirmSignOut(context, ref),
+                          ),
+                        ],
+                      )
+                    else
+                      PrimaryButton(
+                        label: '${l10n.signIn} / ${l10n.signUp}',
+                        icon: Icons.login_rounded,
+                        onPressed: () => context.push<Object?>('/auth'),
+                      ),
+                    const SizedBox(height: AppSpacing.md),
+                    GlassContainer(
+                      radius: AppRadii.lg,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.lg,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: _MenuStat(
+                              value: collections.favorites.length.toString(),
+                              label: l10n.hubFavorites,
+                            ),
+                          ),
+                          const _MenuDivider(),
+                          Expanded(
+                            child: _MenuStat(
+                              value: collections.library.length.toString(),
+                              label: l10n.hubInstalled,
+                            ),
+                          ),
+                          const _MenuDivider(),
+                          Expanded(
+                            child: _MenuStat(
+                              value: downloads.toString(),
+                              label: l10n.hubDownloads,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _SectionLabel(l10n.activity),
+                    const SizedBox(height: AppSpacing.md),
+                    SectionTile(
+                      icon: Icons.layers_rounded,
+                      label: l10n.hubTitle,
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: AppColors.textTertiary,
+                      ),
+                      onTap: () => context.go('/hub'),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _SectionLabel(l10n.appearanceSection),
+                    const SizedBox(height: AppSpacing.md),
+                    GlassContainer(
+                      radius: AppRadii.lg,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            l10n.language,
+                            style: context.texts.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          SegmentedControl<String>(
+                            items: const <SegmentItem<String>>[
+                              SegmentItem<String>(
+                                value: 'pt',
+                                label: 'Português (BR)',
+                              ),
+                              SegmentItem<String>(
+                                value: 'en',
+                                label: 'English',
+                              ),
+                            ],
+                            value: settings.locale.languageCode,
+                            onChanged: (String code) => ref
+                                .read(settingsProvider.notifier)
+                                .setLocale(
+                                  code == 'en'
+                                      ? const Locale('en')
+                                      : const Locale('pt', 'BR'),
+                                ),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      l10n.notifications,
+                                      style: context.texts.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      l10n.notificationsHint,
+                                      style: context.texts.labelSmall?.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              AppToggle(
+                                value: settings.notifications,
+                                semanticLabel: l10n.notifications,
+                                onChanged: (bool value) => ref
+                                    .read(settingsProvider.notifier)
+                                    .setNotifications(value),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (account.isSignedIn)
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: SecondaryButton(
-                            label: l10n.editProfile,
-                            icon: Icons.edit_rounded,
-                            onPressed: () =>
-                                context.push<Object?>('/profile/edit'),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        SecondaryButton(
-                          label: l10n.signOut,
-                          icon: Icons.logout_rounded,
-                          expand: false,
-                          onPressed: () =>
-                              ref.read(accountProvider.notifier).signOut(),
-                        ),
-                      ],
-                    )
-                  else
-                    PrimaryButton(
-                      label: '${l10n.signIn} / ${l10n.signUp}',
-                      icon: Icons.login_rounded,
-                      onPressed: () => context.push<Object?>('/auth'),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _SectionLabel(l10n.dataSection),
+                    const SizedBox(height: AppSpacing.md),
+                    SectionTile(
+                      icon: Icons.sync_rounded,
+                      label: l10n.reloadCatalog,
+                      onTap: () => _reload(context, ref),
                     ),
-                  const SizedBox(height: AppSpacing.md),
-                  GlassContainer(
-                    radius: AppRadii.lg,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.lg,
+                    const SizedBox(height: AppSpacing.sm),
+                    SectionTile(
+                      icon: Icons.cleaning_services_rounded,
+                      label: l10n.clearCache,
+                      onTap: () => _clearCache(context, ref),
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: _MenuStat(
-                            value: collections.favorites.length.toString(),
-                            label: l10n.hubFavorites,
-                          ),
-                        ),
-                        const _MenuDivider(),
-                        Expanded(
-                          child: _MenuStat(
-                            value: collections.library.length.toString(),
-                            label: l10n.hubInstalled,
-                          ),
-                        ),
-                        const _MenuDivider(),
-                        Expanded(
-                          child: _MenuStat(
-                            value: downloads.toString(),
-                            label: l10n.hubDownloads,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionLabel(l10n.activity),
-                  const SizedBox(height: AppSpacing.md),
-                  SectionTile(
-                    icon: Icons.layers_rounded,
-                    label: l10n.hubTitle,
-                    trailing: const Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: AppColors.textTertiary,
-                    ),
-                    onTap: () => context.go('/hub'),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionLabel(l10n.appearanceSection),
-                  const SizedBox(height: AppSpacing.md),
-                  GlassContainer(
-                    radius: AppRadii.lg,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          l10n.language,
-                          style: context.texts.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        SegmentedControl<String>(
-                          items: const <SegmentItem<String>>[
-                            SegmentItem<String>(
-                              value: 'pt',
-                              label: 'Português (BR)',
-                            ),
-                            SegmentItem<String>(value: 'en', label: 'English'),
-                          ],
-                          value: settings.locale.languageCode,
-                          onChanged: (String code) => ref
-                              .read(settingsProvider.notifier)
-                              .setLocale(
-                                code == 'en'
-                                    ? const Locale('en')
-                                    : const Locale('pt', 'BR'),
-                              ),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    l10n.notifications,
-                                    style: context.texts.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: AppSpacing.xxl),
+                    _SectionLabel(l10n.about),
+                    const SizedBox(height: AppSpacing.md),
+                    GlassContainer(
+                      radius: AppRadii.lg,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              const PortixMark(size: 44),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      l10n.appName,
+                                      style: context.texts.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 3,
+                                          ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    l10n.notificationsHint,
-                                    style: context.texts.labelSmall?.copyWith(
-                                      color: AppColors.textSecondary,
+                                    Text(
+                                      l10n.tagline,
+                                      style: context.texts.labelSmall?.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            AppToggle(
-                              value: settings.notifications,
-                              semanticLabel: l10n.notifications,
-                              onChanged: (bool value) => ref
-                                  .read(settingsProvider.notifier)
-                                  .setNotifications(value),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionLabel(l10n.dataSection),
-                  const SizedBox(height: AppSpacing.md),
-                  SectionTile(
-                    icon: Icons.sync_rounded,
-                    label: l10n.reloadCatalog,
-                    onTap: () => _reload(context, ref),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  SectionTile(
-                    icon: Icons.cleaning_services_rounded,
-                    label: l10n.clearCache,
-                    onTap: () => _clearCache(context, ref),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionLabel(l10n.about),
-                  const SizedBox(height: AppSpacing.md),
-                  GlassContainer(
-                    radius: AppRadii.lg,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            const PortixMark(size: 44),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    l10n.appName,
-                                    style: context.texts.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 3,
-                                    ),
-                                  ),
-                                  Text(
-                                    l10n.tagline,
-                                    style: context.texts.labelSmall?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              'v$kAppVersion',
-                              style: context.texts.labelSmall?.copyWith(
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        Text(
-                          l10n.dataSource,
-                          style: context.texts.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: <Widget>[
-                            const Icon(
-                              Icons.code_rounded,
-                              size: 14,
-                              color: AppColors.accent,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                l10n.madeWith,
-                                style: context.texts.labelSmall?.copyWith(
-                                  color: AppColors.textSecondary,
+                                  ],
                                 ),
                               ),
+                              Text(
+                                'v$kAppVersion',
+                                style: context.texts.labelSmall?.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Text(
+                            l10n.dataSource,
+                            style: context.texts.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Row(
+                            children: <Widget>[
+                              const Icon(
+                                Icons.code_rounded,
+                                size: 14,
+                                color: AppColors.accent,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  l10n.madeWith,
+                                  style: context.texts.labelSmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _SectionLabel(l10n.legalSection),
-                  const SizedBox(height: AppSpacing.md),
-                  SectionTile(
-                    icon: Icons.description_outlined,
-                    label: l10n.termsOfUse,
-                    onTap: () => _openLegal(context, kTermsUrl),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  SectionTile(
-                    icon: Icons.privacy_tip_outlined,
-                    label: l10n.privacyPolicy,
-                    onTap: () => _openLegal(context, kPrivacyUrl),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.xxl),
+                    _SectionLabel(l10n.legalSection),
+                    const SizedBox(height: AppSpacing.md),
+                    SectionTile(
+                      icon: Icons.description_outlined,
+                      label: l10n.termsOfUse,
+                      onTap: () => _openLegal(context, kTermsUrl),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SectionTile(
+                      icon: Icons.privacy_tip_outlined,
+                      label: l10n.privacyPolicy,
+                      onTap: () => _openLegal(context, kPrivacyUrl),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

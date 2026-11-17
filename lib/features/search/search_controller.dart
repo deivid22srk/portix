@@ -86,6 +86,12 @@ class RecentSearchesNotifier extends Notifier<List<String>> {
     state = const <String>[];
     unawaited(ref.read(sharedPreferencesProvider).remove(_key));
   }
+
+  /// Restaura um conjunto anterior de buscas (undo do "limpar histórico").
+  void restoreAll(List<String> entries) {
+    state = List<String>.unmodifiable(entries);
+    unawaited(ref.read(sharedPreferencesProvider).setStringList(_key, entries));
+  }
 }
 
 class SearchController extends Notifier<SearchState> {

@@ -12,6 +12,7 @@ import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/glass_header.dart';
 import '../../shared/widgets/hero_carousel.dart';
 import '../../shared/widgets/primitives.dart';
+import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
 import '../search/search_controller.dart';
 import 'home_controller.dart';
@@ -117,7 +118,6 @@ class HomePage extends ConsumerWidget {
                   label: l10n.explore,
                   icon: Icons.explore_rounded,
                   expand: false,
-                  height: 44,
                   onPressed: () => context.go('/explore'),
                 ),
               ],
@@ -378,7 +378,11 @@ class _GameGrid extends StatelessWidget {
     return ResponsiveCoverGrid(
       itemBuilder: (BuildContext context, int index) {
         final Game game = games[index];
-        return GameCard(game: game, heroTag: '$prefix-${game.id}');
+        // Mesma entrada escalonada das telas irmãs (explore/search/hub).
+        return RevealOnMount(
+          index: index,
+          child: GameCard(game: game, heroTag: '$prefix-${game.id}'),
+        );
       },
       itemCount: games.length,
     );

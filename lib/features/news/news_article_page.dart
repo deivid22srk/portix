@@ -62,117 +62,119 @@ class NewsArticlePage extends ConsumerWidget {
       body: AppBackdrop(
         child: SafeArea(
           bottom: false,
-          child: item == null
-              ? _MissingArticle(
-                  loading: async.isLoading,
-                  message: async.hasError
-                      ? context.failureText(async.error)
-                      : l10n.newsEmpty,
-                  retryLabel: l10n.tryAgain,
-                  onRetry: () => ref.invalidate(newsArticleProvider(slug)),
-                  onBack: () => _back(context),
-                )
-              : ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.screen,
-                    AppSpacing.md,
-                    AppSpacing.screen,
-                    context.systemBottomInset + AppSpacing.xxl,
-                  ),
-                  children: <Widget>[
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: GlassCircleButton(
-                        icon: Icons.arrow_back_rounded,
-                        tooltip: context.l10n.tooltipBack,
-                        onTap: () => _back(context),
-                      ),
+          child: AppContentMax(
+            child: item == null
+                ? _MissingArticle(
+                    loading: async.isLoading,
+                    message: async.hasError
+                        ? context.failureText(async.error)
+                        : l10n.newsEmpty,
+                    retryLabel: l10n.tryAgain,
+                    onRetry: () => ref.invalidate(newsArticleProvider(slug)),
+                    onBack: () => _back(context),
+                  )
+                : ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.screen,
+                      AppSpacing.md,
+                      AppSpacing.screen,
+                      context.systemBottomInset + AppSpacing.xxl,
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: NewsCover(item: item, memWidth: 1400),
+                    children: <Widget>[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: GlassCircleButton(
+                          icon: Icons.arrow_back_rounded,
+                          tooltip: context.l10n.tooltipBack,
+                          onTap: () => _back(context),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      item.category.toUpperCase(),
-                      style: context.texts.labelSmall?.copyWith(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.4,
+                      const SizedBox(height: AppSpacing.lg),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: NewsCover(item: item, memWidth: 1400),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.title,
-                      style: context.texts.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        height: 1.15,
+                      const SizedBox(height: AppSpacing.xl),
+                      Text(
+                        item.category.toUpperCase(),
+                        style: context.texts.labelSmall?.copyWith(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
+                        ),
                       ),
-                    ),
-                    if (item.titleOriginal != null) ...<Widget>[
                       const SizedBox(height: 6),
                       Text(
-                        item.titleOriginal!,
-                        style: context.texts.bodySmall?.copyWith(
-                          color: AppColors.textTertiary,
-                          fontStyle: FontStyle.italic,
+                        item.title,
+                        style: context.texts.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.15,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.md),
-                    _ArticleMeta(item: item, l10n: l10n),
-                    if (item.summary.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: AppSpacing.xl),
-                      Text(
-                        item.summary,
-                        style: context.texts.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.55,
+                      if (item.titleOriginal != null) ...<Widget>[
+                        const SizedBox(height: 6),
+                        Text(
+                          item.titleOriginal!,
+                          style: context.texts.bodySmall?.copyWith(
+                            color: AppColors.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
-                      ),
-                    ],
-                    if (item.keyPoints.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: AppSpacing.xl),
-                      GlassContainer(
-                        radius: AppRadii.lg,
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              l10n.keyPointsTitle,
-                              style: context.texts.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            for (final String point in item.keyPoints)
-                              _KeyPoint(text: point),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.xl),
-                    if (item.sourceUrl != null)
-                      PrimaryButton(
-                        label: l10n.readOnSource,
-                        icon: Icons.open_in_new_rounded,
-                        onPressed: () => _open(item.sourceUrl),
-                      ),
-                    if (item.projectUrl != null) ...<Widget>[
+                      ],
                       const SizedBox(height: AppSpacing.md),
-                      SecondaryButton(
-                        label: l10n.viewProject,
-                        icon: Icons.code_rounded,
-                        onPressed: () => _open(item.projectUrl),
-                      ),
+                      _ArticleMeta(item: item, l10n: l10n),
+                      if (item.summary.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          item.summary,
+                          style: context.texts.bodyLarge?.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.55,
+                          ),
+                        ),
+                      ],
+                      if (item.keyPoints.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xl),
+                        GlassContainer(
+                          radius: AppRadii.lg,
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                l10n.keyPointsTitle,
+                                style: context.texts.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              for (final String point in item.keyPoints)
+                                _KeyPoint(text: point),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl),
+                      if (item.sourceUrl != null)
+                        PrimaryButton(
+                          label: l10n.readOnSource,
+                          icon: Icons.open_in_new_rounded,
+                          onPressed: () => _open(item.sourceUrl),
+                        ),
+                      if (item.projectUrl != null) ...<Widget>[
+                        const SizedBox(height: AppSpacing.md),
+                        SecondaryButton(
+                          label: l10n.viewProject,
+                          icon: Icons.code_rounded,
+                          onPressed: () => _open(item.projectUrl),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
+          ),
         ),
       ),
     );

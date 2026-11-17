@@ -106,7 +106,6 @@ class _FilterSheetState extends State<_FilterSheet> {
                     SecondaryButton(
                       label: l10n.reset,
                       expand: false,
-                      height: 40,
                       onPressed: _reset,
                     ),
                   ],

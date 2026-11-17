@@ -24,6 +24,7 @@ import '../../models/compat_summary.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../models/game_detail.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/feedback_report_row.dart';
 import '../../shared/widgets/primitives.dart';
@@ -120,25 +121,12 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     String? actionLabel,
     VoidCallback? onAction,
   }) {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.bgElevated,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
-        ),
-        action: actionLabel == null
-            ? null
-            : SnackBarAction(
-                label: actionLabel,
-                textColor: AppColors.accent,
-                onPressed: onAction ?? () {},
-              ),
-      ),
+    // Padrão único do app (posição acima da barra de vidro, cor, duração).
+    showAppSnackBar(
+      context,
+      message: message,
+      actionLabel: actionLabel,
+      onAction: onAction,
     );
   }
 
@@ -435,32 +423,34 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       backgroundColor: Colors.transparent,
       body: AppBackdrop(
         child: SafeArea(
-          child: Stack(
-            children: <Widget>[
-              Positioned(
-                left: AppSpacing.md,
-                top: AppSpacing.sm,
-                child: GlassCircleButton(
-                  icon: Icons.arrow_back_rounded,
-                  tooltip: context.l10n.tooltipBack,
-                  onTap: _back,
+          child: AppContentMax(
+            child: Stack(
+              children: <Widget>[
+                Positioned(
+                  left: AppSpacing.md,
+                  top: AppSpacing.sm,
+                  child: GlassCircleButton(
+                    icon: Icons.arrow_back_rounded,
+                    tooltip: context.l10n.tooltipBack,
+                    onTap: _back,
+                  ),
                 ),
-              ),
-              if (async.hasError)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                  ),
-                  child: ErrorStateView(
-                    message: context.failureText(async.error),
-                    retryLabel: context.l10n.tryAgain,
-                    onRetry: () =>
-                        ref.invalidate(gameDetailProvider(widget.slug)),
-                  ),
-                )
-              else
-                const _DetailSkeleton(),
-            ],
+                if (async.hasError)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                    ),
+                    child: ErrorStateView(
+                      message: context.failureText(async.error),
+                      retryLabel: context.l10n.tryAgain,
+                      onRetry: () =>
+                          ref.invalidate(gameDetailProvider(widget.slug)),
+                    ),
+                  )
+                else
+                  const _DetailSkeleton(),
+              ],
+            ),
           ),
         ),
       ),
@@ -536,225 +526,226 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           ),
           SafeArea(
             bottom: false,
-            child: CustomScrollView(
-              controller: _scroll,
-              physics: const BouncingScrollPhysics(),
-              slivers: <Widget>[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.screen,
-                      AppSpacing.md,
-                      AppSpacing.screen,
-                      0,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        GlassCircleButton(
-                          icon: Icons.arrow_back_rounded,
-                          tooltip: context.l10n.tooltipBack,
-                          onTap: _back,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        _Header(game: game, heroTag: widget.heroTag),
-                        const SizedBox(height: AppSpacing.lg),
-                        _Chips(game: game),
-                        const SizedBox(height: AppSpacing.lg),
-                        if (task != null &&
-                            task.status ==
-                                DownloadStatus.downloading) ...<Widget>[
-                          GradientProgress(value: task.progress),
+            child: AppContentMax(
+              child: CustomScrollView(
+                controller: _scroll,
+                physics: const BouncingScrollPhysics(),
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.screen,
+                        AppSpacing.md,
+                        AppSpacing.screen,
+                        0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          GlassCircleButton(
+                            icon: Icons.arrow_back_rounded,
+                            tooltip: context.l10n.tooltipBack,
+                            onTap: _back,
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _Header(game: game, heroTag: widget.heroTag),
+                          const SizedBox(height: AppSpacing.lg),
+                          _Chips(game: game),
+                          const SizedBox(height: AppSpacing.lg),
+                          if (task != null &&
+                              task.status ==
+                                  DownloadStatus.downloading) ...<Widget>[
+                            GradientProgress(value: task.progress),
+                            const SizedBox(height: AppSpacing.md),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: SecondaryButton(
+                                    label: l10n.pause,
+                                    icon: Icons.pause_rounded,
+                                    onPressed: () => ref
+                                        .read(downloadsProvider.notifier)
+                                        .pause(game.id),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: SecondaryButton(
+                                    label: l10n.cancel,
+                                    icon: Icons.close_rounded,
+                                    onPressed: () => ref
+                                        .read(downloadsProvider.notifier)
+                                        .cancel(game.id),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else if (task != null &&
+                              task.status == DownloadStatus.paused)
+                            PrimaryButton(
+                              label: l10n.continueAction,
+                              icon: Icons.play_arrow_rounded,
+                              onPressed: () => ref
+                                  .read(downloadsProvider.notifier)
+                                  .resume(game.id),
+                            )
+                          else
+                            PrimaryButton(
+                              label: installLabel,
+                              icon: installIcon,
+                              onPressed: () => _install(detail),
+                            ),
+                          const SizedBox(height: AppSpacing.md),
+                          SecondaryButton(
+                            label: inLibrary
+                                ? l10n.inLibrary
+                                : l10n.installedAction,
+                            icon: inLibrary
+                                ? Icons.check_rounded
+                                : Icons.download_done_rounded,
+                            active: inLibrary,
+                            onPressed: () => _toggleLibrary(detail),
+                          ),
                           const SizedBox(height: AppSpacing.md),
                           Row(
                             children: <Widget>[
                               Expanded(
-                                child: SecondaryButton(
-                                  label: l10n.pause,
-                                  icon: Icons.pause_rounded,
-                                  onPressed: () => ref
-                                      .read(downloadsProvider.notifier)
-                                      .pause(game.id),
+                                child: _FavoritePill(
+                                  active: favorite,
+                                  label: l10n.favoriteTooltip,
+                                  onTap: () => _toggleFavorite(detail),
                                 ),
                               ),
                               const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: SecondaryButton(
-                                  label: l10n.cancel,
-                                  icon: Icons.close_rounded,
-                                  onPressed: () => ref
-                                      .read(downloadsProvider.notifier)
-                                      .cancel(game.id),
-                                ),
+                              GlassCircleButton(
+                                icon: Icons.ios_share_rounded,
+                                size: AppSpacing.secondaryButtonHeight,
+                                tooltip: l10n.share,
+                                onTap: () => _share(detail),
                               ),
                             ],
                           ),
-                        ] else if (task != null &&
-                            task.status == DownloadStatus.paused)
-                          PrimaryButton(
-                            label: l10n.continueAction,
-                            icon: Icons.play_arrow_rounded,
-                            onPressed: () => ref
-                                .read(downloadsProvider.notifier)
-                                .resume(game.id),
-                          )
-                        else
-                          PrimaryButton(
-                            label: installLabel,
-                            icon: installIcon,
-                            onPressed: () => _install(detail),
-                          ),
-                        const SizedBox(height: AppSpacing.md),
-                        SecondaryButton(
-                          label: inLibrary
-                              ? l10n.inLibrary
-                              : l10n.installedAction,
-                          icon: inLibrary
-                              ? Icons.check_rounded
-                              : Icons.download_done_rounded,
-                          active: inLibrary,
-                          onPressed: () => _toggleLibrary(detail),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: _FavoritePill(
-                                active: favorite,
-                                label: l10n.favoriteTooltip,
-                                onTap: () => _toggleFavorite(detail),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            GlassCircleButton(
-                              icon: Icons.ios_share_rounded,
-                              size: AppSpacing.secondaryButtonHeight,
-                              tooltip: l10n.share,
-                              onTap: () => _share(detail),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        _BlockTitle(title: l10n.descriptionTitle),
-                        const SizedBox(height: AppSpacing.md),
-                        GlassContainer(
-                          radius: AppRadii.lg,
-                          padding: const EdgeInsets.all(AppSpacing.xl),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                game.description.isEmpty
-                                    ? l10n.notInformed
-                                    : game.description,
-                                maxLines: _expandedDescription ? null : 5,
-                                overflow: _expandedDescription
-                                    ? TextOverflow.visible
-                                    : TextOverflow.ellipsis,
-                                style: context.texts.bodyMedium?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              if (longDescription) ...<Widget>[
-                                const SizedBox(height: AppSpacing.sm),
-                                Pressable(
-                                  onTap: () => setState(
-                                    () => _expandedDescription =
-                                        !_expandedDescription,
+                          const SizedBox(height: AppSpacing.xxl),
+                          _BlockTitle(title: l10n.descriptionTitle),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassContainer(
+                            radius: AppRadii.lg,
+                            padding: const EdgeInsets.all(AppSpacing.xl),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  game.description.isEmpty
+                                      ? l10n.notInformed
+                                      : game.description,
+                                  maxLines: _expandedDescription ? null : 5,
+                                  overflow: _expandedDescription
+                                      ? TextOverflow.visible
+                                      : TextOverflow.ellipsis,
+                                  style: context.texts.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
                                   ),
-                                  child: Text(
-                                    _expandedDescription
-                                        ? l10n.readLess
-                                        : l10n.readMore,
-                                    style: context.texts.labelMedium?.copyWith(
-                                      color: AppColors.accent,
+                                ),
+                                if (longDescription) ...<Widget>[
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Pressable(
+                                    onTap: () => setState(
+                                      () => _expandedDescription =
+                                          !_expandedDescription,
+                                    ),
+                                    child: Text(
+                                      _expandedDescription
+                                          ? l10n.readLess
+                                          : l10n.readMore,
+                                      style: context.texts.labelMedium
+                                          ?.copyWith(color: AppColors.accent),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xxl),
+                          CompatReportCard(
+                            summary: detail.compat,
+                            onReport: () => _openFeedbackSheet(detail),
+                          ),
+                          const SizedBox(height: AppSpacing.xxl),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: _BlockTitle(title: l10n.compatCommunity),
+                              ),
+                              Pressable(
+                                onTap: () => context.push<Object?>(
+                                  '/game/${game.slug}/reports',
+                                ),
+                                child: Text(
+                                  l10n.seeAllReports,
+                                  style: context.texts.labelMedium?.copyWith(
+                                    color: AppColors.accent,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        CompatReportCard(
-                          summary: detail.compat,
-                          onReport: () => _openFeedbackSheet(detail),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: _BlockTitle(title: l10n.compatCommunity),
+                          const SizedBox(height: AppSpacing.md),
+                          _CommunityReports(gameId: game.id),
+                          const SizedBox(height: AppSpacing.xxl),
+                          _BlockTitle(title: l10n.infoTitle),
+                          const SizedBox(height: AppSpacing.md),
+                          _InfoPanel(game: game, ports: detail.ports.length),
+                          if (detail.ports.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: AppSpacing.xxl),
+                            _BlockTitle(
+                              title: l10n.portsTitle,
+                              trailing: l10n.portCount(detail.ports.length),
                             ),
-                            Pressable(
-                              onTap: () => context.push<Object?>(
-                                '/game/${game.slug}/reports',
-                              ),
-                              child: Text(
-                                l10n.seeAllReports,
-                                style: context.texts.labelMedium?.copyWith(
-                                  color: AppColors.accent,
+                            const SizedBox(height: AppSpacing.md),
+                            for (final GamePort port in detail.ports)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.md,
                                 ),
+                                child: _PortCard(
+                                  port: port,
+                                  onOpen: () => _openLink(port.url),
+                                ),
+                              ),
+                          ],
+                          if (detail.related.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: AppSpacing.lg),
+                            _BlockTitle(title: l10n.relatedTitle),
+                            const SizedBox(height: AppSpacing.md),
+                            SizedBox(
+                              height: 236,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: detail.related.length,
+                                separatorBuilder:
+                                    (BuildContext context, int index) =>
+                                        const SizedBox(width: AppSpacing.md),
+                                itemBuilder: (BuildContext context, int index) {
+                                  final Game related = detail.related[index];
+                                  return GameCard(
+                                    game: related,
+                                    width: 142,
+                                    heroTag:
+                                        'detail-${game.id}-related-${related.id}',
+                                  );
+                                },
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        _CommunityReports(gameId: game.id),
-                        const SizedBox(height: AppSpacing.xxl),
-                        _BlockTitle(title: l10n.infoTitle),
-                        const SizedBox(height: AppSpacing.md),
-                        _InfoPanel(game: game, ports: detail.ports.length),
-                        if (detail.ports.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: AppSpacing.xxl),
-                          _BlockTitle(
-                            title: l10n.portsTitle,
-                            trailing: l10n.portCount(detail.ports.length),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          for (final GamePort port in detail.ports)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.md,
-                              ),
-                              child: _PortCard(
-                                port: port,
-                                onOpen: () => _openLink(port.url),
-                              ),
-                            ),
-                        ],
-                        if (detail.related.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: AppSpacing.lg),
-                          _BlockTitle(title: l10n.relatedTitle),
-                          const SizedBox(height: AppSpacing.md),
                           SizedBox(
-                            height: 236,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: detail.related.length,
-                              separatorBuilder:
-                                  (BuildContext context, int index) =>
-                                      const SizedBox(width: AppSpacing.md),
-                              itemBuilder: (BuildContext context, int index) {
-                                final Game related = detail.related[index];
-                                return GameCard(
-                                  game: related,
-                                  width: 142,
-                                  heroTag:
-                                      'detail-${game.id}-related-${related.id}',
-                                );
-                              },
-                            ),
+                            height: context.systemBottomInset + AppSpacing.xxxl,
                           ),
                         ],
-                        SizedBox(
-                          height: context.systemBottomInset + AppSpacing.xxxl,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Positioned(
@@ -1091,8 +1082,8 @@ class CompatReportCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadii.sm),
                   color: AppColors.accent.withValues(alpha: 0.14),
@@ -1178,7 +1169,6 @@ class CompatReportCard extends StatelessWidget {
           SecondaryButton(
             label: l10n.compatReport,
             icon: Icons.add_rounded,
-            height: 44,
             onPressed: onReport,
           ),
         ],
@@ -1268,13 +1258,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
 
   void _submit() {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.ratingRequired),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.bgElevated,
-        ),
-      );
+      showAppSnackBar(context, message: context.l10n.ratingRequired);
       return;
     }
     Navigator.of(context).pop(
@@ -1765,7 +1749,6 @@ class _PortCard extends StatelessWidget {
                 SecondaryButton(
                   label: l10n.openSource,
                   icon: Icons.open_in_new_rounded,
-                  height: 42,
                   expand: false,
                   onPressed: onOpen,
                 ),
