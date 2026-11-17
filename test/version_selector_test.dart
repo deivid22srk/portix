@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portix/core/github_releases.dart';
 import 'package:portix/core/github_service.dart';
 import 'package:portix/features/details/developer_card.dart';
+import 'package:portix/shared/widgets/primitives.dart';
 import 'package:portix/features/details/version_selector.dart';
 
 GithubRelease _release(
@@ -152,6 +153,32 @@ void main() {
     await tester.tap(find.text('v0.9.0-beta'), warnIfMissed: false);
     await tester.pump();
     expect(selected, isNull);
+  });
+
+
+  testWidgets('wide (≥768px): controle segmentado seleciona versão',
+      (WidgetTester tester) async {
+    // Viewport padrão do tester é 800x600 ≥ 768 → variante segmentada.
+    GithubRelease? selected;
+    await _pumpReleases(
+      tester,
+      SizedBox(
+        width: 720,
+        child: VersionSelector(
+          repoId: 'o/r',
+          selectedTag: null,
+          installedTag: 'v1.0.0',
+          onSelected: (GithubRelease release) => selected = release,
+        ),
+      ),
+      () => Future<List<GithubRelease>>.value(_fixtures),
+    );
+
+    // Segmentos com as tags + card de detalhe da seleção.
+    expect(find.byType(SegmentedControl<int>), findsOneWidget);
+    await tester.tap(find.text('v1.0.0').first);
+    await tester.pump();
+    expect(selected?.tag, 'v1.0.0');
   });
 
   testWidgets('rate limit: estado dedicado com retry', (WidgetTester tester) async {

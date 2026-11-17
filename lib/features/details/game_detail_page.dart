@@ -1173,11 +1173,12 @@ class _StatCell extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
+          // AA em texto pequeno: textSecondary (não textTertiary).
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.texts.labelSmall?.copyWith(color: AppColors.textTertiary),
+            style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),

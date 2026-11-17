@@ -171,18 +171,27 @@ class VersionCard extends StatelessWidget {
       enabled: enabled,
       selected: selected,
       label: l10n.chooseVersionTitle(release.tag),
-      child: Pressable(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: reduceMotion ? Duration.zero : AppMotion.fast,
-          curve: AppMotion.out,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 12),
-          constraints: const BoxConstraints(minHeight: 56),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            color: fill,
-            border: Border.all(color: border),
-          ),
+      child: Focus(
+        child: Builder(
+          builder: (BuildContext context) {
+            // Focus-visible: borda accent de 2px quando navegado por teclado.
+            final bool focused = Focus.of(context).hasFocus;
+            return Pressable(
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: reduceMotion ? Duration.zero : AppMotion.fast,
+                curve: AppMotion.out,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: 12),
+                constraints: const BoxConstraints(minHeight: 56),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  color: fill,
+                  border: Border.all(
+                    color: focused ? AppColors.accent : border,
+                    width: focused ? 2 : 1,
+                  ),
+                ),
           child: Row(
             children: <Widget>[
               Expanded(
@@ -252,6 +261,9 @@ class VersionCard extends StatelessWidget {
               ],
             ],
           ),
+              ),
+            );
+          },
         ),
       ),
     );
