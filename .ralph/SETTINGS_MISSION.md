@@ -139,7 +139,9 @@ no geral; imagem recarregando = cache ≤5 e média ≤7; tema ilegível/sub-AA 
 | 7 | 8a37443 (estado) | **9,05** | +0,45 | 44105416754 | CRÍTICO subagente (agent-508c1fc6, .ralph/CRITICO_ITER7.md): AI 9,5 · Temas 9,0 · Cache 8,5 · Consistência 9,0 · A11y 9,0 · Resp 9,5 · Estados 8,5 · Microinter 9,0 · Microcopy 9,0. 0 🔴 + 6 🟡 (mem-cache ignorado; teste avatar cosmético; reload sem loading; SystemChrome sistema/brilho; allowlist 25; commit infiel) + 8 🟢. 7/8 apontamentos da 8,60 corrigidos de verdade. Veredito: CONTINUAR |
 | 8 | 164af31 (iter 7) | — | — | 44112141331 | correções dos 6 🟡 + 8 🟢 da 9,05 (invalidação de memória, integração real do avatar, spinner no reload, AnnotatedRegion, allowlist 25→0, destructive danger, reduced motion) |
 | 9 | (reavaliação pós-iter-7) | **9,45** | +0,40 | 44112141331 | CRÍTICO subagente (agent-298c6284, .ralph/CRITICO_ITER8.md): AI 9,5 · Temas 9,5 · Cache 9,5 · Consistência 9,5 · **A11y 9,0** · Resp 9,5 · Estados 9,5 · Microinter 9,5 · Microcopy 9,5. 0 🔴 + 0 🟡 (primeiro sem médios) + 8 🟢. 6/6 🟡 do iter-7 corrigidos de verdade (nenhum fake fix). Falta: média 9,45<9,5 (só A11y 9,0). Veredito: CONTINUAR |
-| 10 | (iter 8, este commit) | — | — | (CI) | correção dos 🟢 que desbloqueiam o APROVADO: teste permanente do PortixApp (modo Sistema/brilho/AnnotatedRegion), label explícito na busca (A11y), numericLabel morto removido, SystemChrome do boot removido, par danger/bgElevated no contraste, cabeçalho do teste de cache |
+| 10 | (iter 8, 98ab145) | — | — | 44117056475 | correção dos 🟢 que desbloqueiam o APROVADO: teste permanente do PortixApp (modo Sistema/brilho/AnnotatedRegion), label explícito na busca (A11y), numericLabel morto removido, SystemChrome do boot removido, par danger/bgElevated no contraste, cabeçalho do teste de cache |
+| 11 | (reavaliação pós-iter-8) | **9,50** | +0,05 | 44117056475 | CRÍTICO subagente (agent-161193f2, .ralph/CRITICO_ITER9.md): TODOS os 9 critérios em 9,5 (soma 1,900+1,900+1,425+0,950+0,950+0,950+0,475+0,475+0,475). 0 🔴 + 0 🟡 + 5 🟢 (R1 semântica da busca com texto; R2 assert de reduced motion sem teste permanente; R3/R4/R5 carregados pós-APROVADO). 6/6 claims do iter-8 reais. Condições técnicas de parada TODAS cumpridas. **1ª LEITURA CONSECUTIVA ≥9,5 ATINGIDA — falta 1 reavaliação de estabilidade** |
+| 12 | (leitura de estabilidade, mesmo HEAD 98ab145) | **9,505** | +0,005 | 44117056475 | CRÍTICO subagente INDEPENDENTE/cego (agent-7ef71a64, .ralph/CRITICO_ESTABILIDADE.md): AI 9,6 · Temas 9,5 · Cache 9,5 · Consistência 9,4 · A11y 9,5 · Resp 9,5 · Estados 9,5 · Microinter 9,5 · Microcopy 9,4. 0 🔴 + 0 🟡 + 7 🟢 (backlog pós-aprovação). CI autenticada por API na SHA. Condições de parada TODAS confirmadas. **Veredito: MISSÃO APROVADA** |
 
 ## Execução iter-8 (nota do CRÍTICO: a busca sem label era o único desconto de A11y)
 
@@ -198,8 +200,17 @@ no geral; imagem recarregando = cache ≤5 e média ≤7; tema ilegível/sub-AA 
 4. **iter 4+ — polimento**: estados, microcopy, drenagem da allowlist, busca
    opcional, overflow 2.0, novas notas do CRÍTICO.
 
-## Estado
-- Branch local+remota `feat/configuracoes-categorias-temas-cache` @ 4713dfa.
-- Baseline: analyze limpo, gates verdes (allowlist 50), suíte 66/66, CI run
-  44087292104 em andamento.
+## Estado FINAL (missão APROVADA)
+- Branch local+remota `feat/configuracoes-categorias-temas-cache` @ 98ab145
+  (iter 8) + commit docs do diário.
+- Suíte 117/117; analyze limpo; ui_gates verdes com allowlist VAZIA (drenada
+  50→0 na missão anterior, mantida 0 aqui).
+- CI: run 44117056475 success na SHA 98ab145.
+- Série final: 5,00 → 8,43 → 8,60 → 9,05 → 9,45 → **9,50 → 9,505 (2 leituras
+  consecutivas ≥9,5, zero 🔴/🟡) — APROVADO**.
 - Guard: main intacta (9060a14, commits de dados do dono).
+- Backlog 🟢 pós-aprovação (CRITICO_ESTABILIDADE.md): labelText nos inputs do
+  editor de perfil; chaves l10n mortas (profileEmailLabel, themeSelected);
+  teste do fluxo _invalidateCover end-to-end; teste "contrato" do avatar;
+  fontSize proporcional do avatar fora da escala; par accent/vidro forte;
+  busca indexando itens internos das categorias; token para strokeWidth.
