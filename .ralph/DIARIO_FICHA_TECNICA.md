@@ -72,3 +72,12 @@ evidência, sem corrida. 4º dispatch: verde ponta a ponta.
 Ao depender de biblioteca com estado interno global (singletons de cache), a
 evidência de teste precisa usar caminhos com semântica await determinística
 (`force:`) em vez de depender de drenagem assíncrona em runners lentos.
+
+## Pós-entrega — recuperação do trabalho perdido na branch de detalhes (2026-11-17)
+O dono reportou que `feat/detalhes-jogo-versoes-desenvolvedor` "perdeu tudo" da
+`feat/ficha-tecnica-dispositivos`. Diagnóstico: a branch de detalhes partiu da
+`main` (9060a14) e ficou sem os 45 commits da ficha — nada foi apagado no
+remoto; os commits sempre estiveram intactos na branch de origem.
+Recuperação por merge (15aad8e) + drenagem dos portões de UI (e1b9fa1):
+analyze limpo, 195/195 testes, portões verdes, CI verde
+(run 44168045461, commit e1b9fa1). Decisões em DECISIONS.md D-DET5.
