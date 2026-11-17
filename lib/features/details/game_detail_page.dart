@@ -1217,11 +1217,21 @@ class _DescriptionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                game.description.isEmpty ? l10n.notInformed : game.description,
-                maxLines: expanded ? null : 5,
-                overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              // Expande/recolhe com animação (respeita reduced motion).
+              AnimatedSize(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : AppMotion.base,
+                curve: AppMotion.out,
+                alignment: Alignment.topCenter,
+                child: Text(
+                  game.description.isEmpty ? l10n.notInformed : game.description,
+                  maxLines: expanded ? null : 5,
+                  overflow:
+                      expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  style: context.texts.bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
               ),
               if (long) ...<Widget>[
                 const SizedBox(height: AppSpacing.sm),
