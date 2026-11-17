@@ -8,8 +8,6 @@ import 'package:portix/features/shell/tab_scroll_registry.dart';
 import 'package:portix/shared/widgets/app_header.dart';
 import 'package:portix/shared/widgets/app_nav.dart';
 
-import 'ui_test_helpers.dart';
-
 // ============================================================================
 // Navegação e cabeçalho — contratos que o CRÍTICO cobra:
 //   • forma por largura (bottom <768, rail 768–1199, sidebar ≥1200);
@@ -142,7 +140,7 @@ void main() {
       final SemanticsNode node = tester.getSemantics(
         find.bySemanticsLabel('Explorar'),
       );
-      expect(node.hasFlag(SemanticsFlag.isSelected), isTrue);
+      expect(node.flagsCollection.isSelected, isTrue);
     });
 
     testWidgets('tocar aciona o índice do destino', (
