@@ -17,14 +17,17 @@ class PortixApp extends ConsumerWidget {
   static const List<LocalizationsDelegate<dynamic>> _delegates =
       GlobalMaterialLocalizations.delegates;
 
-  static const List<Locale> _locales = <Locale>[Locale('pt', 'BR'), Locale('en')];
+  static const List<Locale> _locales = <Locale>[
+    Locale('pt', 'BR'),
+    Locale('en'),
+  ];
 
   /// Limita a escala de fonte do sistema para o layout não quebrar.
   Widget _withTextScale(Widget? child) => MediaQuery.withClampedTextScaling(
-        minScaleFactor: 0.9,
-        maxScaleFactor: 1.35,
-        child: child ?? const SizedBox.shrink(),
-      );
+    minScaleFactor: 0.9,
+    maxScaleFactor: 1.35,
+    child: child ?? const SizedBox.shrink(),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
