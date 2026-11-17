@@ -231,9 +231,44 @@ class L10n {
     'Favorites and library are tied to this device.',
   );
   String get language => _t('Idioma', 'Language');
+  String get languagePtBr => 'Português (BR)';
+  String get languageEn => 'English';
   String get notifications => _t('Notificações', 'Notifications');
   String get notificationsHint =>
       _t('Avisos de novos ports (simulado)', 'New port alerts (simulated)');
+
+  // ----------------------------------------------- configurações (categorias)
+  String get settingsTitle => _t('Configurações', 'Settings');
+  String get settingsSubtitle =>
+      _t('Ajuste o PORTIX do seu jeito', 'Tune PORTIX your way');
+  String get settingsSelectHint => _t(
+    'Selecione uma categoria para ver as opções',
+    'Pick a category to see its options',
+  );
+  String get settingsCatAccount => _t('Conta e Perfil', 'Account & profile');
+  String get settingsCatAccountDesc =>
+      _t('Login, foto, nome e sair da conta', 'Sign in, photo, name, sign out');
+  String get settingsCatAppearance =>
+      _t('Aparência e Temas', 'Appearance & themes');
+  String get settingsCatAppearanceDesc =>
+      _t('Temas com contraste garantido', 'Themes with guaranteed contrast');
+  String get settingsCatNotifications => _t('Notificações', 'Notifications');
+  String get settingsCatNotificationsDesc =>
+      _t('Avisos de novos ports', 'New port alerts');
+  String get settingsCatLanguage => _t('Idioma e Região', 'Language & region');
+  String get settingsCatLanguageDesc =>
+      _t('Português (BR) ou English', 'Portuguese (BR) or English');
+  String get settingsCatData => _t('Dados e Armazenamento', 'Data & storage');
+  String get settingsCatDataDesc =>
+      _t('Catálogo e cache local', 'Catalog and local cache');
+  String get settingsCatAbout => _t('Ajuda e Sobre', 'Help & about');
+  String get settingsCatAboutDesc =>
+      _t('Versão, legal e créditos', 'Version, legal and credits');
+  String get settingsClearCacheConfirm => _t(
+    'O cache do catálogo e das imagens será apagado e baixado de novo quando precisar.',
+    'Catalog and image cache will be cleared and re-downloaded when needed.',
+  );
+  String get profileEmailLabel => _t('E-mail', 'Email');
 
   // ----------------------------------------------------------------- temas
   String get theme => _t('Tema', 'Theme');

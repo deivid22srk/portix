@@ -43,15 +43,16 @@ class HomePage extends ConsumerWidget {
               if (feed == null && async.isLoading)
                 const SliverToBoxAdapter(child: HomeSkeleton()),
               if (feed == null && async.hasError)
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 380,
-                    child: ErrorStateView(
-                      message: context.failureText(async.error),
-                      retryLabel: l10n.tryAgain,
-                      onRetry: () =>
-                          ref.read(homeFeedProvider.notifier).refresh(),
-                    ),
+                // Viewport inteiro (SliverFillRemaining): o estado de erro
+                // centra e cresce com texto ampliado (2.0) sem overflow —
+                // um SizedBox fixo de 380px estourava em fontes grandes.
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: ErrorStateView(
+                    message: context.failureText(async.error),
+                    retryLabel: l10n.tryAgain,
+                    onRetry: () =>
+                        ref.read(homeFeedProvider.notifier).refresh(),
                   ),
                 ),
               if (feed != null) ..._feedSlivers(context, ref, feed),

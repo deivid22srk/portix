@@ -91,6 +91,10 @@ class AppBreakpoints {
   /// Teto de largura do conteúdo de grades em telas largas.
   static const double contentMax = 1200;
 
+  /// Largura a partir da qual as configurações viram master-detail
+  /// (lista à esquerda, conteúdo à direita).
+  static const double settingsDetail = 768;
+
   /// Colunas da grade de capas 3:4 conforme a largura disponível.
   static int coverColumns(double width) {
     if (width >= wide) {

@@ -26,10 +26,15 @@ class GlassSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Com texto ampliado (WCAG 1.4.4 até 200%) o cabeçalho precisa de mais
+    // altura: escala o espaço expandido pelo scaler do sistema (piso 1.0).
+    final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final double effectiveExpanded =
+        expandedHeight * (textScale < 1.0 ? 1.0 : textScale);
     return SliverAppBar(
       pinned: true,
       stretch: true,
-      expandedHeight: expandedHeight,
+      expandedHeight: effectiveExpanded,
       backgroundColor: AppContentColors.transparent,
       surfaceTintColor: AppContentColors.transparent,
       scrolledUnderElevation: 0,

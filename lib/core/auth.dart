@@ -17,6 +17,9 @@ class AccountState {
   bool get isSignedIn => user != null && !(user!.isAnonymous);
   String? get id => user?.id;
 
+  /// E-mail da conta (null para convidado/sem e-mail).
+  String? get email => user?.email;
+
   String get displayName {
     final Object? name = user?.userMetadata?['display_name'];
     final String text = name?.toString().trim() ?? '';
@@ -24,8 +27,9 @@ class AccountState {
   }
 }
 
-final accountProvider =
-    NotifierProvider<AccountController, AccountState>(AccountController.new);
+final accountProvider = NotifierProvider<AccountController, AccountState>(
+  AccountController.new,
+);
 
 class AccountController extends Notifier<AccountState> {
   StreamSubscription<AuthState>? _subscription;
@@ -41,10 +45,10 @@ class AccountController extends Notifier<AccountState> {
   }
 
   Future<void> signIn({required String email, required String password}) async {
-    await ref.read(supabaseClientProvider).auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
+    await ref
+        .read(supabaseClientProvider)
+        .auth
+        .signInWithPassword(email: email, password: password);
   }
 
   Future<void> signUp({
@@ -52,7 +56,10 @@ class AccountController extends Notifier<AccountState> {
     required String password,
     String? displayName,
   }) async {
-    await ref.read(supabaseClientProvider).auth.signUp(
+    await ref
+        .read(supabaseClientProvider)
+        .auth
+        .signUp(
           email: email,
           password: password,
           data: <String, dynamic>{
@@ -63,7 +70,10 @@ class AccountController extends Notifier<AccountState> {
   }
 
   Future<bool> signInWithGoogle() {
-    return ref.read(supabaseClientProvider).auth.signInWithOAuth(
+    return ref
+        .read(supabaseClientProvider)
+        .auth
+        .signInWithOAuth(
           OAuthProvider.google,
           redirectTo: 'portix://login-callback',
           authScreenLaunchMode: LaunchMode.externalApplication,
