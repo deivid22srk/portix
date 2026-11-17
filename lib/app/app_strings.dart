@@ -471,6 +471,25 @@ class L10n {
   String get feedbackTitle => _t('Avaliar e relatar', 'Rate and report');
   String get ratingLabel => _t('Sua nota', 'Your rating');
   String get verdictLabel => _t('Como roda', 'How it runs');
+
+  // ---------------------------------------------------------- ficha técnica
+  String get specsTitle => _t('Ficha técnica', 'Spec sheet');
+  String get specsSearchTitle =>
+      _t('Especificações do aparelho', 'Device specifications');
+  String get specsSearchHint => _t(
+    'Buscar aparelho (ex.: Poco X6 Pro)',
+    'Search a device (e.g. Poco X6 Pro)',
+  );
+  String get specsSearchEmptyTitle => _t('Nada encontrado', 'Nothing found');
+  String get specsSearchEmptyBody => _t(
+    'Não achamos esse aparelho na base de fichas técnicas. Confira o nome ou tente outro termo.',
+    'No spec sheet matches that device name. Check it or try another term.',
+  );
+  String get specsOpenAction => _t('Ver ficha técnica', 'View spec sheet');
+  String get specsOverview => _t('Visão geral', 'Overview');
+  String get specsGallery => _t('Imagens', 'Images');
+  String get specsSourceNote =>
+      _t('Dados da ficha técnica: GSMArena', 'Spec data: GSMArena');
   String get fpsOptional => _t('Informar FPS médio', 'Report average FPS');
   String get seeAllReports => _t('Ver todos', 'See all');
   String get reportsTitle => _t('Relatos da comunidade', 'Community reports');

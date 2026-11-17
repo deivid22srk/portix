@@ -43,6 +43,55 @@ Color compatVerdictColor(String status, AppColorsTheme colors) {
   }
 }
 
+/// Nome do aparelho do relato: abre a ficha técnica pública (rota de busca
+/// da API de especificações). Sem marca/modelo informados, fica como texto
+/// de reserva sem interação.
+class _DeviceLink extends StatelessWidget {
+  const _DeviceLink({required this.device, required this.enabled});
+
+  final String device;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? style = context.texts.labelMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    if (!enabled) {
+      return Text(
+        device,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+      );
+    }
+    return Pressable(
+      onTap: () {
+        final String query = Uri.encodeQueryComponent(device);
+        context.push<Object?>('/specs/search?q=$query');
+      },
+      child: Row(
+        children: <Widget>[
+          Flexible(
+            child: Text(
+              device,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: style?.copyWith(color: context.colors.accent),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.hairline),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 12,
+            color: context.colors.accent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Linha de um relato: autor, aparelho, nota, veredito, FPS e texto.
 class FeedbackReportRow extends StatelessWidget {
   const FeedbackReportRow({
@@ -89,13 +138,9 @@ class FeedbackReportRow extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Expanded(
-                        child: Text(
-                          device,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.texts.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: _DeviceLink(
+                          device: device,
+                          enabled: report.brand != null || report.model != null,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.xxs),

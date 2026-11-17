@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/tokens.dart';
+import '../features/device_specs/device_specs_screen.dart';
+import '../features/device_specs/device_specs_search_screen.dart';
 import '../features/details/game_detail_page.dart';
 import '../features/details/game_reports_page.dart';
 import '../features/explore/explore_page.dart';
@@ -126,6 +128,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
           state,
           GameReportsPage(slug: state.pathParameters['slug'] ?? ''),
+        ),
+      ),
+      GoRoute(
+        path: '/specs/search',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          DeviceSpecsSearchScreen(
+            initialQuery: state.uri.queryParameters['q'] ?? '',
+          ),
+        ),
+      ),
+      // Ficha técnica do aparelho citado num relato da comunidade.
+      GoRoute(
+        path: '/specs/:slug',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          DeviceSpecsScreen(slug: state.pathParameters['slug'] ?? ''),
         ),
       ),
       GoRoute(

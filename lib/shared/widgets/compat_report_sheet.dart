@@ -43,6 +43,17 @@ class _CompatReportSheet extends StatelessWidget {
     router.push<Object?>('/u/$id');
   }
 
+  /// Abre a ficha técnica pública do aparelho citado no relato.
+  void _openSpecs(BuildContext context) {
+    if (report.brand == null && report.model == null) {
+      return;
+    }
+    final String query = Uri.encodeQueryComponent(report.deviceLabelOr(''));
+    final GoRouter router = GoRouter.of(context);
+    Navigator.of(context).pop();
+    router.push<Object?>('/specs/search?q=$query');
+  }
+
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
@@ -217,6 +228,30 @@ class _CompatReportSheet extends StatelessWidget {
                         specs,
                         style: context.texts.bodySmall?.copyWith(
                           color: context.colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    if (report.brand != null ||
+                        report.model != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.sm),
+                      Pressable(
+                        onTap: () => _openSpecs(context),
+                        child: Row(
+                          children: <Widget>[
+                            Icon(
+                              Icons.smartphone_rounded,
+                              size: 14,
+                              color: context.colors.accent,
+                            ),
+                            const SizedBox(width: AppSpacing.xxs),
+                            Text(
+                              l10n.specsOpenAction,
+                              style: context.texts.labelSmall?.copyWith(
+                                color: context.colors.accent,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
