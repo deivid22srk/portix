@@ -1,8 +1,10 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/rendering.dart' show SliverConstraints;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
@@ -23,7 +25,7 @@ class AppBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.bg,
+      color: context.colors.bg,
       child: Stack(
         children: <Widget>[
           Positioned(
@@ -37,8 +39,8 @@ class AppBackdrop extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: <Color>[
-                      AppColors.accent.withValues(alpha: 0.13),
-                      AppColors.accent.withValues(alpha: 0),
+                      context.colors.accent.withValues(alpha: 0.13),
+                      context.colors.accent.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -56,8 +58,8 @@ class AppBackdrop extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: <Color>[
-                      AppColors.accentAlt.withValues(alpha: 0.07),
-                      AppColors.accentAlt.withValues(alpha: 0),
+                      context.colors.accentAlt.withValues(alpha: 0.07),
+                      context.colors.accentAlt.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -103,8 +105,8 @@ class GlassContainer extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        color: color ?? AppColors.glass,
-        border: Border.all(color: borderColor ?? AppColors.glassBorder),
+        color: color ?? context.colors.glass,
+        border: Border.all(color: borderColor ?? context.colors.glassBorder),
         boxShadow: shadow,
       ),
       child: child,
@@ -175,44 +177,55 @@ class _PressableState extends State<Pressable> {
               }
               widget.onTap?.call();
             },
-      child: AnimatedScale(
-        scale: _pressed ? widget.scale : 1,
-        duration: AppMotion.fast,
-        curve: AppMotion.out,
-        child: widget.child,
+      child: Semantics(
+        // GestureDetector puro é invisível para o TalkBack: marcar como
+        // botão expõe o gesto (o rótulo vem do texto filho mesclado).
+        button: enabled,
+        child: AnimatedScale(
+          scale: _pressed ? widget.scale : 1,
+          // Reduced motion: sem animação de press (transição instantânea).
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : AppMotion.fast,
+          curve: AppMotion.out,
+          child: widget.child,
+        ),
       ),
     );
   }
 }
 
 /// Botão circular de vidro (voltar, filtro, compartilhar, controles).
+/// O `tooltip` é OBRIGATÓRIO: um ícone sem rótulo é invisível para leitores
+/// de tela (TalkBack) — nunca chame este componente sem um rótulo l10n.
 class GlassCircleButton extends StatelessWidget {
   const GlassCircleButton({
     super.key,
     required this.icon,
+    required this.tooltip,
     this.onTap,
     this.active = false,
     this.size = AppSpacing.circleButton,
     this.iconSize,
-    this.tooltip,
     this.badge,
     this.color,
     this.blur = false,
   });
 
   final IconData icon;
+  final String? tooltip;
   final VoidCallback? onTap;
   final bool active;
   final double size;
   final double? iconSize;
-  final String? tooltip;
   final Widget? badge;
   final Color? color;
   final bool blur;
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = color ?? (active ? AppColors.accent : AppColors.textPrimary);
+    final Color tone =
+        color ?? (active ? context.colors.accent : context.colors.textPrimary);
     final Widget button = Pressable(
       onTap: onTap,
       child: SizedBox(
@@ -221,9 +234,12 @@ class GlassCircleButton extends StatelessWidget {
         child: GlassContainer(
           radius: AppRadii.pill,
           blur: blur,
-          color: active ? AppColors.accent.withValues(alpha: 0.18) : AppColors.glassStrong,
-          borderColor:
-              active ? AppColors.accent.withValues(alpha: 0.5) : AppColors.glassBorder,
+          color: active
+              ? context.colors.accent.withValues(alpha: 0.18)
+              : context.colors.glassStrong,
+          borderColor: active
+              ? context.colors.accent.withValues(alpha: 0.5)
+              : context.colors.glassBorder,
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
@@ -272,13 +288,13 @@ class PrimaryButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        gradient: enabled ? AppColors.accentGradient : null,
-        color: enabled ? null : AppColors.glassStrong,
-        border: enabled ? null : Border.all(color: AppColors.glassBorder),
+        gradient: enabled ? context.colors.accentGradient : null,
+        color: enabled ? null : context.colors.glassStrong,
+        border: enabled ? null : Border.all(color: context.colors.glassBorder),
         boxShadow: enabled
             ? <BoxShadow>[
                 BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.30),
+                  color: context.colors.accent.withValues(alpha: 0.30),
                   blurRadius: 26,
                   offset: const Offset(0, 12),
                 ),
@@ -290,35 +306,51 @@ class PrimaryButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           if (isLoading)
-            const SizedBox(
+            SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.onAccent),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  context.colors.onAccent,
+                ),
               ),
             )
           else if (icon != null)
-            Icon(icon, size: 20, color: enabled ? AppColors.onAccent : AppColors.textTertiary),
-          if (isLoading || icon != null) const SizedBox(width: 10),
+            Icon(
+              icon,
+              size: 20,
+              color: enabled
+                  ? context.colors.onAccent
+                  : context.colors.textTertiary,
+            ),
+          if (isLoading || icon != null)
+            const SizedBox(width: AppSpacing.compact),
           Flexible(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.texts.titleSmall?.copyWith(
-                color: enabled ? AppColors.onAccent : AppColors.textTertiary,
+                color: enabled
+                    ? context.colors.onAccent
+                    : context.colors.textTertiary,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          if (trailing != null) ...<Widget>[const SizedBox(width: 10), trailing!],
+          if (trailing != null) ...<Widget>[
+            const SizedBox(width: AppSpacing.compact),
+            trailing!,
+          ],
         ],
       ),
     );
     return Pressable(
       onTap: enabled ? onPressed : null,
-      child: expand ? SizedBox(width: double.infinity, child: content) : content,
+      child: expand
+          ? SizedBox(width: double.infinity, child: content)
+          : content,
     );
   }
 }
@@ -353,9 +385,13 @@ class SecondaryButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: active ? AppColors.accent.withValues(alpha: 0.16) : AppColors.glass,
+          color: active
+              ? context.colors.accent.withValues(alpha: 0.16)
+              : context.colors.glass,
           border: Border.all(
-            color: active ? AppColors.accent.withValues(alpha: 0.5) : AppColors.glassBorder,
+            color: active
+                ? context.colors.accent.withValues(alpha: 0.5)
+                : context.colors.glassBorder,
           ),
         ),
         child: Row(
@@ -366,9 +402,13 @@ class SecondaryButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 19,
-                color: iconColor ?? (active ? AppColors.accent : AppColors.textPrimary),
+                color:
+                    iconColor ??
+                    (active
+                        ? context.colors.accent
+                        : context.colors.textPrimary),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
             ],
             Flexible(
               child: Text(
@@ -376,7 +416,9 @@ class SecondaryButton extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.texts.labelLarge?.copyWith(
-                  color: active ? AppColors.accent : AppColors.textPrimary,
+                  color: active
+                      ? context.colors.accent
+                      : context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -405,7 +447,7 @@ class InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = color ?? AppColors.accent;
+    final Color tone = color ?? context.colors.accent;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: dense ? AppSpacing.md : AppSpacing.lg,
@@ -413,20 +455,20 @@ class InfoChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        color: AppColors.glass,
-        border: Border.all(color: AppColors.glassBorder),
+        color: context.colors.glass,
+        border: Border.all(color: context.colors.glassBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (icon != null) ...<Widget>[
             Icon(icon, size: 14, color: tone),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xxs),
           ],
           Text(
             label,
             style: context.texts.labelMedium?.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -449,42 +491,49 @@ class StatBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.compact,
+        vertical: AppSpacing.xxs,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        color: const Color(0x8A000000),
-        border: Border.all(color: AppColors.glassBorder),
+        color: AppContentColors.scrim.withValues(alpha: 0.54),
+        border: Border.all(color: context.colors.glassBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (rating > 0) ...<Widget>[
-            const Icon(Icons.star_rounded, size: 13, color: AppColors.warning),
-            const SizedBox(width: 3),
+            Icon(Icons.star_rounded, size: 13, color: context.colors.warning),
+            const SizedBox(width: AppSpacing.hairline),
             Text(
               formatPercent(rating / 5),
               style: context.texts.labelSmall?.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
           if (rating > 0 && downloads > 0)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
               child: SizedBox(
                 width: 1,
                 height: 11,
-                child: ColoredBox(color: AppColors.glassBorder),
+                child: ColoredBox(color: context.colors.glassBorder),
               ),
             ),
           if (downloads > 0) ...<Widget>[
-            const Icon(Icons.download_rounded, size: 13, color: AppColors.accentAlt),
-            const SizedBox(width: 3),
+            Icon(
+              Icons.download_rounded,
+              size: 13,
+              color: context.colors.accentAlt,
+            ),
+            const SizedBox(width: AppSpacing.hairline),
             Text(
               compactNumber(downloads),
               style: context.texts.labelSmall?.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -497,12 +546,7 @@ class StatBadge extends StatelessWidget {
 
 /// Chip/badge simples com tonalidade opcional.
 class BadgeChip extends StatelessWidget {
-  const BadgeChip({
-    super.key,
-    required this.label,
-    this.color,
-    this.icon,
-  });
+  const BadgeChip({super.key, required this.label, this.color, this.icon});
 
   final String label;
   final Color? color;
@@ -510,9 +554,12 @@ class BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = color ?? AppColors.textSecondary;
+    final Color tone = color ?? context.colors.textSecondary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: tone.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadii.sm),
@@ -523,14 +570,18 @@ class BadgeChip extends StatelessWidget {
         children: <Widget>[
           if (icon != null) ...<Widget>[
             Icon(icon, size: 12, color: tone),
-            const SizedBox(width: 4),
+            const SizedBox(width: AppSpacing.xs),
           ],
-          Text(
-            label,
-            style: context.texts.labelSmall?.copyWith(
-              color: tone,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.texts.labelSmall?.copyWith(
+                color: tone,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],
@@ -570,23 +621,35 @@ class AppPill extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: selected ? AppColors.accent.withValues(alpha: 0.18) : AppColors.glass,
+          color: selected
+              ? context.colors.accent.withValues(alpha: 0.18)
+              : context.colors.glass,
           border: Border.all(
-            color: selected ? AppColors.accent.withValues(alpha: 0.55) : AppColors.glassBorder,
+            color: selected
+                ? context.colors.accent.withValues(alpha: 0.55)
+                : context.colors.glassBorder,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            if (leading != null) ...<Widget>[leading!, const SizedBox(width: 6)],
+            if (leading != null) ...<Widget>[
+              leading!,
+              const SizedBox(width: AppSpacing.xxs),
+            ],
             Text(
               label,
               style: context.texts.labelMedium?.copyWith(
-                color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+                color: selected
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
-            if (trailing != null) ...<Widget>[const SizedBox(width: 6), trailing!],
+            if (trailing != null) ...<Widget>[
+              const SizedBox(width: AppSpacing.xxs),
+              trailing!,
+            ],
           ],
         ),
       ),
@@ -612,7 +675,12 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0, AppSpacing.md, AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screen,
+        0,
+        AppSpacing.md,
+        AppSpacing.md,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
@@ -629,10 +697,12 @@ class SectionHeader extends StatelessWidget {
                   ),
                 ),
                 if (subtitle != null) ...<Widget>[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     subtitle!,
-                    style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                    style: context.texts.bodySmall?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
                 ],
               ],
@@ -642,17 +712,24 @@ class SectionHeader extends StatelessWidget {
             Pressable(
               onTap: onAction,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                  vertical: AppSpacing.xxs,
+                ),
                 child: Row(
                   children: <Widget>[
                     Text(
                       actionLabel!,
                       style: context.texts.labelMedium?.copyWith(
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.accent),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: context.colors.accent,
+                    ),
                   ],
                 ),
               ),
@@ -683,21 +760,30 @@ class SectionTile extends StatelessWidget {
     return GlassContainer(
       radius: AppRadii.md,
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: 20, color: AppColors.accent),
-          const SizedBox(width: AppSpacing.md),
+          Icon(icon, size: 20, color: context.colors.accent),
+          SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: context.texts.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           trailing ??
-              const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textTertiary),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: context.colors.textTertiary,
+              ),
         ],
       ),
     );
@@ -706,25 +792,33 @@ class SectionTile extends StatelessWidget {
 
 /// Botão de busca circular, flutuante, ao lado da barra de navegação.
 class SearchFab extends StatelessWidget {
-  const SearchFab({super.key, this.onTap});
+  SearchFab({super.key, required this.tooltip, this.onTap});
 
+  final String tooltip;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      scale: 0.94,
-      child: SizedBox(
-        width: AppSpacing.searchFab,
-        height: AppSpacing.searchFab,
-        child: GlassContainer(
-          radius: AppRadii.pill,
-          blur: true,
-          color: const Color(0x66090B12),
-          shadow: AppShadows.floating,
-          child: const Center(
-            child: Icon(Icons.search_rounded, size: 30, color: AppColors.textPrimary),
+    return Tooltip(
+      message: tooltip,
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.94,
+        child: SizedBox(
+          width: AppSpacing.searchFab,
+          height: AppSpacing.searchFab,
+          child: GlassContainer(
+            radius: AppRadii.pill,
+            blur: true,
+            color: context.colors.glassFloating,
+            shadow: context.colors.floatingShadow,
+            child: Center(
+              child: Icon(
+                Icons.search_rounded,
+                size: 30,
+                color: context.colors.textPrimary,
+              ),
+            ),
           ),
         ),
       ),
@@ -769,9 +863,9 @@ class GlassNavBar extends StatelessWidget {
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.pill),
-            color: const Color(0x66000000),
-            border: Border.all(color: AppColors.glassBorder),
-            boxShadow: AppShadows.floating,
+            color: context.colors.glassFloating,
+            border: Border.all(color: context.colors.glassBorder),
+            boxShadow: context.colors.floatingShadow,
           ),
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -790,8 +884,8 @@ class GlassNavBar extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(AppRadii.pill),
-                          color: AppColors.glassStrong,
-                          border: Border.all(color: AppColors.glassBorder),
+                          color: context.colors.glassStrong,
+                          border: Border.all(color: context.colors.glassBorder),
                         ),
                       ),
                     ),
@@ -819,7 +913,11 @@ class GlassNavBar extends StatelessWidget {
 }
 
 class _NavTap extends StatelessWidget {
-  const _NavTap({required this.item, required this.active, required this.onTap});
+  const _NavTap({
+    required this.item,
+    required this.active,
+    required this.onTap,
+  });
 
   final GlassNavItem item;
   final bool active;
@@ -827,26 +925,36 @@ class _NavTap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tone = active ? AppColors.textPrimary : AppColors.textTertiary;
-    return Pressable(
-      onTap: onTap,
-      haptics: true,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(active ? item.activeIcon : item.icon, size: 21, color: tone),
-          const SizedBox(height: 3),
-          Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.texts.labelSmall?.copyWith(
-              fontSize: 10,
-              color: tone,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    final Color tone = active
+        ? context.colors.textPrimary
+        : context.colors.textTertiary;
+    return Semantics(
+      // TalkBack anuncia a aba como "selecionada" quando ativa.
+      selected: active,
+      child: Pressable(
+        onTap: onTap,
+        haptics: true,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(active ? item.activeIcon : item.icon, size: 21, color: tone),
+            const SizedBox(height: AppSpacing.hairline),
+            // Elástico no texto 2.0: o rótulo escala para caber na altura fixa
+            // da barra em vez de estourar (o ícone permanece no tamanho 21).
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.labelSmall?.copyWith(
+                  color: tone,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -870,26 +978,34 @@ class RatingLine extends StatelessWidget {
     if (rating <= 0) {
       return Text(
         '—',
-        style: context.texts.labelMedium?.copyWith(color: AppColors.textSecondary),
+        style: context.texts.labelMedium?.copyWith(
+          color: context.colors.textSecondary,
+        ),
       );
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(Icons.star_rounded, size: compact ? 14 : 16, color: AppColors.warning),
-        const SizedBox(width: 3),
+        Icon(
+          Icons.star_rounded,
+          size: compact ? 14 : 16,
+          color: context.colors.warning,
+        ),
+        const SizedBox(width: AppSpacing.hairline),
         Text(
           formatRating(rating),
           style: context.texts.labelMedium?.copyWith(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         if (count > 0 && !compact) ...<Widget>[
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             '($count)',
-            style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+            style: context.texts.labelSmall?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
         ],
       ],
@@ -897,7 +1013,9 @@ class RatingLine extends StatelessWidget {
   }
 }
 
-/// Seletor de estrelas para avaliação.
+/// Seletor de estrelas para avaliação. Cada estrela expõe papel de botão
+/// e rótulo "N de 5 estrelas"; o contêiner resume o estado atual — sem isso
+/// o fluxo de avaliação é inacessível para leitores de tela.
 class StarPicker extends StatelessWidget {
   const StarPicker({
     super.key,
@@ -912,65 +1030,109 @@ class StarPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (int index = 1; index <= 5; index += 1)
-          Pressable(
-            onTap: () => onChanged(index),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: size * 0.08),
-              child: Icon(
-                index <= value ? Icons.star_rounded : Icons.star_outline_rounded,
-                size: size,
-                color: index <= value ? AppColors.warning : AppColors.textTertiary,
+    final L10n l10n = context.l10n;
+    return Semantics(
+      container: true,
+      label: l10n.starPickerSummary(value),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (int index = 1; index <= 5; index += 1)
+            Pressable(
+              onTap: () => onChanged(index),
+              child: Semantics(
+                label: l10n.starSemantic(index),
+                selected: index <= value,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: size * 0.08),
+                  child: Icon(
+                    index <= value
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    size: size,
+                    color: index <= value
+                        ? context.colors.warning
+                        : context.colors.textTertiary,
+                  ),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// Interruptor customizado (não usa `Switch` do Material).
+/// Expõe papel de botão + estado `toggled` para o TalkBack e garante alvo
+/// de toque de pelo menos 48px de altura (WCAG 2.2 AA, 2.5.8).
 class AppToggle extends StatelessWidget {
   const AppToggle({
     super.key,
     required this.value,
     required this.onChanged,
+    this.semanticLabel,
   });
 
   final bool value;
   final ValueChanged<bool> onChanged;
 
+  /// Nome do ajuste controlado (ex.: "Notificações"). Sem ele o TalkBack
+  /// anuncia "ativado/desativado" sem dizer o que o interruptor faz.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onChanged(!value);
-      },
-      child: AnimatedContainer(
-        duration: AppMotion.base,
-        curve: AppMotion.out,
-        width: 52,
-        height: 30,
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: value ? AppColors.accent : AppColors.glassStrong,
-          border: Border.all(color: value ? AppColors.accent : AppColors.glassBorder),
-        ),
-        child: AnimatedAlign(
-          duration: AppMotion.base,
-          curve: AppMotion.out,
-          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: value ? AppColors.onAccent : AppColors.textTertiary,
+    return Semantics(
+      // Papel de botão + estado `toggled`: o TalkBack anuncia
+      // "<rótulo>, ativado/desativado". `switch` não é nome válido de
+      // parâmetro no Dart 3 (palavra reservada).
+      button: true,
+      toggled: value,
+      label: semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onChanged(!value);
+        },
+        child: SizedBox(
+          // Trilho visual 52×30 dentro de alvo 52×48 (toque confortável).
+          width: 52,
+          height: 48,
+          child: Center(
+            child: AnimatedContainer(
+              duration: AppMotion.base,
+              curve: AppMotion.out,
+              width: 52,
+              height: 30,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                color: value
+                    ? context.colors.accent
+                    : context.colors.glassStrong,
+                border: Border.all(
+                  color: value
+                      ? context.colors.accent
+                      : context.colors.glassBorder,
+                ),
+              ),
+              child: AnimatedAlign(
+                duration: AppMotion.base,
+                curve: AppMotion.out,
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: value
+                        ? context.colors.onAccent
+                        : context.colors.textTertiary,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -981,18 +1143,23 @@ class AppToggle extends StatelessWidget {
 
 /// Barra de progresso com gradiente de destaque.
 class GradientProgress extends StatelessWidget {
-  const GradientProgress({
+  GradientProgress({
     super.key,
     required this.value,
     this.height = 8,
+    this.semanticLabel,
   });
 
   final double value;
   final double height;
 
+  /// Rótulo para leitores de tela (ex.: “32%” ou “Pausado”). Sem ele a barra
+  /// é invisível para o TalkBack — progresso nunca deve ser só visual.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
+    final Widget bar = TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: value.clamp(0, 1)),
       duration: AppMotion.slow,
       curve: AppMotion.out,
@@ -1004,12 +1171,14 @@ class GradientProgress extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                const ColoredBox(color: AppColors.glassStrong),
+                ColoredBox(color: context.colors.glassStrong),
                 FractionallySizedBox(
                   alignment: Alignment.centerLeft,
                   widthFactor: animated,
-                  child: const DecoratedBox(
-                    decoration: BoxDecoration(gradient: AppColors.accentGradient),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: context.colors.accentGradient,
+                    ),
                   ),
                 ),
               ],
@@ -1018,6 +1187,13 @@ class GradientProgress extends StatelessWidget {
         );
       },
     );
+    if (semanticLabel == null) {
+      return bar;
+    }
+    // container: true — nó próprio no TalkBack; sem isso o rótulo é
+    // absorvido pelo ancestral mesclado (botão do tile) e o progresso
+    // volta a ser invisível para leitores de tela.
+    return Semantics(container: true, label: semanticLabel, child: bar);
   }
 }
 
@@ -1056,10 +1232,12 @@ class SegmentedControl<T> extends StatelessWidget {
                 onTap: () => onChanged(item.value),
                 child: AnimatedContainer(
                   duration: AppMotion.fast,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadii.sm),
-                    color: item.value == value ? AppColors.glassStrong : Colors.transparent,
+                    color: item.value == value
+                        ? context.colors.glassStrong
+                        : AppContentColors.transparent,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1069,10 +1247,10 @@ class SegmentedControl<T> extends StatelessWidget {
                           item.icon,
                           size: 15,
                           color: item.value == value
-                              ? AppColors.accent
-                              : AppColors.textTertiary,
+                              ? context.colors.accent
+                              : context.colors.textTertiary,
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: AppSpacing.xxs),
                       ],
                       Flexible(
                         child: Text(
@@ -1082,10 +1260,11 @@ class SegmentedControl<T> extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: context.texts.labelMedium?.copyWith(
                             color: item.value == value
-                                ? AppColors.textPrimary
-                                : AppColors.textTertiary,
-                            fontWeight:
-                                item.value == value ? FontWeight.w700 : FontWeight.w500,
+                                ? context.colors.textPrimary
+                                : context.colors.textTertiary,
+                            fontWeight: item.value == value
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
                       ),
@@ -1098,4 +1277,147 @@ class SegmentedControl<T> extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Grade de capas 3:4 responsiva (padrão de todas as telas de catálogo).
+///
+/// Substitui `SliverGrid` com `crossAxisCount` fixo: 2 colunas no celular,
+/// 3 no tablet (≥600px), 5 no desktop (≥1024px) e 6 em telas largas
+/// (≥1440px). Acima de `AppBreakpoints.contentMax` o conteúdo é centralizado
+/// com padding extra em vez de esticar capas por um monitor inteiro.
+class ResponsiveCoverGrid extends StatelessWidget {
+  const ResponsiveCoverGrid({
+    super.key,
+    required this.itemBuilder,
+    required this.itemCount,
+    this.padding,
+    this.aspectRatio = 3 / 4,
+    this.mainAxisExtent,
+  });
+
+  /// Construtor do card: (context, index).
+  final IndexedWidgetBuilder itemBuilder;
+  final int itemCount;
+
+  /// Padding externo da grade. Se nulo, usa a margem lateral padrão.
+  final EdgeInsets? padding;
+  final double aspectRatio;
+
+  /// Altura fixa dos itens (grades de tiles de seção, não capas).
+  final double? mainAxisExtent;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverLayoutBuilder(
+      builder: (BuildContext context, SliverConstraints constraints) {
+        final double width = constraints.crossAxisExtent;
+        // Teto de largura de conteúdo: em telas largas, distribui o excesso
+        // nas margens para centralizar a grade (sem tocar no shell).
+        final double extra = width > AppBreakpoints.contentMax
+            ? (width - AppBreakpoints.contentMax) / 2
+            : 0;
+        final EdgeInsets base =
+            padding ?? EdgeInsets.symmetric(horizontal: AppSpacing.screen);
+        return SliverPadding(
+          padding: base + EdgeInsets.symmetric(horizontal: extra),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: AppBreakpoints.coverColumns(width),
+              mainAxisSpacing: AppSpacing.gridGap,
+              crossAxisSpacing: AppSpacing.gridGap,
+              childAspectRatio: aspectRatio,
+              mainAxisExtent: mainAxisExtent,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              itemBuilder,
+              childCount: itemCount,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Teto de largura de conteúdo para páginas não-grade (detalhe, menu, busca,
+/// autenticação): em telas largas centraliza o corpo em 1200px, igual às
+/// grades de capas — nada estica por um monitor inteiro.
+class AppContentMax extends StatelessWidget {
+  const AppContentMax({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      widthFactor: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppBreakpoints.contentMax),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Diálogo de confirmação do sistema de vidro — substitui `AlertDialog` cru:
+/// superfície elevada do tema, raio do sheet, textos e botões do design
+/// system. Retorno: true só se o usuário confirmar.
+Future<bool> showAppConfirm(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String? confirmLabel,
+  String? cancelLabel,
+
+  /// Ação destrutiva (sair da conta, apagar cache): o botão de confirmar
+  /// ganha a cor de perigo para sinalizar consequência.
+  bool destructive = false,
+}) async {
+  final L10n l10n = context.l10n;
+  final bool? ok = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialog) => AlertDialog(
+      backgroundColor: context.colors.bgElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      title: Text(
+        title,
+        style: context.texts.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: context.colors.textPrimary,
+        ),
+      ),
+      content: Text(
+        message,
+        style: context.texts.bodyMedium?.copyWith(
+          color: context.colors.textSecondary,
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(dialog).pop(false),
+          child: Text(
+            cancelLabel ?? l10n.cancel,
+            style: context.texts.labelLarge?.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialog).pop(true),
+          child: Text(
+            confirmLabel ?? l10n.confirm,
+            style: context.texts.labelLarge?.copyWith(
+              color: destructive
+                  ? context.colors.danger
+                  : context.colors.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
 }

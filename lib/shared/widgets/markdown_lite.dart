@@ -24,8 +24,7 @@ class MarkdownChunk {
 /// Parser puro (sem Flutter) — retorna os blocos de uma linha à vez.
 List<MarkdownChunk> parseMarkdownLines(String input) {
   final List<MarkdownChunk> chunks = <MarkdownChunk>[];
-  final List<String> lines =
-      input.replaceAll('\r\n', '\n').split('\n');
+  final List<String> lines = input.replaceAll('\r\n', '\n').split('\n');
   for (final String raw in lines) {
     final String line = raw.trim();
     if (line.isEmpty) {
@@ -43,8 +42,13 @@ List<MarkdownChunk> parseMarkdownLines(String input) {
     }
     final RegExpMatch? ordered = RegExp(r'^(\d+)[.)]\s+(.*)$').firstMatch(line);
     if (ordered != null) {
-      chunks.add(MarkdownChunk._('ordered', ordered.group(2)!.trim(),
-          url: ordered.group(1)));
+      chunks.add(
+        MarkdownChunk._(
+          'ordered',
+          ordered.group(2)!.trim(),
+          url: ordered.group(1),
+        ),
+      );
       continue;
     }
     chunks.add(MarkdownChunk._('paragraph', line));
@@ -69,7 +73,9 @@ List<InlineSpan> markdownInlineSpans(
   int cursor = 0;
   for (final RegExpMatch match in pattern.allMatches(text)) {
     if (match.start > cursor) {
-      spans.add(TextSpan(text: text.substring(cursor, match.start), style: base));
+      spans.add(
+        TextSpan(text: text.substring(cursor, match.start), style: base),
+      );
     }
     if (match.group(1) != null) {
       spans.add(TextSpan(text: match.group(1), style: bold));
@@ -79,11 +85,13 @@ List<InlineSpan> markdownInlineSpans(
       final TapGestureRecognizer recognizer = TapGestureRecognizer()
         ..onTap = () => onLink(match.group(4)!);
       recognizers.add(recognizer);
-      spans.add(TextSpan(
-        text: match.group(3),
-        style: linkStyle,
-        recognizer: recognizer,
-      ));
+      spans.add(
+        TextSpan(
+          text: match.group(3),
+          style: linkStyle,
+          recognizer: recognizer,
+        ),
+      );
     }
     cursor = match.end;
   }
@@ -95,7 +103,12 @@ List<InlineSpan> markdownInlineSpans(
 
 /// Blocos de markdown renderizados com os tokens do tema.
 class MarkdownLite extends StatefulWidget {
-  const MarkdownLite({super.key, required this.data, this.style, this.maxLines});
+  const MarkdownLite({
+    super.key,
+    required this.data,
+    this.style,
+    this.maxLines,
+  });
 
   final String data;
   final TextStyle? style;
@@ -145,7 +158,7 @@ class _MarkdownLiteState extends State<MarkdownLite> {
   Widget build(BuildContext context) {
     _disposeRecognizers();
     final TextStyle? base = (widget.style ?? context.texts.bodyMedium)
-        ?.copyWith(color: AppColors.textSecondary, height: 1.45);
+        ?.copyWith(color: context.colors.textSecondary, height: 1.45);
 
     final List<Widget> blocks = <Widget>[];
     for (final MarkdownChunk chunk in parseMarkdownLines(widget.data)) {
@@ -153,12 +166,14 @@ class _MarkdownLiteState extends State<MarkdownLite> {
       final bool isBullet = chunk.type == 'bullet';
       final TextStyle? blockStyle = isHeading
           ? context.texts.titleSmall?.copyWith(
-              color: AppColors.textPrimary, fontWeight: FontWeight.w700)
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w700,
+            )
           : base;
       final TextStyle? codeStyle = blockStyle?.copyWith(
         fontFamily: 'monospace',
         fontSize: (blockStyle.fontSize ?? 13) - 1,
-        color: AppColors.accentAlt,
+        color: context.colors.accentAlt,
       );
 
       blocks.add(
@@ -173,8 +188,8 @@ class _MarkdownLiteState extends State<MarkdownLite> {
                   child: Container(
                     width: 5,
                     height: 5,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
+                    decoration: BoxDecoration(
+                      color: context.colors.accent,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -184,7 +199,7 @@ class _MarkdownLiteState extends State<MarkdownLite> {
                 Text(
                   '${chunk.url}. ',
                   style: base?.copyWith(
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -197,11 +212,11 @@ class _MarkdownLiteState extends State<MarkdownLite> {
                       base: blockStyle,
                       bold: blockStyle?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                       code: codeStyle,
                       linkStyle: blockStyle?.copyWith(
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                         decoration: TextDecoration.underline,
                       ),
                       recognizers: _recognizers,

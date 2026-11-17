@@ -39,15 +39,14 @@ class SearchState {
     SearchStatus? status,
     Object? error,
     bool clearError = false,
-  }) =>
-      SearchState(
-        query: query ?? this.query,
-        filters: filters ?? this.filters,
-        items: items ?? this.items,
-        total: total ?? this.total,
-        status: status ?? this.status,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => SearchState(
+    query: query ?? this.query,
+    filters: filters ?? this.filters,
+    items: items ?? this.items,
+    total: total ?? this.total,
+    status: status ?? this.status,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 final searchControllerProvider =
@@ -55,7 +54,9 @@ final searchControllerProvider =
 
 // Últimas buscas ficam no dispositivo: nenhum dado sensível, só conveniência.
 final recentSearchesProvider =
-    NotifierProvider<RecentSearchesNotifier, List<String>>(RecentSearchesNotifier.new);
+    NotifierProvider<RecentSearchesNotifier, List<String>>(
+      RecentSearchesNotifier.new,
+    );
 
 class RecentSearchesNotifier extends Notifier<List<String>> {
   static const String _key = 'search.recent';
@@ -63,7 +64,8 @@ class RecentSearchesNotifier extends Notifier<List<String>> {
 
   @override
   List<String> build() =>
-      ref.watch(sharedPreferencesProvider).getStringList(_key) ?? const <String>[];
+      ref.watch(sharedPreferencesProvider).getStringList(_key) ??
+      const <String>[];
 
   void remember(String query) {
     final String clean = query.trim();
@@ -72,7 +74,9 @@ class RecentSearchesNotifier extends Notifier<List<String>> {
     }
     final List<String> next = <String>[
       clean,
-      ...state.where((String item) => item.toLowerCase() != clean.toLowerCase()),
+      ...state.where(
+        (String item) => item.toLowerCase() != clean.toLowerCase(),
+      ),
     ].take(_limit).toList(growable: false);
     state = next;
     unawaited(ref.read(sharedPreferencesProvider).setStringList(_key, next));
@@ -81,6 +85,12 @@ class RecentSearchesNotifier extends Notifier<List<String>> {
   void clear() {
     state = const <String>[];
     unawaited(ref.read(sharedPreferencesProvider).remove(_key));
+  }
+
+  /// Restaura um conjunto anterior de buscas (undo do "limpar histórico").
+  void restoreAll(List<String> entries) {
+    state = List<String>.unmodifiable(entries);
+    unawaited(ref.read(sharedPreferencesProvider).setStringList(_key, entries));
   }
 }
 
@@ -170,16 +180,23 @@ class SearchController extends Notifier<SearchState> {
     );
 
     try {
-      final SearchPayload payload = await ref.read(catalogRepositoryProvider).search(
+      final SearchPayload payload = await ref
+          .read(catalogRepositoryProvider)
+          .search(
             SearchRequest(query: query, filters: filters, offset: offset),
           );
       if (requestId != _requestId) {
         return;
       }
-      final List<Game> items =
-          reset ? payload.items : _merge(state.items, payload.items);
+      final List<Game> items = reset
+          ? payload.items
+          : _merge(state.items, payload.items);
       state = SearchState(
-        query: query,
+        // O estado carrega a query BRUTA do campo: enquanto o usuário digita,
+        // o texto digitado é a fonte da verdade. A versão trimada serve apenas
+        // para a requisição e para "buscas recentes" — devolvê-la trimada aqui
+        // fazia a tela apagar o espaço final que o usuário tinha digitado.
+        query: state.query,
         filters: filters,
         items: items,
         total: payload.total,
@@ -193,7 +210,8 @@ class SearchController extends Notifier<SearchState> {
         return;
       }
       state = SearchState(
-        query: query,
+        // Idem ao sucesso: nunca ecoar a query trimada/congelada de volta.
+        query: state.query,
         filters: filters,
         items: reset ? const <Game>[] : state.items,
         total: reset ? 0 : state.total,

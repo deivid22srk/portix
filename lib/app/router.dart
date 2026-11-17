@@ -3,12 +3,16 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/tokens.dart';
+import '../features/device_specs/device_specs_screen.dart';
+import '../features/device_specs/device_specs_search_screen.dart';
 import '../features/details/game_detail_page.dart';
 import '../features/details/game_reports_page.dart';
 import '../features/explore/explore_page.dart';
 import '../features/home/home_page.dart';
 import '../features/hub/hub_page.dart';
 import '../features/menu/menu_page.dart';
+import '../features/menu/settings_categories.dart';
+import '../features/menu/settings_category_page.dart';
 import '../features/news/news_article_page.dart';
 import '../features/news/news_page.dart';
 import '../features/profile/auth_page.dart';
@@ -29,18 +33,59 @@ final routerProvider = Provider<GoRouter>((ref) {
         state.uri.path == '/' ? '/home' : null,
     routes: <RouteBase>[
       StatefulShellRoute.indexedStack(
-        builder: (
-          BuildContext context,
-          GoRouterState state,
-          StatefulNavigationShell navigationShell,
-        ) =>
-            MainShell(navigationShell: navigationShell),
+        builder:
+            (
+              BuildContext context,
+              GoRouterState state,
+              StatefulNavigationShell navigationShell,
+            ) => MainShell(navigationShell: navigationShell),
         branches: <StatefulShellBranch>[
           _branch(<RouteBase>[GoRoute(path: '/home', builder: _home)]),
           _branch(<RouteBase>[GoRoute(path: '/explore', builder: _explore)]),
           _branch(<RouteBase>[GoRoute(path: '/news', builder: _news)]),
           _branch(<RouteBase>[GoRoute(path: '/hub', builder: _hub)]),
-          _branch(<RouteBase>[GoRoute(path: '/menu', builder: _menu)]),
+          // Configurações: hub + categorias (deep link /menu/<id>, voltar do
+          // sistema funciona; em telas ≥768px vira master-detail).
+          _branch(<RouteBase>[
+            GoRoute(
+              path: '/menu',
+              builder: _menu,
+              routes: <RouteBase>[
+                GoRoute(
+                  path: kSettingsAccount,
+                  builder: (_, __) =>
+                      const SettingsCategoryPage(categoryId: kSettingsAccount),
+                ),
+                GoRoute(
+                  path: kSettingsAppearance,
+                  builder: (_, __) => const SettingsCategoryPage(
+                    categoryId: kSettingsAppearance,
+                  ),
+                ),
+                GoRoute(
+                  path: kSettingsNotifications,
+                  builder: (_, __) => const SettingsCategoryPage(
+                    categoryId: kSettingsNotifications,
+                  ),
+                ),
+                GoRoute(
+                  path: kSettingsLanguage,
+                  builder: (_, __) =>
+                      const SettingsCategoryPage(categoryId: kSettingsLanguage),
+                ),
+                GoRoute(
+                  path: kSettingsData,
+                  builder: (_, __) =>
+                      const SettingsCategoryPage(categoryId: kSettingsData),
+                ),
+                GoRoute(
+                  path: kSettingsAbout,
+                  builder: (_, __) =>
+                      const SettingsCategoryPage(categoryId: kSettingsAbout),
+                ),
+              ],
+            ),
+          ]),
         ],
       ),
       GoRoute(
@@ -86,6 +131,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/specs/search',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          DeviceSpecsSearchScreen(
+            initialQuery: state.uri.queryParameters['q'] ?? '',
+          ),
+        ),
+      ),
+      // Ficha técnica do aparelho citado num relato da comunidade.
+      GoRoute(
+        path: '/specs/:slug',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          DeviceSpecsScreen(slug: state.pathParameters['slug'] ?? ''),
+        ),
+      ),
+      GoRoute(
         path: '/news/:slug',
         pageBuilder: (BuildContext context, GoRouterState state) {
           final Object? extra = state.extra;
@@ -109,7 +171,8 @@ StatefulShellBranch _branch(List<RouteBase> routes) =>
 
 Widget _home(BuildContext context, GoRouterState state) => const HomePage();
 
-Widget _explore(BuildContext context, GoRouterState state) => const ExplorePage();
+Widget _explore(BuildContext context, GoRouterState state) =>
+    const ExplorePage();
 
 Widget _news(BuildContext context, GoRouterState state) => const NewsPage();
 
@@ -124,24 +187,25 @@ CustomTransitionPage<void> _expandPage(GoRouterState state, Widget child) {
     child: child,
     transitionDuration: AppMotion.slow,
     reverseTransitionDuration: AppMotion.base,
-    transitionsBuilder: (
-      BuildContext context,
-      Animation<double> animation,
-      Animation<double> secondaryAnimation,
-      Widget child,
-    ) {
-      final Animation<double> curved = CurvedAnimation(
-        parent: animation,
-        curve: AppMotion.emphasized,
-        reverseCurve: AppMotion.out,
-      );
-      return FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
-          child: child,
-        ),
-      );
-    },
+    transitionsBuilder:
+        (
+          BuildContext context,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+          Widget child,
+        ) {
+          final Animation<double> curved = CurvedAnimation(
+            parent: animation,
+            curve: AppMotion.emphasized,
+            reverseCurve: AppMotion.out,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+              child: child,
+            ),
+          );
+        },
   );
 }

@@ -220,6 +220,40 @@ compilado como `.so` por ABI com `cargo-ndk`) exposto ao Kotlin via **JNI**:
   download. O motor Rust ainda valida `Content-Type` e o *magic* `PK` do ZIP/APK.
 - Fallback: fora do Android, a fila continua simulada como antes.
 
+### Arquitetura do motor (`native/portix_downloader/src/engine/`)
+
+O núcleo é **agnóstico de plataforma** (testável no host com `cargo test`);
+a ponte JNI (`lib.rs`) só adapta. Máquina de estados explícita:
+`Connecting → Downloading → Verifying → Completed | Failed | Cancelled`.
+
+- **Escrita atômica**: os bytes vão para `<dest>.part` (pré-alocado), com
+  `fsync`, validação de magic + tamanho e só então `rename` para o destino —
+  crash no meio nunca deixa APK corrompido com nome final.
+- **Retomada real**: `<dest>.part.meta` guarda URL, `ETag`/`Last-Modified`,
+  total e progresso (single-stream ou por chunk). Retomada usa `Range` +
+  `If-Range`; **sem validador o motor recomeça do zero** — nunca concatena
+  arquivos possivelmente diferentes. `200` em resposta a Range e `416`
+  disparam recomeço seguro.
+- **Paralelismo adaptativo**: um probe `Range: bytes=0-0` detecta suporte a
+  Range, tamanho e validadores; arquivos ≥ 8 MiB usam até 8 conexões com
+  chunks 2× conexões (balanceamento por fila). Servidor sem Range →
+  single-stream automaticamente.
+- **Retry**: backoff exponencial com jitter (4 tentativas, teto 8 s) e
+  respeito a `Retry-After` (429/503); cada retry retoma do disco.
+- **Erros tipados**: códigos estáveis (`network`, `http_status`, `disk_full`,
+  `not_apk`, `truncated`…) via `"<code>|<detalhe>"` — o Dart traduz para
+  mensagens humanas pt/en, nunca mostra texto cru.
+- **Progresso rico**: velocidade (EWMA) e ETA a ~10/s para a UI; legado a
+  ~3/s para a notificação.
+- **Pré-checagens**: espaço em disco (`statvfs` + margem) e sanitização de
+  caminho antes de tocar no disco; `gzip` automático desligado (invalidaria
+  `Range`/`Content-Length`).
+
+Os cenários de rede são cobertos por testes de integração contra um servidor
+HTTP local de mentira (`std::net`, zero dependências): 200/206/416, HTML,
+não-APK, 404/500, 429 com `Retry-After`, redirect, truncamento, queda no meio,
+retomada single e paralela, cancelamento preservando progresso.
+
 As fontes Kotlin e o XML do FileProvider vivem em `native/android/` e são
 copiados para o scaffold gerado por `tools/ci/prepare_android.py` (o `android/`
 não é versionado). O CI instala Rust + `cargo-ndk` + NDK e compila o `.so` para
@@ -265,9 +299,12 @@ Secrets necessários no repositório:
 
 ## Limitações conhecidas
 
-- **Downloads simulados**: não há APK/arquivo real; a fila avança em memória,
-  persiste em `shared_preferences` e sincroniza status com a tabela `downloads`.
-  O botão “Abrir fonte” usa o link original do port.
+- **Downloads no Android são reais** (motor Rust acima). Fora do Android, a
+  fila continua simulada: avança em memória, persiste em `shared_preferences`
+  e sincroniza status com a tabela `downloads`. O botão “Abrir fonte” usa o
+  link original do port.
+- **Tipografia**: o app usa **Poppins** (via `google_fonts`, baixada na primeira
+  execução com cache local).
 - **Sem autenticação social**: a sessão é anônima por instalação. Limpar dados
   do app cria outra identidade.
 - **Sem preços, prints ou contagem de downloads**: o catálogo de origem não

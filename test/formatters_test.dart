@@ -42,8 +42,14 @@ void main() {
 
     test('dias relativos', () {
       final DateTime now = DateTime.now();
-      expect(relativeDay(now.subtract(const Duration(days: 1)), en: false), 'ontem');
-      expect(relativeDay(now.subtract(const Duration(days: 1)), en: true), 'yesterday');
+      expect(
+        relativeDay(now.subtract(const Duration(days: 1)), en: false),
+        'ontem',
+      );
+      expect(
+        relativeDay(now.subtract(const Duration(days: 1)), en: true),
+        'yesterday',
+      );
     });
 
     test('saudação por horário', () {
@@ -71,6 +77,32 @@ void main() {
       expect(first.length, 2);
       expect(first[0], second[0]);
       expect(first[1], second[1]);
+    });
+  });
+
+  group('formatBytes', () {
+    test('unidades e vírgula decimal', () {
+      expect(formatBytes(0), '0 B');
+      expect(formatBytes(512), '512 B');
+      expect(formatBytes(131072), '128,0 KB');
+      expect(formatBytes(1048576), '1,0 MB');
+      expect(formatBytes(-5), '0 B');
+    });
+  });
+
+  group('formatSpeed', () {
+    test('zero e velocidades comuns', () {
+      expect(formatSpeed(0), '0 B/s');
+      expect(formatSpeed(1048576.0), '1,0 MB/s');
+    });
+  });
+
+  group('formatEta', () {
+    test('relógio e desconhecido', () {
+      expect(formatEta(-1), isNull);
+      expect(formatEta(0), '0:00');
+      expect(formatEta(194), '3:14');
+      expect(formatEta(4500), '1:15:00');
     });
   });
 }

@@ -8,22 +8,27 @@ GithubRelease _release(
   bool prerelease = false,
   List<ApkAsset> assets = const <ApkAsset>[],
   String? body,
-}) =>
-    GithubRelease(
-      tag: tag,
-      publishedAt: publishedAt,
-      prerelease: prerelease,
-      assets: assets,
-      body: body,
-    );
+}) => GithubRelease(
+  tag: tag,
+  publishedAt: publishedAt,
+  prerelease: prerelease,
+  assets: assets,
+  body: body,
+);
 
-ApkAsset _apk(String name, {int size = 100, int downloads = 0}) =>
-    ApkAsset(name: name, url: 'https://github.com/o/r/releases/download/$name', sizeBytes: size, downloadCount: downloads);
+ApkAsset _apk(String name, {int size = 100, int downloads = 0}) => ApkAsset(
+  name: name,
+  url: 'https://github.com/o/r/releases/download/$name',
+  sizeBytes: size,
+  downloadCount: downloads,
+);
 
 void main() {
   group('githubRepoOf', () {
     test('extrai owner/repo de URLs do GitHub', () {
-      final GithubRepo? repo = githubRepoOf('https://github.com/VinTeRuS/spore-re');
+      final GithubRepo? repo = githubRepoOf(
+        'https://github.com/VinTeRuS/spore-re',
+      );
       expect(repo?.owner, 'VinTeRuS');
       expect(repo?.repo, 'spore-re');
       expect(repo?.id, 'VinTeRuS/spore-re');
@@ -32,7 +37,10 @@ void main() {
     test('ignora URLs que não são repos', () {
       expect(githubRepoOf('https://github.com/explore'), isNull);
       expect(githubRepoOf('https://github.com/releases'), isNull); // sem owner
-      expect(githubRepoOf('https://github.com/releases/tag/v1'), isNull); // path reservado
+      expect(
+        githubRepoOf('https://github.com/releases/tag/v1'),
+        isNull,
+      ); // path reservado
       expect(githubRepoOf('https://example.com/owner/repo'), isNull);
       expect(githubRepoOf('não é url'), isNull);
     });
@@ -45,18 +53,28 @@ void main() {
         _release('v1.2.0', publishedAt: DateTime(2026, 3, 1)),
         _release('v1.1.0', publishedAt: DateTime(2026, 2, 1)),
       ]);
-      expect(sorted.map((GithubRelease r) => r.tag).toList(),
-          <String>['v1.2.0', 'v1.1.0', 'v1.0.0']);
+      expect(sorted.map((GithubRelease r) => r.tag).toList(), <String>[
+        'v1.2.0',
+        'v1.1.0',
+        'v1.0.0',
+      ]);
     });
 
-    test('mantém release sem APK na lista (caso de borda: card desabilitado)', () {
-      final List<GithubRelease> sorted = visibleReleases(<GithubRelease>[
-        _release('v2.0.0', publishedAt: DateTime(2026, 4, 1)), // sem assets
-        _release('v1.9.0', publishedAt: DateTime(2026, 3, 1), assets: <ApkAsset>[_apk('x.apk')]),
-      ]);
-      expect(sorted, hasLength(2));
-      expect(sorted.first.tag, 'v2.0.0');
-    });
+    test(
+      'mantém release sem APK na lista (caso de borda: card desabilitado)',
+      () {
+        final List<GithubRelease> sorted = visibleReleases(<GithubRelease>[
+          _release('v2.0.0', publishedAt: DateTime(2026, 4, 1)), // sem assets
+          _release(
+            'v1.9.0',
+            publishedAt: DateTime(2026, 3, 1),
+            assets: <ApkAsset>[_apk('x.apk')],
+          ),
+        ]);
+        expect(sorted, hasLength(2));
+        expect(sorted.first.tag, 'v2.0.0');
+      },
+    );
 
     test('descarta tags vazias', () {
       final List<GithubRelease> sorted = visibleReleases(<GithubRelease>[
@@ -74,8 +92,10 @@ void main() {
         _release('v1.9.0', assets: <ApkAsset>[_apk('a.apk')]),
         _release('v1.8.0', assets: <ApkAsset>[_apk('b.apk')]),
       ]);
-      expect(filtered.map((GithubRelease r) => r.tag).toList(),
-          <String>['v1.9.0', 'v1.8.0']);
+      expect(filtered.map((GithubRelease r) => r.tag).toList(), <String>[
+        'v1.9.0',
+        'v1.8.0',
+      ]);
     });
   });
 
@@ -157,8 +177,10 @@ void main() {
         avatarUrl: 'https://avatars.githubusercontent.com/u/73440180?v=4',
         htmlUrl: 'https://github.com/dev',
       );
-      expect(user.avatarUrlFor(112),
-          'https://avatars.githubusercontent.com/u/73440180?s=112');
+      expect(
+        user.avatarUrlFor(112),
+        'https://avatars.githubusercontent.com/u/73440180?s=112',
+      );
       expect(user.avatarUrlFor(112), user.avatarUrlFor(112));
     });
   });
@@ -172,8 +194,7 @@ void main() {
         body: 'Notas **bold**',
         assets: <ApkAsset>[_apk('spore.apk', size: 98818871, downloads: 106)],
       );
-      final GithubRelease restored =
-          GithubRelease.fromJson(original.toJson());
+      final GithubRelease restored = GithubRelease.fromJson(original.toJson());
       expect(restored.tag, 'v0.1.4');
       expect(restored.body, 'Notas **bold**');
       expect(restored.assets.single.name, 'spore.apk');
@@ -203,7 +224,9 @@ void main() {
 
   group('formatBytes', () {
     test('formata KB/MB/GB', () {
-      expect(formatBytes(0), '—');
+      // Semântica canônica (padrão do app desde a missão de downloads):
+      // `0` → `0 B`; o "—" de tamanho ausente é decisão do chamador.
+      expect(formatBytes(0), '0 B');
       expect(formatBytes(512), '512 B');
       expect(formatBytes(98495287), '93,9 MB');
       expect(formatBytes(1024 * 1024 * 1024 * 2), '2,0 GB');

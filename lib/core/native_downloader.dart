@@ -12,6 +12,8 @@ class NativeDownloadEvent {
     this.total = 0,
     this.path,
     this.error,
+    this.speedBps,
+    this.etaSecs,
   });
 
   final int id;
@@ -20,6 +22,18 @@ class NativeDownloadEvent {
   final int total;
   final String? path;
   final String? error;
+
+  /// Velocidade suavizada (bytes/s) — só existe no evento `downloading`
+  /// rico (onStats, ~10/s). `null` = o evento NÃO trouxe estatística
+  /// (legado de notificação, `onProgress` a ~3/s): o consumidor deve
+  /// manter o último valor válido em vez de rebaixar para zero — era isso
+  /// que fazia velocidade/ETA piscarem na fila de downloads.
+  final double? speedBps;
+
+  /// ETA em segundos (-1 = desconhecido, explícito no evento rico).
+  /// `null` = o evento não trouxe estatística (mesmo contrato de
+  /// [speedBps]).
+  final int? etaSecs;
 
   double? get progress =>
       total > 0 ? (done / total).clamp(0.0, 1.0).toDouble() : null;
@@ -38,6 +52,10 @@ class NativeDownloadEvent {
       total: asInt(map['total']),
       path: asText(map['path']),
       error: asText(map['error']),
+      // Ausente (evento legado de notificação) → null: não rebaixa a
+      // última estatística válida; presente → valor explícito do motor.
+      speedBps: map['speed'] is num ? (map['speed'] as num).toDouble() : null,
+      etaSecs: map['eta'] is num ? (map['eta'] as num).toInt() : null,
     );
   }
 }
@@ -122,10 +140,10 @@ class NativeDownloader {
   }
 
   static Stream<NativeDownloadEvent> events() {
-    return _events
-        .receiveBroadcastStream()
-        .map<NativeDownloadEvent>((Object? event) => NativeDownloadEvent.fromMap(
-              Map<Object?, Object?>.from(event as Map? ?? const <Object?, Object?>{}),
-            ));
+    return _events.receiveBroadcastStream().map<NativeDownloadEvent>(
+      (Object? event) => NativeDownloadEvent.fromMap(
+        Map<Object?, Object?>.from(event as Map? ?? const <Object?, Object?>{}),
+      ),
+    );
   }
 }

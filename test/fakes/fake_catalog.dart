@@ -49,7 +49,8 @@ class FakeCatalogRepository implements CatalogRepository {
   Future<void> setHandle(String handle) async {}
 
   @override
-  Future<List<UserResult>> searchUsers(String query) async => const <UserResult>[];
+  Future<List<UserResult>> searchUsers(String query) async =>
+      const <UserResult>[];
 
   @override
   Future<PublicProfile> fetchPublicProfile(String id) async =>

@@ -17,16 +17,19 @@ class PortixMark extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: CustomPaint(painter: _PortixMarkPainter(glow: glow)),
+        child: CustomPaint(
+          painter: _PortixMarkPainter(glow: glow, colors: context.colors),
+        ),
       ),
     );
   }
 }
 
 class _PortixMarkPainter extends CustomPainter {
-  const _PortixMarkPainter({required this.glow});
+  const _PortixMarkPainter({required this.glow, required this.colors});
 
   final bool glow;
+  final AppColorsTheme colors;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -38,9 +41,9 @@ class _PortixMarkPainter extends CustomPainter {
       final Paint halo = Paint()
         ..shader = RadialGradient(
           colors: <Color>[
-            AppColors.accent.withValues(alpha: 0.30),
-            AppColors.accentAlt.withValues(alpha: 0.10),
-            Colors.transparent,
+            colors.accent.withValues(alpha: 0.30),
+            colors.accentAlt.withValues(alpha: 0.10),
+            AppContentColors.transparent,
           ],
           stops: const <double>[0, 0.45, 1],
         ).createShader(Rect.fromCircle(center: center, radius: s * 0.52));
@@ -62,7 +65,7 @@ class _PortixMarkPainter extends CustomPainter {
     );
     final Paint archPaint = Paint()
       ..shader = const LinearGradient(
-        colors: <Color>[Colors.white, Color(0xFFCFFAFE)],
+        colors: <Color>[AppContentColors.onMedia, AppBrandColors.skyLight],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
@@ -71,17 +74,20 @@ class _PortixMarkPainter extends CustomPainter {
     final Offset orbCenter = Offset(s * 0.50, s * 0.42);
     final double orbRadius = s * 0.105;
     final Paint orbHalo = Paint()
-      ..shader = RadialGradient(
-        colors: <Color>[
-          AppColors.accentAlt.withValues(alpha: 0.55),
-          AppColors.accent.withValues(alpha: 0),
-        ],
-      ).createShader(Rect.fromCircle(center: orbCenter, radius: orbRadius * 2.4));
+      ..shader =
+          RadialGradient(
+            colors: <Color>[
+              colors.accentAlt.withValues(alpha: 0.55),
+              colors.accent.withValues(alpha: 0),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: orbCenter, radius: orbRadius * 2.4),
+          );
     canvas.drawCircle(orbCenter, orbRadius * 2.4, orbHalo);
 
     final Paint orb = Paint()
-      ..shader = const LinearGradient(
-        colors: <Color>[AppColors.accent, AppColors.accentAlt],
+      ..shader = LinearGradient(
+        colors: <Color>[colors.accent, colors.accentAlt],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(Rect.fromCircle(center: orbCenter, radius: orbRadius));
@@ -112,7 +118,7 @@ class PortixWordmark extends StatelessWidget {
             fontSize: fontSize,
             fontWeight: FontWeight.w700,
             letterSpacing: 3.4,
-            color: context.palette.text,
+            color: context.colors.textPrimary,
           ),
         ),
       ],

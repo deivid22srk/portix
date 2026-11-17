@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/download_task.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import 'downloads_controller.dart';
@@ -22,8 +23,12 @@ class DownloadTile extends ConsumerWidget {
     switch (task.status) {
       case DownloadStatus.queued:
         return l10n.statusQueued;
+      case DownloadStatus.connecting:
+        return l10n.statusConnecting;
       case DownloadStatus.downloading:
         return l10n.progressPercent((task.progress * 100).round());
+      case DownloadStatus.verifying:
+        return l10n.statusVerifying;
       case DownloadStatus.paused:
         return l10n.statusPaused;
       case DownloadStatus.done:
@@ -33,19 +38,56 @@ class DownloadTile extends ConsumerWidget {
     }
   }
 
-  Color _statusColor() {
+  Color _statusColor(BuildContext context) {
     switch (task.status) {
       case DownloadStatus.queued:
-        return AppColors.warning;
+        return context.colors.warning;
+      case DownloadStatus.connecting:
+        return context.colors.textSecondary;
       case DownloadStatus.downloading:
-        return AppColors.accent;
+        return context.colors.accent;
+      case DownloadStatus.verifying:
+        return context.colors.accentAlt;
       case DownloadStatus.paused:
-        return AppColors.textSecondary;
+        return context.colors.textSecondary;
       case DownloadStatus.done:
-        return AppColors.success;
+        return context.colors.success;
       case DownloadStatus.failed:
-        return AppColors.danger;
+        return context.colors.danger;
     }
+  }
+
+  /// Linha de estatísticas: bytes baixados + velocidade (quando o motor
+  /// informa) — nunca “solta” números sem contexto.
+  String _statsLine(L10n l10n) {
+    final List<String> parts = <String>[
+      if (task.totalBytes > 0)
+        '${formatBytes(task.doneBytes)} / ${formatBytes(task.totalBytes)}',
+      if (task.speedBps > 0) formatSpeed(task.speedBps),
+    ];
+    if (parts.isEmpty) {
+      return task.status == DownloadStatus.connecting
+          ? l10n.statusConnecting
+          : '';
+    }
+    return parts.join(' · ');
+  }
+
+  String _etaOrEmpty() => formatEta(task.etaSecs) ?? '';
+
+  /// Remove/cancela com snackbar e desfazer — destrutivo nunca é sem volta.
+  void _removeWithUndo(
+    BuildContext context,
+    L10n l10n,
+    DownloadsController controller,
+  ) {
+    controller.remove(task.gameId);
+    showAppSnackBar(
+      context,
+      message: l10n.downloadRemoved,
+      actionLabel: l10n.undo,
+      onAction: () => controller.restore(task),
+    );
   }
 
   Future<void> _openSource(String? url) async {
@@ -67,11 +109,10 @@ class DownloadTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
     final DownloadsController controller = ref.read(downloadsProvider.notifier);
-    final List<String> metaParts = <String>[
-      ?task.platformName,
-      ?task.portKey,
-    ];
-    final String meta = metaParts.isEmpty ? l10n.notInformed : metaParts.join(' · ');
+    final List<String> metaParts = <String>[?task.platformName, ?task.portKey];
+    final String meta = metaParts.isEmpty
+        ? l10n.notInformed
+        : metaParts.join(' · ');
 
     return GlassContainer(
       radius: AppRadii.md,
@@ -83,8 +124,8 @@ class DownloadTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            width: 58,
-            height: 78,
+            width: AppSpacing.tileCoverWidth,
+            height: AppSpacing.tileCoverHeight,
             child: GameCover(
               imageUrl: task.coverUrl,
               title: task.title,
@@ -110,128 +151,225 @@ class DownloadTile extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    BadgeChip(label: _statusLabel(l10n), color: _statusColor()),
+                    BadgeChip(
+                      label: _statusLabel(l10n),
+                      color: _statusColor(context),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   meta,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
-                if (task.status == DownloadStatus.failed) ...<Widget>[
-                  const SizedBox(height: 9),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Icon(
-                        Icons.error_outline_rounded,
-                        size: 15,
-                        color: AppColors.danger,
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          task.error ?? l10n.errorGeneric,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.texts.labelSmall?.copyWith(
-                            color: AppColors.danger,
-                          ),
-                        ),
-                      ),
-                    ],
+                // Corpo por estado com transição: crossfade entre grupos
+                // (progresso/falha/concluído) + ajuste animado de altura.
+                AnimatedSize(
+                  duration: AppMotion.fast,
+                  curve: AppMotion.out,
+                  alignment: Alignment.topLeft,
+                  child: AnimatedSwitcher(
+                    duration: AppMotion.base,
+                    switchInCurve: AppMotion.out,
+                    switchOutCurve: AppMotion.out.flipped,
+                    transitionBuilder: (Widget child, Animation<double> a) =>
+                        FadeTransition(opacity: a, child: child),
+                    child: KeyedSubtree(
+                      key: ValueKey<String>(_stateGroup),
+                      child: _stateBody(context, l10n, controller),
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: <Widget>[
-                      if (task.portUrl != null)
-                        SecondaryButton(
-                          label: l10n.openSource,
-                          icon: Icons.open_in_new_rounded,
-                          height: 38,
-                          expand: false,
-                          onPressed: () => _openSource(task.portUrl),
-                        ),
-                      const Spacer(),
-                      GlassCircleButton(
-                        icon: Icons.close_rounded,
-                        size: 32,
-                        tooltip: l10n.cancel,
-                        onTap: () => controller.cancel(task.gameId),
-                      ),
-                    ],
-                  ),
-                ] else if (!task.isDone) ...<Widget>[
-                  const SizedBox(height: 9),
-                  GradientProgress(value: task.progress, height: 6),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: <Widget>[
-                      if (task.status == DownloadStatus.downloading)
-                        GlassCircleButton(
-                          icon: Icons.pause_rounded,
-                          size: 32,
-                          tooltip: l10n.pause,
-                          onTap: () => controller.pause(task.gameId),
-                        )
-                      else
-                        GlassCircleButton(
-                          icon: Icons.play_arrow_rounded,
-                          size: 32,
-                          tooltip: l10n.resume,
-                          onTap: () => controller.resume(task.gameId),
-                        ),
-                      const SizedBox(width: AppSpacing.sm),
-                      GlassCircleButton(
-                        icon: Icons.close_rounded,
-                        size: 32,
-                        tooltip: l10n.cancel,
-                        onTap: () => controller.cancel(task.gameId),
-                      ),
-                      const Spacer(),
-                      if (task.startedAt != null)
-                        Text(
-                          relativeDay(task.startedAt, en: l10n.isEn),
-                          style: context.texts.labelSmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                    ],
-                  ),
-                ] else ...<Widget>[
-                  const SizedBox(height: 9),
-                  Row(
-                    children: <Widget>[
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        size: 15,
-                        color: AppColors.success,
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          l10n.downloadDone,
-                          style: context.texts.labelSmall?.copyWith(
-                            color: AppColors.success,
-                          ),
-                        ),
-                      ),
-                      GlassCircleButton(
-                        icon: Icons.delete_outline_rounded,
-                        size: 32,
-                        tooltip: l10n.remove,
-                        onTap: () => controller.remove(task.gameId),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Grupo visual do estado: controla a chave do AnimatedSwitcher — mudanças
+  /// dentro do mesmo grupo (ex.: conectando→baixando) não piscam.
+  String get _stateGroup {
+    if (task.status == DownloadStatus.failed) {
+      return 'failed';
+    }
+    return task.isDone ? 'done' : 'progress';
+  }
+
+  Widget _stateBody(
+    BuildContext context,
+    L10n l10n,
+    DownloadsController controller,
+  ) {
+    if (task.status == DownloadStatus.failed) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                Icons.error_outline_rounded,
+                size: 15,
+                color: context.colors.danger,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  l10n.downloadErrorLabel(task.error),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.danger,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Wrap (não Row): em fonte 2,0 os botões quebram de linha em
+          // vez de estourar a largura (varredura de overflow do helper).
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: <Widget>[
+              if (task.portUrl != null)
+                SecondaryButton(
+                  label: l10n.openSource,
+                  icon: Icons.open_in_new_rounded,
+                  height: AppSpacing.secondaryButtonHeight,
+                  expand: false,
+                  onPressed: () => _openSource(task.portUrl),
+                ),
+              GlassCircleButton(
+                icon: Icons.refresh_rounded,
+                size: 48,
+                tooltip: l10n.tryAgain,
+                onTap: () => controller.resume(task.gameId),
+              ),
+              GlassCircleButton(
+                icon: Icons.close_rounded,
+                size: 48,
+                tooltip: l10n.cancel,
+                onTap: () => _removeWithUndo(context, l10n, controller),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    if (!task.isDone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(height: AppSpacing.sm),
+          // RepaintBoundary: o tick do progresso (~10/s) repinta só a barra,
+          // não o tile inteiro.
+          RepaintBoundary(
+            child: GradientProgress(
+              value: task.progress,
+              height: AppSpacing.sm,
+              semanticLabel: _statusLabel(l10n),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  _statsLine(l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ),
+              if (task.isTransferring && task.etaSecs >= 0)
+                Text(
+                  l10n.timeLeft(_etaOrEmpty()),
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.textTertiary,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: <Widget>[
+              if (task.isTransferring)
+                GlassCircleButton(
+                  icon: Icons.pause_rounded,
+                  size: 48,
+                  tooltip: l10n.pause,
+                  onTap: () => controller.pause(task.gameId),
+                )
+              else
+                GlassCircleButton(
+                  icon: Icons.play_arrow_rounded,
+                  size: 48,
+                  tooltip: l10n.resume,
+                  onTap: () => controller.resume(task.gameId),
+                ),
+              const SizedBox(width: AppSpacing.sm),
+              GlassCircleButton(
+                icon: Icons.close_rounded,
+                size: 48,
+                tooltip: l10n.cancel,
+                onTap: () => _removeWithUndo(context, l10n, controller),
+              ),
+              const Spacer(),
+              if (task.startedAt != null)
+                Text(
+                  relativeDay(task.startedAt, en: l10n.isEn),
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: <Widget>[
+            Icon(
+              Icons.check_circle_rounded,
+              size: 15,
+              color: context.colors.success,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                l10n.downloadDone,
+                style: context.texts.labelSmall?.copyWith(
+                  color: context.colors.success,
+                ),
+              ),
+            ),
+            GlassCircleButton(
+              icon: Icons.delete_outline_rounded,
+              size: 48,
+              tooltip: l10n.remove,
+              onTap: () => _removeWithUndo(context, l10n, controller),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

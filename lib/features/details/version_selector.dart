@@ -38,8 +38,9 @@ class VersionSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
-    final AsyncValue<List<GithubRelease>> async =
-        ref.watch(repoReleasesProvider(repoId));
+    final AsyncValue<List<GithubRelease>> async = ref.watch(
+      repoReleasesProvider(repoId),
+    );
 
     if (async.isLoading && !async.hasValue) {
       return const _VersionSkeleton();
@@ -48,8 +49,9 @@ class VersionSelector extends ConsumerWidget {
     final List<GithubRelease>? data = async.value;
     if (data == null) {
       final Object? error = async.error;
-      final GitHubErrorKind? kind =
-          error is GitHubApiException ? error.kind : null;
+      final GitHubErrorKind? kind = error is GitHubApiException
+          ? error.kind
+          : null;
       return _ErrorCard(
         rateLimit: kind == GitHubErrorKind.rateLimit,
         offline: kind == GitHubErrorKind.offline,
@@ -66,7 +68,10 @@ class VersionSelector extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Row(
           children: <Widget>[
-            const Icon(Icons.inventory_2_rounded, color: AppColors.textSecondary),
+            Icon(
+              Icons.inventory_2_rounded,
+              color: context.colors.textSecondary,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -76,7 +81,9 @@ class VersionSelector extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     l10n.noReleasesBody,
-                    style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                    style: context.texts.bodySmall?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -150,7 +157,7 @@ class VersionCard extends StatelessWidget {
     final String date = release.publishedAt == null
         ? l10n.notInformed
         : '${relativeDay(release.publishedAt, en: l10n.isEn)} · '
-            '${formatDate(release.publishedAt, en: l10n.isEn)}';
+              '${formatDate(release.publishedAt, en: l10n.isEn)}';
     final String meta = asset == null
         ? l10n.noCompatibleApk
         : <String>[
@@ -160,11 +167,11 @@ class VersionCard extends StatelessWidget {
           ].join(' · ');
 
     final Color border = selected
-        ? AppColors.accent.withValues(alpha: 0.55)
-        : AppColors.glassBorder;
+        ? context.colors.accent.withValues(alpha: 0.55)
+        : context.colors.glassBorder;
     final Color fill = selected
-        ? AppColors.accent.withValues(alpha: 0.10)
-        : AppColors.glass;
+        ? context.colors.accent.withValues(alpha: 0.10)
+        : context.colors.glass;
 
     return Semantics(
       button: true,
@@ -182,85 +189,95 @@ class VersionCard extends StatelessWidget {
                 duration: reduceMotion ? Duration.zero : AppMotion.fast,
                 curve: AppMotion.out,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: 12),
+                  horizontal: AppSpacing.lg,
+                  vertical: 12,
+                ),
                 constraints: const BoxConstraints(minHeight: 56),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadii.md),
                   color: fill,
                   border: Border.all(
-                    color: focused ? AppColors.accent : border,
+                    color: focused ? context.colors.accent : border,
                     width: focused ? 2 : 1,
                   ),
                 ),
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: <Widget>[
-                    // Wrap: tag + badges caem para a 2ª linha quando não
-                    // couberem (nada de RenderFlex overflow em 320-375px).
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        Text(
-                          release.tag,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.texts.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: enabled ? null : AppColors.textTertiary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          // Wrap: tag + badges caem para a 2ª linha quando não
+                          // couberem (nada de RenderFlex overflow em 320-375px).
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: <Widget>[
+                              Text(
+                                release.tag,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.texts.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: enabled
+                                      ? null
+                                      : context.colors.textTertiary,
+                                ),
+                              ),
+                              _Badges(
+                                release: release,
+                                isLatest: isLatest,
+                                installed: installed,
+                              ),
+                            ],
                           ),
-                        ),
-                        _Badges(
-                          release: release,
-                          isLatest: isLatest,
-                          installed: installed,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      date,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.texts.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
+                          const SizedBox(height: 3),
+                          Text(
+                            date,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.texts.labelSmall?.copyWith(
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            meta,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.texts.labelSmall?.copyWith(
+                              color: asset == null
+                                  ? context.colors.warning
+                                  : context.colors.textSecondary,
+                            ),
+                          ),
+                          if (asset == null) ...<Widget>[
+                            const SizedBox(height: 3),
+                            Text(
+                              l10n.noCompatibleApkBody,
+                              style: context.texts.bodySmall?.copyWith(
+                                color: context.colors.warning,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      meta,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.texts.labelSmall?.copyWith(
-                        color: asset == null ? AppColors.warning : AppColors.textSecondary,
-                      ),
-                    ),
-                    if (asset == null) ...<Widget>[
-                      const SizedBox(height: 3),
-                      Text(
-                        l10n.noCompatibleApkBody,
-                        style: context.texts.bodySmall?.copyWith(color: AppColors.warning),
+                    if (enabled) ...<Widget>[
+                      const SizedBox(width: AppSpacing.sm),
+                      Icon(
+                        selected
+                            ? Icons.check_circle_rounded
+                            : Icons.chevron_right_rounded,
+                        size: 20,
+                        color: selected
+                            ? context.colors.accent
+                            : context.colors.textTertiary,
                       ),
                     ],
                   ],
                 ),
-              ),
-              if (enabled) ...<Widget>[
-                const SizedBox(width: AppSpacing.sm),
-                Icon(
-                  selected
-                      ? Icons.check_circle_rounded
-                      : Icons.chevron_right_rounded,
-                  size: 20,
-                  color: selected ? AppColors.accent : AppColors.textTertiary,
-                ),
-              ],
-            ],
-          ),
               ),
             );
           },
@@ -271,7 +288,11 @@ class VersionCard extends StatelessWidget {
 }
 
 class _Badges extends StatelessWidget {
-  const _Badges({required this.release, required this.isLatest, required this.installed});
+  const _Badges({
+    required this.release,
+    required this.isLatest,
+    required this.installed,
+  });
 
   final GithubRelease release;
   final bool isLatest;
@@ -288,11 +309,14 @@ class _Badges extends StatelessWidget {
       children: <Widget>[
         // "Mais recente" e "Instalada" coexistem (podem ser a mesma versão).
         if (isLatest && !release.prerelease)
-          BadgeChip(label: l10n.latestBadge, color: AppColors.accent),
+          BadgeChip(label: l10n.latestBadge, color: context.colors.accent),
         if (release.prerelease)
-          BadgeChip(label: l10n.betaBadge, color: AppColors.warning),
+          BadgeChip(label: l10n.betaBadge, color: context.colors.warning),
         if (installed)
-          BadgeChip(label: l10n.installedBadge, color: AppColors.accentAlt),
+          BadgeChip(
+            label: l10n.installedBadge,
+            color: context.colors.accentAlt,
+          ),
       ],
     );
   }
@@ -329,10 +353,7 @@ class _SegmentedVersions extends StatelessWidget {
           ),
           items: <SegmentItem<int>>[
             for (int index = 0; index < releases.length; index += 1)
-              SegmentItem<int>(
-                value: index,
-                label: releases[index].tag,
-              ),
+              SegmentItem<int>(value: index, label: releases[index].tag),
           ],
           onChanged: (int index) {
             final GithubRelease release = releases[index];
@@ -351,7 +372,9 @@ class _SegmentedVersions extends StatelessWidget {
         ),
         Text(
           l10n.versionsSubtitle,
-          style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+          style: context.texts.labelSmall?.copyWith(
+            color: context.colors.textSecondary,
+          ),
         ),
       ],
     );
@@ -368,7 +391,11 @@ class _VersionSkeleton extends StatelessWidget {
       child: Column(
         children: <Widget>[
           for (int index = 0; index < 3; index += 1) ...<Widget>[
-            const SkeletonBox(width: double.infinity, height: 64, radius: AppRadii.md),
+            const SkeletonBox(
+              width: double.infinity,
+              height: 64,
+              radius: AppRadii.md,
+            ),
             if (index < 2) const SizedBox(height: AppSpacing.sm),
           ],
         ],
@@ -387,10 +414,10 @@ class ApkPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
+      decoration: BoxDecoration(
+        color: context.colors.bgElevated,
         borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+        border: Border(top: BorderSide(color: context.colors.glassBorder)),
       ),
       child: SafeArea(
         top: false,
@@ -405,7 +432,7 @@ class ApkPickerSheet extends StatelessWidget {
                   width: 38,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textTertiary,
+                    color: context.colors.textTertiary,
                     borderRadius: BorderRadius.circular(AppRadii.pill),
                   ),
                 ),
@@ -413,7 +440,9 @@ class ApkPickerSheet extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               Text(
                 l10n.chooseApk,
-                style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: context.texts.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               for (final ApkAsset asset in assets)
@@ -457,15 +486,15 @@ class _ErrorCard extends StatelessWidget {
     final String title = rateLimit
         ? l10n.rateLimitTitle
         : notFound
-            ? l10n.repoNotFoundTitle
-            : l10n.errorGeneric;
+        ? l10n.repoNotFoundTitle
+        : l10n.errorGeneric;
     final String body = rateLimit
         ? l10n.rateLimitBody
         : notFound
-            ? l10n.repoNotFoundBody
-            : offline
-                ? l10n.githubOfflineBody
-                : message;
+        ? l10n.repoNotFoundBody
+        : offline
+        ? l10n.githubOfflineBody
+        : message;
     return GlassContainer(
       radius: AppRadii.lg,
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -478,11 +507,13 @@ class _ErrorCard extends StatelessWidget {
                 rateLimit
                     ? Icons.hourglass_top_rounded
                     : notFound
-                        ? Icons.inventory_2_outlined
-                        : offline
-                            ? Icons.cloud_off_rounded
-                            : Icons.error_outline_rounded,
-                color: rateLimit || offline ? AppColors.warning : AppColors.danger,
+                    ? Icons.inventory_2_outlined
+                    : offline
+                    ? Icons.cloud_off_rounded
+                    : Icons.error_outline_rounded,
+                color: rateLimit || offline
+                    ? context.colors.warning
+                    : context.colors.danger,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(child: Text(title, style: context.texts.titleSmall)),
@@ -491,7 +522,9 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             body,
-            style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+            style: context.texts.bodySmall?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           SecondaryButton(

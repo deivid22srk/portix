@@ -15,7 +15,7 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: Center(
           child: Column(
@@ -28,22 +28,24 @@ class SplashPage extends StatelessWidget {
                 style: context.texts.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 10,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 context.l10n.tagline,
                 textAlign: TextAlign.center,
-                style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: context.texts.bodyMedium?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.xxxl + AppSpacing.sm),
-              const SizedBox(
+              SizedBox(
                 width: 26,
                 height: 26,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                 ),
               ),
             ],
@@ -63,9 +65,10 @@ class BootstrapErrorPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
     final Object failure = error;
-    final bool isConfig = failure is AppFailure && failure.kind == FailureKind.config;
+    final bool isConfig =
+        failure is AppFailure && failure.kind == FailureKind.config;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: Padding(
@@ -78,13 +81,17 @@ class BootstrapErrorPage extends ConsumerWidget {
                 Text(
                   isConfig ? l10n.configTitle : l10n.errorGeneric,
                   textAlign: TextAlign.center,
-                  style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   isConfig ? l10n.configBody : context.failureText(error),
                   textAlign: TextAlign.center,
-                  style: context.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                  style: context.texts.bodyMedium?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 PrimaryButton(

@@ -5,16 +5,16 @@ import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 
 /// Cor da coroa conforme o nível de ADM.
-Color adminLevelColor(String level) {
+Color adminLevelColor(String level, AppColorsTheme colors) {
   switch (level) {
     case 'root':
-      return AppColors.warning;
+      return colors.warning;
     case 'admin':
-      return AppColors.accent;
+      return colors.accent;
     case 'moderator':
-      return AppColors.accentAlt;
+      return colors.accentAlt;
     default:
-      return AppColors.textSecondary;
+      return colors.textSecondary;
   }
 }
 
@@ -54,7 +54,11 @@ class AdminCrown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(adminLevelIcon(level), size: size, color: adminLevelColor(level));
+    return Icon(
+      adminLevelIcon(level),
+      size: size,
+      color: adminLevelColor(level, context.colors),
+    );
   }
 }
 
@@ -67,9 +71,12 @@ class AdminBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = adminLevelColor(level);
+    final Color color = adminLevelColor(level, context.colors);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 9, vertical: 3),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? AppSpacing.xxs : AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppRadii.sm),
@@ -80,12 +87,16 @@ class AdminBadge extends StatelessWidget {
         children: <Widget>[
           Icon(adminLevelIcon(level), size: 12, color: color),
           if (!compact) ...<Widget>[
-            const SizedBox(width: 4),
-            Text(
-              adminLevelLabel(context.l10n, level),
-              style: context.texts.labelSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
+            const SizedBox(width: AppSpacing.xs),
+            Flexible(
+              child: Text(
+                adminLevelLabel(context.l10n, level),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

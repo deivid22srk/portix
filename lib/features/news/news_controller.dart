@@ -25,8 +25,9 @@ class NewsState {
   bool get hasMore => items.length < total;
 }
 
-final newsControllerProvider =
-    NotifierProvider<NewsController, NewsState>(NewsController.new);
+final newsControllerProvider = NotifierProvider<NewsController, NewsState>(
+  NewsController.new,
+);
 
 class NewsController extends Notifier<NewsState> {
   static const int _pageSize = 20;
@@ -65,8 +66,9 @@ class NewsController extends Notifier<NewsState> {
       if (requestId != _requestId) {
         return;
       }
-      final List<NewsItem> items =
-          reset ? payload.items : _merge(state.items, payload.items);
+      final List<NewsItem> items = reset
+          ? payload.items
+          : _merge(state.items, payload.items);
       state = NewsState(
         items: items,
         total: payload.total,

@@ -5,7 +5,7 @@ import 'parsing.dart';
 class PublicProfile {
   const PublicProfile({
     required this.id,
-    this.displayName = 'Jogador',
+    this.displayName = '',
     this.handle,
     this.coverUrl,
     this.level,
@@ -20,11 +20,13 @@ class PublicProfile {
   final List<Game> library;
 
   factory PublicProfile.fromMap(Map<String, dynamic> map) => PublicProfile(
-        id: asTextOr(map['id'], ''),
-        displayName: asTextOr(map['display_name'], 'Jogador'),
-        handle: asText(map['handle']),
-        coverUrl: asText(map['cover_url']),
-        level: asText(map['level']),
-        library: asMapList(map['library']).map(Game.fromMap).toList(growable: false),
-      );
+    id: asTextOr(map['id'], ''),
+    displayName: asTextOr(map['display_name'], ''),
+    handle: asText(map['handle']),
+    coverUrl: asText(map['cover_url']),
+    level: asText(map['level']),
+    library: asMapList(
+      map['library'],
+    ).map(Game.fromMap).toList(growable: false),
+  );
 }

@@ -44,7 +44,10 @@ Map<String, dynamic> asMap(Object? value) {
     return value;
   }
   if (value is Map) {
-    return value.map((Object? key, Object? item) => MapEntry<String, dynamic>(key.toString(), item));
+    return value.map(
+      (Object? key, Object? item) =>
+          MapEntry<String, dynamic>(key.toString(), item),
+    );
   }
   return <String, dynamic>{};
 }

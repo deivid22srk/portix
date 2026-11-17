@@ -98,8 +98,12 @@ class DeveloperCard extends ConsumerWidget {
                             fadeInDuration: AppMotion.fast,
                             placeholder: (BuildContext context, String value) =>
                                 _FallbackAvatar(name: owner),
-                            errorWidget: (BuildContext context, String value, Object error) =>
-                                _FallbackAvatar(name: owner),
+                            errorWidget:
+                                (
+                                  BuildContext context,
+                                  String value,
+                                  Object error,
+                                ) => _FallbackAvatar(name: owner),
                           ),
                   ),
                 ),
@@ -118,16 +122,19 @@ class DeveloperCard extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       '@${user?.login ?? owner}',
-                      style: context.texts.labelSmall?.copyWith(color: AppColors.accent),
+                      style: context.texts.labelSmall?.copyWith(
+                        color: context.colors.accent,
+                      ),
                     ),
-                    if (user?.bio != null && user!.bio!.trim().isNotEmpty) ...<Widget>[
+                    if (user?.bio != null &&
+                        user!.bio!.trim().isNotEmpty) ...<Widget>[
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         user.bio!.trim(),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: context.texts.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -137,8 +144,12 @@ class DeveloperCard extends ConsumerWidget {
               if (user != null) ...<Widget>[
                 const SizedBox(width: AppSpacing.sm),
                 BadgeChip(
-                  label: user.isOrganization ? l10n.organizationLabel : l10n.userLabel,
-                  color: user.isOrganization ? AppColors.accentAlt : AppColors.accent,
+                  label: user.isOrganization
+                      ? l10n.organizationLabel
+                      : l10n.userLabel,
+                  color: user.isOrganization
+                      ? context.colors.accentAlt
+                      : context.colors.accent,
                 ),
               ],
             ],
@@ -156,14 +167,14 @@ class DeveloperCard extends ConsumerWidget {
                   Text(
                     '${user.publicRepos} ${l10n.repositoriesLabel}',
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 if (user.followers > 0)
                   Text(
                     '${compactNumber(user.followers)} ${l10n.followersLabel}',
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
               ],
@@ -191,12 +202,12 @@ class _FallbackAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.glassStrong,
+      color: context.colors.glassStrong,
       child: Center(
         child: Text(
           initialsOf(name),
           style: context.texts.titleSmall?.copyWith(
-            color: AppColors.accent,
+            color: context.colors.accent,
             fontWeight: FontWeight.w700,
           ),
         ),

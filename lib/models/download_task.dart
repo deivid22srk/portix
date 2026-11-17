@@ -1,6 +1,14 @@
 import 'parsing.dart';
 
-enum DownloadStatus { queued, downloading, paused, done, failed }
+enum DownloadStatus {
+  queued,
+  connecting,
+  downloading,
+  verifying,
+  paused,
+  done,
+  failed,
+}
 
 class DownloadTask {
   const DownloadTask({
@@ -21,6 +29,10 @@ class DownloadTask {
     this.versionName,
     this.versionCode,
     this.error,
+    this.speedBps = 0,
+    this.etaSecs = -1,
+    this.doneBytes = 0,
+    this.totalBytes = 0,
   });
 
   final String gameId;
@@ -55,9 +67,31 @@ class DownloadTask {
   /// Mensagem de erro quando o download falha.
   final String? error;
 
-  bool get isActive => status == DownloadStatus.queued || status == DownloadStatus.downloading;
+  /// Velocidade suavizada (bytes/s) reportada pelo motor. Transiente —
+  /// não é persistida (ao reabrir o app começa em 0).
+  final double speedBps;
+
+  /// ETA em segundos (-1 = desconhecido). Transiente.
+  final int etaSecs;
+
+  /// Bytes baixados no instante (para exibir "X de Y"). Transiente.
+  final int doneBytes;
+
+  /// Tamanho total conhecido (0 = desconhecido). Transiente.
+  final int totalBytes;
+
+  bool get isActive =>
+      status == DownloadStatus.queued ||
+      status == DownloadStatus.connecting ||
+      status == DownloadStatus.downloading ||
+      status == DownloadStatus.verifying;
 
   bool get isDone => status == DownloadStatus.done;
+
+  bool get isTransferring =>
+      status == DownloadStatus.connecting ||
+      status == DownloadStatus.downloading ||
+      status == DownloadStatus.verifying;
 
   DownloadTask copyWith({
     DownloadStatus? status,
@@ -70,46 +104,53 @@ class DownloadTask {
     String? versionName,
     int? versionCode,
     String? error,
-  }) =>
-      DownloadTask(
-        gameId: gameId,
-        title: title,
-        slug: slug,
-        coverUrl: coverUrl,
-        portKey: portKey,
-        portUrl: portUrl ?? this.portUrl,
-        platformName: platformName ?? this.platformName,
-        status: status ?? this.status,
-        progress: progress ?? this.progress,
-        startedAt: startedAt,
-        nativeId: nativeId,
-        apkPath: apkPath ?? this.apkPath,
-        releaseTag: releaseTag ?? this.releaseTag,
-        packageName: packageName ?? this.packageName,
-        versionName: versionName ?? this.versionName,
-        versionCode: versionCode ?? this.versionCode,
-        error: error ?? this.error,
-      );
+    double? speedBps,
+    int? etaSecs,
+    int? doneBytes,
+    int? totalBytes,
+  }) => DownloadTask(
+    gameId: gameId,
+    title: title,
+    slug: slug,
+    coverUrl: coverUrl,
+    portKey: portKey,
+    portUrl: portUrl ?? this.portUrl,
+    platformName: platformName ?? this.platformName,
+    status: status ?? this.status,
+    progress: progress ?? this.progress,
+    startedAt: startedAt,
+    nativeId: nativeId,
+    apkPath: apkPath ?? this.apkPath,
+    releaseTag: releaseTag ?? this.releaseTag,
+    packageName: packageName ?? this.packageName,
+    versionName: versionName ?? this.versionName,
+    versionCode: versionCode ?? this.versionCode,
+    error: error ?? this.error,
+    speedBps: speedBps ?? this.speedBps,
+    etaSecs: etaSecs ?? this.etaSecs,
+    doneBytes: doneBytes ?? this.doneBytes,
+    totalBytes: totalBytes ?? this.totalBytes,
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'game_id': gameId,
-        'title': title,
-        'slug': slug,
-        'cover_url': coverUrl,
-        'port_key': portKey,
-        'port_url': portUrl,
-        'platform_name': platformName,
-        'status': status.name,
-        'progress': progress,
-        'started_at': startedAt?.toIso8601String(),
-        'native_id': nativeId,
-        'apk_path': apkPath,
-        'release_tag': releaseTag,
-        'package_name': packageName,
-        'version_name': versionName,
-        'version_code': versionCode,
-        'error': error,
-      };
+    'game_id': gameId,
+    'title': title,
+    'slug': slug,
+    'cover_url': coverUrl,
+    'port_key': portKey,
+    'port_url': portUrl,
+    'platform_name': platformName,
+    'status': status.name,
+    'progress': progress,
+    'started_at': startedAt?.toIso8601String(),
+    'native_id': nativeId,
+    'apk_path': apkPath,
+    'release_tag': releaseTag,
+    'package_name': packageName,
+    'version_name': versionName,
+    'version_code': versionCode,
+    'error': error,
+  };
 
   factory DownloadTask.fromJson(Map<String, dynamic> map) {
     final String rawStatus = asTextOr(map['status'], 'paused');
@@ -135,8 +176,9 @@ class DownloadTask {
       releaseTag: asText(map['release_tag']),
       packageName: asText(map['package_name']),
       versionName: asText(map['version_name']),
-      versionCode:
-          map['version_code'] == null ? null : asInt(map['version_code']),
+      versionCode: map['version_code'] == null
+          ? null
+          : asInt(map['version_code']),
       error: asText(map['error']),
     );
   }

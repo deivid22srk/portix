@@ -13,6 +13,7 @@ import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
 import '../collections/collections_controller.dart';
+import '../downloads/download_filter.dart';
 import '../downloads/downloads_controller.dart';
 import '../downloads/downloads_tile.dart';
 
@@ -27,6 +28,7 @@ enum _HubSegment { favorites, installed, downloads }
 
 class _HubPageState extends ConsumerState<HubPage> {
   _HubSegment _segment = _HubSegment.favorites;
+  DownloadFilter _downloadFilter = DownloadFilter.all;
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +40,13 @@ class _HubPageState extends ConsumerState<HubPage> {
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
-        color: context.palette.primary,
-        backgroundColor: context.palette.surface,
+        color: context.colors.accent,
+        backgroundColor: context.colors.glassStrong,
         onRefresh: () => ref.read(collectionsProvider.notifier).refresh(),
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           slivers: <Widget>[
             SliverToBoxAdapter(
               child: Padding(
@@ -62,11 +66,11 @@ class _HubPageState extends ConsumerState<HubPage> {
                         letterSpacing: -1,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       l10n.anonymousHint,
                       style: context.texts.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -74,22 +78,32 @@ class _HubPageState extends ConsumerState<HubPage> {
                       items: <SegmentItem<_HubSegment>>[
                         SegmentItem<_HubSegment>(
                           value: _HubSegment.favorites,
-                          label: '${l10n.hubFavorites} · ${collections.favorites.length}',
+                          label: l10n.segmentCount(
+                            l10n.hubFavorites,
+                            collections.favorites.length,
+                          ),
                           icon: Icons.favorite_rounded,
                         ),
                         SegmentItem<_HubSegment>(
                           value: _HubSegment.installed,
-                          label: '${l10n.hubInstalled} · ${collections.library.length}',
+                          label: l10n.segmentCount(
+                            l10n.hubInstalled,
+                            collections.library.length,
+                          ),
                           icon: Icons.download_done_rounded,
                         ),
                         SegmentItem<_HubSegment>(
                           value: _HubSegment.downloads,
-                          label: '${l10n.hubDownloads} · ${tasks.length}',
+                          label: l10n.segmentCount(
+                            l10n.hubDownloads,
+                            tasks.length,
+                          ),
                           icon: Icons.download_rounded,
                         ),
                       ],
                       value: _segment,
-                      onChanged: (_HubSegment value) => setState(() => _segment = value),
+                      onChanged: (_HubSegment value) =>
+                          setState(() => _segment = value),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                   ],
@@ -133,7 +147,7 @@ class _HubPageState extends ConsumerState<HubPage> {
           return <Widget>[
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 360,
+                height: AppSpacing.emptyStateViewport,
                 child: EmptyState(
                   icon: Icons.download_rounded,
                   title: l10n.downloadEmpty,
@@ -143,26 +157,88 @@ class _HubPageState extends ConsumerState<HubPage> {
             ),
           ];
         }
-        return <Widget>[
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.screen,
-              0,
-              AppSpacing.screen,
-              context.bottomChromePadding,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: DownloadTile(task: tasks[index]),
+        return _downloadSlivers(context, l10n, tasks);
+    }
+  }
+
+  /// Fila de downloads: filtros (ativos/concluídos/falhos), ação de limpar
+  /// concluídos e a lista filtrada — a peça central do app.
+  List<Widget> _downloadSlivers(
+    BuildContext context,
+    L10n l10n,
+    List<DownloadTask> tasks,
+  ) {
+    final DownloadsController controller = ref.read(downloadsProvider.notifier);
+    final List<DownloadTask> filtered = filterDownloadTasks(
+      tasks,
+      _downloadFilter,
+    );
+    final bool hasCompleted = tasks.any((DownloadTask t) => t.isDone);
+    return <Widget>[
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screen,
+            0,
+            AppSpacing.screen,
+            AppSpacing.md,
+          ),
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: <Widget>[
+              for (final DownloadFilter filter in DownloadFilter.values)
+                AppPill(
+                  label: filter.label(l10n),
+                  selected: _downloadFilter == filter,
+                  dense: true,
+                  onTap: () => setState(() => _downloadFilter = filter),
                 ),
-                childCount: tasks.length,
-              ),
+              if (hasCompleted)
+                AppPill(
+                  label: l10n.clearCompleted,
+                  dense: true,
+                  leading: Icon(
+                    Icons.delete_sweep_rounded,
+                    size: 16,
+                    color: context.colors.textSecondary,
+                  ),
+                  onTap: () => controller.clearCompleted(),
+                ),
+            ],
+          ),
+        ),
+      ),
+      if (filtered.isEmpty)
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: AppSpacing.emptyStateViewport,
+            child: EmptyState(
+              icon: Icons.filter_alt_off_rounded,
+              title: l10n.filterEmptyTitle,
+              body: l10n.filterEmptyBody,
             ),
           ),
-        ];
-    }
+        )
+      else
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.screen,
+            0,
+            AppSpacing.screen,
+            context.bottomChromePadding,
+          ),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: DownloadTile(task: filtered[index]),
+              ),
+              childCount: filtered.length,
+            ),
+          ),
+        ),
+    ];
   }
 
   List<Widget> _gameSlivers(
@@ -177,7 +253,7 @@ class _HubPageState extends ConsumerState<HubPage> {
       return <Widget>[
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 360,
+            height: AppSpacing.emptyStateViewport,
             child: EmptyState(
               icon: emptyIcon,
               title: emptyTitle,
@@ -190,31 +266,21 @@ class _HubPageState extends ConsumerState<HubPage> {
       ];
     }
     return <Widget>[
-      SliverPadding(
+      ResponsiveCoverGrid(
         padding: EdgeInsets.fromLTRB(
           AppSpacing.screen,
           0,
           AppSpacing.screen,
           context.bottomChromePadding,
         ),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: AppSpacing.gridGap,
-            crossAxisSpacing: AppSpacing.gridGap,
-            childAspectRatio: 3 / 4,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              final Game game = games[index];
-              return RevealOnMount(
-                index: index,
-                child: GameCard(game: game, heroTag: '$prefix-${game.id}'),
-              );
-            },
-            childCount: games.length,
-          ),
-        ),
+        itemBuilder: (BuildContext context, int index) {
+          final Game game = games[index];
+          return RevealOnMount(
+            index: index,
+            child: GameCard(game: game, heroTag: '$prefix-${game.id}'),
+          );
+        },
+        itemCount: games.length,
       ),
     ];
   }

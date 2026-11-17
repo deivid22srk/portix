@@ -26,8 +26,10 @@ class _RevealOnMountState extends State<RevealOnMount>
     vsync: this,
     duration: AppMotion.slow,
   );
-  late final Animation<double> _curve =
-      CurvedAnimation(parent: _controller, curve: AppMotion.out);
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _controller,
+    curve: AppMotion.out,
+  );
 
   @override
   void initState() {

@@ -1,55 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 
+export 'themes.dart';
+
 // ============================================================================
 // PORTIX — design tokens ("Aurora")
-// Único ponto de verdade para cores, raios, espaçamentos, durações e sombras.
+// Único ponto de verdade para raios, espaçamentos, durações, breakpoints e
+// SOMBRAS. Cores de tema ficam em themes.dart (AppColorsTheme); cores de
+// CONTEÚDO (scrims sobre mídia, marca) ficam aqui — são invariantes de tema.
 // Nenhuma tela deve declarar cor/tamanho solto: use estes tokens.
 // ============================================================================
-
-/// Cores da identidade Aurora. Tema único (escuro).
-class AppColors {
-  const AppColors._();
-
-  /// Fundo base das telas.
-  static const Color bg = Color(0xFF07090E);
-
-  /// Fundo de sheets e áreas elevadas.
-  static const Color bgElevated = Color(0xFF0D1017);
-
-  /// Preenchimento de vidro padrão (branco 6%).
-  static const Color glass = Color(0x0FFFFFFF);
-
-  /// Vidro reforçado: item selecionado, pressionado, botões circulares (branco 10%).
-  static const Color glassStrong = Color(0x1AFFFFFF);
-
-  /// Borda fina de todo elemento de vidro (branco 12%).
-  static const Color glassBorder = Color(0x1FFFFFFF);
-
-  static const Color textPrimary = Color(0xFFF4F6FA);
-  static const Color textSecondary = Color(0x9EFFFFFF); // branco 62%
-  static const Color textTertiary = Color(0x6BFFFFFF); // branco 42%
-
-  /// Destaque principal (ciano).
-  static const Color accent = Color(0xFF22D3EE);
-
-  /// Segundo tom do gradiente de destaque (esmeralda).
-  static const Color accentAlt = Color(0xFF34D399);
-
-  /// Texto/ícone sobre o gradiente de destaque.
-  static const Color onAccent = Color(0xFF031317);
-
-  static const Color favorite = Color(0xFFFB7185);
-  static const Color success = Color(0xFF34D399);
-  static const Color warning = Color(0xFFFBBF24);
-  static const Color danger = Color(0xFFF87171);
-
-  /// Gradiente do botão principal e da barra de progresso.
-  static const LinearGradient accentGradient = LinearGradient(
-    colors: <Color>[accent, accentAlt],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-}
 
 /// Raios de canto.
 class AppRadii {
@@ -66,10 +25,25 @@ class AppRadii {
 class AppSpacing {
   const AppSpacing._();
 
+  /// Sub-grade óptica de 2px: separadores e respiros mínimos (ícone-rótulo
+  /// apertado, badges). Use só quando 4px fica visivelmente largo.
+  static const double hairline = 2;
+
+  /// Entre ícones/rótulos compactos (chips, contadores).
+  static const double xxs = 6;
+
   static const double xs = 4;
   static const double sm = 8;
+
+  /// Respiro interno de controles compactos (chips, filtros).
+  static const double compact = 10;
+
   static const double md = 12;
   static const double lg = 16;
+
+  /// Respiro vertical de campos de texto (inputs).
+  static const double fieldVertical = 14;
+
   static const double xl = 20;
   static const double xxl = 24;
   static const double xxxl = 32;
@@ -83,8 +57,22 @@ class AppSpacing {
   /// Botões.
   static const double primaryButtonHeight = 52;
   static const double secondaryButtonHeight = 48;
-  static const double circleButton = 46;
+  // 48px: alvo mínimo de toque WCAG 2.2 AA (2.5.8) — antes 46.
+  static const double circleButton = 48;
   static const double searchFab = 68;
+
+  /// Capa compacta na linha de download (proporção ~3:4 de pôster).
+  static const double tileCoverWidth = 58;
+  static const double tileCoverHeight = 78;
+
+  /// Altura reservada do estado vazio dentro do viewport do Hub.
+  static const double emptyStateViewport = 360;
+
+  /// Folga da snackbar flutuante acima da barra de navegação de vidro.
+  static const double snackbarBottomGap = 96;
+
+  /// Diâmetro do spinner pequeno em tiles/botões (estado ocupado).
+  static const double inlineSpinner = 18;
 }
 
 /// Durações e curvas de animação.
@@ -103,23 +91,69 @@ class AppMotion {
   static const Curve out = Curves.easeOutCubic;
 }
 
-/// Sombras suaves reutilizadas pelos elementos de vidro.
-class AppShadows {
-  const AppShadows._();
+/// Breakpoints responsivos (mobile-first). Grades de capas ganham colunas
+/// conforme a largura; acima de `contentMax` o conteúdo é centralizado com
+/// teto de largura para não esticar capas 3:4 em monitores.
+class AppBreakpoints {
+  const AppBreakpoints._();
 
-  static const List<BoxShadow> glass = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x59000000),
-      blurRadius: 24,
-      offset: Offset(0, 12),
-    ),
-  ];
+  /// Tablet / paisagem baixa.
+  static const double tablet = 600;
 
-  static const List<BoxShadow> floating = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x8C000000),
-      blurRadius: 32,
-      offset: Offset(0, 16),
-    ),
-  ];
+  /// Desktop estreito.
+  static const double desktop = 1024;
+
+  /// Telas largas.
+  static const double wide = 1440;
+
+  /// Teto de largura do conteúdo de grades em telas largas.
+  static const double contentMax = 1200;
+
+  /// Largura a partir da qual as configurações viram master-detail
+  /// (lista à esquerda, conteúdo à direita).
+  static const double settingsDetail = 768;
+
+  /// Colunas da grade de capas 3:4 conforme a largura disponível.
+  static int coverColumns(double width) {
+    if (width >= wide) {
+      return 6;
+    }
+    if (width >= desktop) {
+      return 5;
+    }
+    if (width >= tablet) {
+      return 3;
+    }
+    return 2;
+  }
+}
+
+/// Cores de CONTEÚDO — aparecem sobre mídia (capa, foto, vídeo) e não mudam
+/// com o tema: legibilidade sobre imagem é sempre a mesma.
+class AppContentColors {
+  const AppContentColors._();
+
+  /// Ausência de cor (scrims que começam transparentes).
+  static const Color transparent = Color(0x00000000);
+
+  /// Texto/ícone sobre mídia (capa, notícia, vídeo).
+  static const Color onMedia = Color(0xFFFFFFFF);
+
+  /// Scrim preto puro — use com `withValues(alpha: …)` para cada caso.
+  static const Color scrim = Color(0xFF000000);
+
+  /// Scrim padrão do rodapé de card (gradiente de título).
+  static const Color scrimSoft = Color(0x22000000);
+
+  /// Scrim forte de rodapé de card.
+  static const Color scrimStrong = Color(0xD9000000);
+}
+
+/// Cores da MARCA (logo PORTIX) — invariantes de tema: a identidade não muda
+/// com a aparência escolhida.
+class AppBrandColors {
+  const AppBrandColors._();
+
+  /// Céu claro do gradiente de brilho do logo.
+  static const Color skyLight = Color(0xFFCFFAFE);
 }

@@ -49,8 +49,8 @@ void resetFreshTtl() => _freshTtl = const Duration(minutes: 5);
 
 class GitHubApi {
   GitHubApi({http.Client? client, CacheStore? cache})
-      : _client = client ?? http.Client(),
-        _cache = cache;
+    : _client = client ?? http.Client(),
+      _cache = cache;
 
   final http.Client _client;
   final CacheStore? _cache;
@@ -112,7 +112,9 @@ class GitHubApi {
     try {
       final http.Response response = await _client
           .get(
-            Uri.parse('$_baseUrl/repos/${repo.owner}/${repo.repo}/releases?per_page=20'),
+            Uri.parse(
+              '$_baseUrl/repos/${repo.owner}/${repo.repo}/releases?per_page=20',
+            ),
             headers: await _requestHeaders(key, memory?.etag),
           )
           .timeout(const Duration(seconds: 12));
@@ -120,8 +122,11 @@ class GitHubApi {
       if (response.statusCode == 304) {
         // 304 = nada mudou: reidrata a memória (0 bytes na rede) e devolve
         // o payload que a UI já conhece, sem recarregar nada.
-        final dynamic payload = memory?.value ??
-            diskData.map((GithubRelease r) => r.toJson()).toList(growable: false);
+        final dynamic payload =
+            memory?.value ??
+            diskData
+                .map((GithubRelease r) => r.toJson())
+                .toList(growable: false);
         _touch(key, memory?.etag ?? _diskEtag(key), payload);
         return _asReleases(payload);
       }
@@ -131,23 +136,38 @@ class GitHubApi {
         final List<GithubRelease> releases = parseReleases(response);
         // Memória guarda SEMPRE o mesmo formato (JSON) que o disco.
         _memory[key] = _Entry(
-          value: releases.map((GithubRelease r) => r.toJson()).toList(growable: false),
+          value: releases
+              .map((GithubRelease r) => r.toJson())
+              .toList(growable: false),
           fetchedAt: DateTime.now(),
           etag: etag,
         );
-        await _writeDisk(key, etag, releases.map((GithubRelease r) => r.toJson()).toList());
+        await _writeDisk(
+          key,
+          etag,
+          releases.map((GithubRelease r) => r.toJson()).toList(),
+        );
         return releases;
       }
 
       if (response.statusCode == 404) {
-        throw const GitHubApiException(GitHubErrorKind.notFound, statusCode: 404);
+        throw const GitHubApiException(
+          GitHubErrorKind.notFound,
+          statusCode: 404,
+        );
       }
 
       if (_isRateLimited(response)) {
-        throw GitHubApiException(GitHubErrorKind.rateLimit, statusCode: response.statusCode);
+        throw GitHubApiException(
+          GitHubErrorKind.rateLimit,
+          statusCode: response.statusCode,
+        );
       }
 
-      throw GitHubApiException(GitHubErrorKind.server, statusCode: response.statusCode);
+      throw GitHubApiException(
+        GitHubErrorKind.server,
+        statusCode: response.statusCode,
+      );
     } on GitHubApiException {
       // 3) Falha HTTP com cache disponível: devolve stale em vez de quebrar.
       if (memory != null) {
@@ -160,7 +180,8 @@ class GitHubApi {
     } on TimeoutException {
       throw const GitHubApiException(GitHubErrorKind.offline);
     } on Object catch (error) {
-      final bool networkish = error is http.ClientException ||
+      final bool networkish =
+          error is http.ClientException ||
           error.toString().contains('SocketException') ||
           error.toString().contains('Failed host lookup');
       if (memory != null) {
@@ -195,7 +216,9 @@ class GitHubApi {
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 304) {
-        final GithubUser? current = memory != null ? _asUser(memory.value) : diskUser;
+        final GithubUser? current = memory != null
+            ? _asUser(memory.value)
+            : diskUser;
         _touch(key, memory?.etag ?? _diskEtag(key), current?.toJson());
         return current;
       }
@@ -204,7 +227,11 @@ class GitHubApi {
         final String etag = response.headers['etag'] ?? '';
         final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
         final GithubUser? user = body is Map ? GithubUser.fromMap(body) : null;
-        _memory[key] = _Entry(value: user?.toJson(), fetchedAt: DateTime.now(), etag: etag);
+        _memory[key] = _Entry(
+          value: user?.toJson(),
+          fetchedAt: DateTime.now(),
+          etag: etag,
+        );
         await _writeDisk(key, etag, user?.toJson());
         return user;
       }
@@ -213,9 +240,15 @@ class GitHubApi {
         return null;
       }
       if (_isRateLimited(response)) {
-        throw GitHubApiException(GitHubErrorKind.rateLimit, statusCode: response.statusCode);
+        throw GitHubApiException(
+          GitHubErrorKind.rateLimit,
+          statusCode: response.statusCode,
+        );
       }
-      throw GitHubApiException(GitHubErrorKind.server, statusCode: response.statusCode);
+      throw GitHubApiException(
+        GitHubErrorKind.server,
+        statusCode: response.statusCode,
+      );
     } on GitHubApiException {
       if (memory != null) {
         return _asUser(memory.value);
@@ -224,7 +257,8 @@ class GitHubApi {
     } on TimeoutException {
       throw const GitHubApiException(GitHubErrorKind.offline);
     } on Object catch (error) {
-      final bool networkish = error is http.ClientException ||
+      final bool networkish =
+          error is http.ClientException ||
           error.toString().contains('SocketException') ||
           error.toString().contains('Failed host lookup');
       if (memory != null) {
@@ -242,8 +276,9 @@ class GitHubApi {
   /// Última release com APK (atalho usado para detectar atualizações).
   Future<GithubRelease?> fetchLatestApkRelease(GithubRepo repo) async {
     final List<GithubRelease> releases = await fetchReleases(repo);
-    for (final GithubRelease release
-        in releasesWithApk(visibleReleases(releases))) {
+    for (final GithubRelease release in releasesWithApk(
+      visibleReleases(releases),
+    )) {
       return release;
     }
     return null;
@@ -286,7 +321,9 @@ class GitHubApi {
     }
     return raw
         .whereType<Map>()
-        .map((Map item) => GithubRelease.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (Map item) => GithubRelease.fromJson(Map<String, dynamic>.from(item)),
+        )
         .toList(growable: false);
   }
 
@@ -308,20 +345,22 @@ final githubApiProvider = Provider<GitHubApi>(
 );
 
 /// Releases de `owner/repo` (parâmetro no formato "owner/repo").
-final repoReleasesProvider =
-    FutureProvider.autoDispose.family<List<GithubRelease>, String>((ref, String repoId) {
-  final List<String> parts = repoId.split('/');
-  if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
-    return Future<List<GithubRelease>>.value(const <GithubRelease>[]);
-  }
-  return ref.watch(githubApiProvider).fetchReleases(GithubRepo(parts[0], parts[1]));
-});
+final repoReleasesProvider = FutureProvider.autoDispose
+    .family<List<GithubRelease>, String>((ref, String repoId) {
+      final List<String> parts = repoId.split('/');
+      if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
+        return Future<List<GithubRelease>>.value(const <GithubRelease>[]);
+      }
+      return ref
+          .watch(githubApiProvider)
+          .fetchReleases(GithubRepo(parts[0], parts[1]));
+    });
 
 /// Perfil do dono do repositório (ex.: "VinTeRuS").
-final githubUserProvider =
-    FutureProvider.autoDispose.family<GithubUser?, String>((ref, String owner) {
-  if (owner.isEmpty) {
-    return Future<GithubUser?>.value(null);
-  }
-  return ref.watch(githubApiProvider).fetchUser(owner);
-});
+final githubUserProvider = FutureProvider.autoDispose
+    .family<GithubUser?, String>((ref, String owner) {
+      if (owner.isEmpty) {
+        return Future<GithubUser?>.value(null);
+      }
+      return ref.watch(githubApiProvider).fetchUser(owner);
+    });

@@ -17,11 +17,11 @@ class PlatformInfo {
   bool get isSecondary => kind == 'other' || kind == 'multi';
 
   factory PlatformInfo.fromMap(Map<String, dynamic> map) => PlatformInfo(
-        slug: asTextOr(map['slug'], ''),
-        name: asTextOr(map['name'], '—'),
-        kind: asTextOr(map['kind'], 'console'),
-        portCount: asInt(map['port_count']),
-      );
+    slug: asTextOr(map['slug'], ''),
+    name: asTextOr(map['name'], '—'),
+    kind: asTextOr(map['kind'], 'console'),
+    portCount: asInt(map['port_count']),
+  );
 }
 
 class GenreInfo {
@@ -31,9 +31,9 @@ class GenreInfo {
   final int gameCount;
 
   factory GenreInfo.fromMap(Map<String, dynamic> map) => GenreInfo(
-        name: asTextOr(map['name'], '—'),
-        gameCount: asInt(map['game_count']),
-      );
+    name: asTextOr(map['name'], '—'),
+    gameCount: asInt(map['game_count']),
+  );
 }
 
 class CatalogStats {
@@ -44,10 +44,10 @@ class CatalogStats {
   final int platforms;
 
   factory CatalogStats.fromMap(Map<String, dynamic> map) => CatalogStats(
-        games: asInt(map['games']),
-        ports: asInt(map['ports']),
-        platforms: asInt(map['platforms']),
-      );
+    games: asInt(map['games']),
+    ports: asInt(map['ports']),
+    platforms: asInt(map['platforms']),
+  );
 }
 
 // Facetas usadas pelos filtros de busca. Separadas do feed para permitir
@@ -64,11 +64,13 @@ class CatalogFacets {
   static const CatalogFacets empty = CatalogFacets();
 
   factory CatalogFacets.fromMap(Map<String, dynamic> map) => CatalogFacets(
-        platforms: asMapList(map['platforms'])
-            .map(PlatformInfo.fromMap)
-            .toList(growable: false),
-        genres: asMapList(map['genres']).map(GenreInfo.fromMap).toList(growable: false),
-      );
+    platforms: asMapList(
+      map['platforms'],
+    ).map(PlatformInfo.fromMap).toList(growable: false),
+    genres: asMapList(
+      map['genres'],
+    ).map(GenreInfo.fromMap).toList(growable: false),
+  );
 }
 
 class HomeFeed {
@@ -126,10 +128,12 @@ class HomeFeed {
       topRated: games('top_rated'),
       free: games('free'),
       classics: games('classics'),
-      platforms: asMapList(map['platforms'])
-          .map(PlatformInfo.fromMap)
-          .toList(growable: false),
-      genres: asMapList(map['genres']).map(GenreInfo.fromMap).toList(growable: false),
+      platforms: asMapList(
+        map['platforms'],
+      ).map(PlatformInfo.fromMap).toList(growable: false),
+      genres: asMapList(
+        map['genres'],
+      ).map(GenreInfo.fromMap).toList(growable: false),
       stats: CatalogStats.fromMap(asMap(map['stats'])),
     );
   }

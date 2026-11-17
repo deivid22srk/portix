@@ -49,11 +49,10 @@ class ApkTools {
       return null;
     }
     try {
-      final Map<Object?, Object?>? map =
-          await _channel.invokeMethod<Map<Object?, Object?>>(
-        'inspect',
-        <String, Object?>{'path': path},
-      );
+      final Map<Object?, Object?>? map = await _channel
+          .invokeMethod<Map<Object?, Object?>>('inspect', <String, Object?>{
+            'path': path,
+          });
       if (map == null) {
         return null;
       }
@@ -70,11 +69,10 @@ class ApkTools {
       return null;
     }
     try {
-      final Map<Object?, Object?>? map =
-          await _channel.invokeMethod<Map<Object?, Object?>>(
-        'installed',
-        <String, Object?>{'packageName': packageName},
-      );
+      final Map<Object?, Object?>? map = await _channel
+          .invokeMethod<Map<Object?, Object?>>('installed', <String, Object?>{
+            'packageName': packageName,
+          });
       if (map == null) {
         return null;
       }
@@ -91,10 +89,9 @@ class ApkTools {
       return false;
     }
     try {
-      return await _channel.invokeMethod<bool>(
-            'launch',
-            <String, Object?>{'packageName': packageName},
-          ) ??
+      return await _channel.invokeMethod<bool>('launch', <String, Object?>{
+            'packageName': packageName,
+          }) ??
           false;
     } on Object {
       return false;

@@ -26,12 +26,17 @@ class GlassSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Com texto ampliado (WCAG 1.4.4 até 200%) o cabeçalho precisa de mais
+    // altura: escala o espaço expandido pelo scaler do sistema (piso 1.0).
+    final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final double effectiveExpanded =
+        expandedHeight * (textScale < 1.0 ? 1.0 : textScale);
     return SliverAppBar(
       pinned: true,
       stretch: true,
-      expandedHeight: expandedHeight,
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
+      expandedHeight: effectiveExpanded,
+      backgroundColor: AppContentColors.transparent,
+      surfaceTintColor: AppContentColors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -59,17 +64,17 @@ class GlassSliverAppBar extends StatelessWidget {
                 ),
               ),
               if (subtitle != null) ...<Widget>[
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: context.texts.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
-              const Spacer(),
+              Spacer(),
             ],
           ),
         ),
@@ -81,7 +86,7 @@ class GlassSliverAppBar extends StatelessWidget {
 /// Barra de vidro sobreposta (mesmo efeito da barra de navegação): blur,
 /// preenchimento escuro translúcido e borda fina. Aparece ao rolar.
 class GlassTopBar extends StatelessWidget {
-  const GlassTopBar({
+  GlassTopBar({
     super.key,
     required this.title,
     this.actions,
@@ -103,12 +108,23 @@ class GlassTopBar extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, top: 6, bottom: 6),
-              decoration: const BoxDecoration(
-                color: Color(0x66000000),
-                border: Border(bottom: BorderSide(color: AppColors.glassBorder)),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                top: 6,
+                bottom: 6,
+              ),
+              decoration: BoxDecoration(
+                color: context.colors.glassFloating,
+                border: Border(
+                  bottom: BorderSide(color: context.colors.glassBorder),
+                ),
                 boxShadow: <BoxShadow>[
-                  BoxShadow(color: Color(0x4D000000), blurRadius: 20, offset: Offset(0, 8)),
+                  BoxShadow(
+                    color: AppContentColors.scrim.withValues(alpha: 0.30),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
               ),
               child: Row(

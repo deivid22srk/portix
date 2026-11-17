@@ -61,12 +61,14 @@ class _NewsPageState extends ConsumerState<NewsPage> {
       child: GlassHeader(
         title: l10n.newsTitle,
         child: RefreshIndicator(
-          color: context.palette.primary,
-          backgroundColor: context.palette.surface,
+          color: context.colors.accent,
+          backgroundColor: context.colors.glassStrong,
           onRefresh: () => ref.read(newsControllerProvider.notifier).refresh(),
           child: CustomScrollView(
             controller: _scroll,
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             slivers: <Widget>[
               GlassSliverAppBar(
                 title: l10n.newsTitle,
@@ -82,7 +84,8 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                     child: ErrorStateView(
                       message: context.failureText(state.error),
                       retryLabel: l10n.tryAgain,
-                      onRetry: () => ref.read(newsControllerProvider.notifier).refresh(),
+                      onRetry: () =>
+                          ref.read(newsControllerProvider.notifier).refresh(),
                     ),
                   ),
                 ),
@@ -106,20 +109,20 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                     context.bottomChromePadding,
                   ),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                        final NewsItem item = state.items[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                          child: _NewsCard(
-                            // O primeiro card é o destaque do feed: capa maior.
-                            item: item,
-                            featured: index == 0,
-                          ),
-                        );
-                      },
-                      childCount: state.items.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((
+                      BuildContext context,
+                      int index,
+                    ) {
+                      final NewsItem item = state.items[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                        child: _NewsCard(
+                          // O primeiro card é o destaque do feed: capa maior.
+                          item: item,
+                          featured: index == 0,
+                        ),
+                      );
+                    }, childCount: state.items.length),
                   ),
                 ),
               if (state.isLoadingMore)
@@ -128,13 +131,13 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                     padding: EdgeInsets.only(
                       bottom: context.bottomChromePadding,
                     ),
-                    child: const Center(
+                    child: Center(
                       child: SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
                       ),
                     ),
@@ -170,16 +173,16 @@ class _NewsSkeleton extends StatelessWidget {
                 child: Container(
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: AppColors.bgElevated,
+                    color: context.colors.bgElevated,
                     borderRadius: BorderRadius.circular(AppRadii.lg),
-                    border: Border.all(color: AppColors.glassBorder),
+                    border: Border.all(color: context.colors.glassBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const AspectRatio(
+                      AspectRatio(
                         aspectRatio: 16 / 9,
-                        child: ColoredBox(color: AppColors.glassStrong),
+                        child: ColoredBox(color: context.colors.glassStrong),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -191,13 +194,13 @@ class _NewsSkeleton extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            _bar(width: 64, height: 10),
+                            _bar(context, width: 64, height: 10),
                             const SizedBox(height: AppSpacing.md),
-                            _bar(width: double.infinity, height: 16),
-                            const SizedBox(height: 6),
-                            _bar(width: 180, height: 16),
+                            _bar(context, width: double.infinity, height: 16),
+                            const SizedBox(height: AppSpacing.xxs),
+                            _bar(context, width: 180, height: 16),
                             const SizedBox(height: AppSpacing.md),
-                            _bar(width: 90, height: 10),
+                            _bar(context, width: 90, height: 10),
                           ],
                         ),
                       ),
@@ -211,12 +214,16 @@ class _NewsSkeleton extends StatelessWidget {
     );
   }
 
-  Widget _bar({required double width, required double height}) {
+  Widget _bar(
+    BuildContext context, {
+    required double width,
+    required double height,
+  }) {
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.glassStrong,
+        color: context.colors.glassStrong,
         borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
     );
@@ -239,23 +246,20 @@ class _NewsCard extends StatelessWidget {
     final TextStyle? titleStyle =
         (featured ? context.texts.titleLarge : context.texts.titleMedium)
             ?.copyWith(
-      color: AppColors.textPrimary,
-      fontWeight: FontWeight.w700,
-      height: 1.25,
-    );
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            );
 
     return Pressable(
-      onTap: () => context.push<Object?>(
-        '/news/${item.slug}',
-        extra: item,
-      ),
+      onTap: () => context.push<Object?>('/news/${item.slug}', extra: item),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.bgElevated,
+          color: context.colors.bgElevated,
           borderRadius: BorderRadius.circular(AppRadii.lg),
-          border: Border.all(color: AppColors.glassBorder),
-          boxShadow: AppShadows.glass,
+          border: Border.all(color: context.colors.glassBorder),
+          boxShadow: context.colors.glassShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -277,12 +281,12 @@ class _NewsCard extends StatelessWidget {
                   Text(
                     item.category.toUpperCase(),
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     item.title,
                     maxLines: 3,
@@ -292,16 +296,16 @@ class _NewsCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.schedule_rounded,
                         size: 13,
-                        color: AppColors.textTertiary,
+                        color: context.colors.textTertiary,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         relativeDay(item.publishedAt, en: l10n.isEn),
                         style: context.texts.labelSmall?.copyWith(
-                          color: AppColors.textTertiary,
+                          color: context.colors.textTertiary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

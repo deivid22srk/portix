@@ -49,21 +49,29 @@ const String _outDir = 'goldens_out';
 /// Fonte real (Liberation Sans) para os goldens ficarem legíveis: o Poppins
 /// do Google Fonts não carrega no ambiente de teste (rede bloqueada).
 Future<void> _loadFonts() async {
-  final ByteData regular = await File(
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-  ).readAsBytes().then((List<int> bytes) => ByteData.sublistView(Uint8List.fromList(bytes)));
-  final ByteData bold = await File(
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-  ).readAsBytes().then((List<int> bytes) => ByteData.sublistView(Uint8List.fromList(bytes)));
+  final ByteData regular =
+      await File(
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+      ).readAsBytes().then(
+        (List<int> bytes) => ByteData.sublistView(Uint8List.fromList(bytes)),
+      );
+  final ByteData bold =
+      await File(
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+      ).readAsBytes().then(
+        (List<int> bytes) => ByteData.sublistView(Uint8List.fromList(bytes)),
+      );
   final FontLoader loader = FontLoader('Liberation Sans')
     ..addFont(Future<ByteData>.value(regular))
     ..addFont(Future<ByteData>.value(bold));
   await loader.load();
 }
 
-ApkAsset _apk(String name, {required int size, required int downloads}) => ApkAsset(
+ApkAsset _apk(String name, {required int size, required int downloads}) =>
+    ApkAsset(
       name: name,
-      url: 'https://github.com/VinTeRuS/spore-re/releases/download/v0.1.4/$name',
+      url:
+          'https://github.com/VinTeRuS/spore-re/releases/download/v0.1.4/$name',
       sizeBytes: size,
       downloadCount: downloads,
     );
@@ -74,7 +82,8 @@ final List<GithubRelease> _sporeReleases = <GithubRelease>[
     tag: 'v0.1.4',
     name: 'v0.1.4',
     publishedAt: DateTime(2026, 11, 16, 19, 45),
-    body: 'Early build, expect bugs.\n- `spore.apk` is for **Vulkan 1.3 GPUs** (most phones)\n- `spore-vk11.apk` for older ones with Vulkan 1.1',
+    body:
+        'Early build, expect bugs.\n- `spore.apk` is for **Vulkan 1.3 GPUs** (most phones)\n- `spore-vk11.apk` for older ones with Vulkan 1.1',
     assets: <ApkAsset>[
       _apk('spore.apk', size: 98818871, downloads: 106),
       _apk('spore-vk11.apk', size: 98495287, downloads: 92),
@@ -107,7 +116,8 @@ Future<void> _pumpAt(WidgetTester tester, Size size, Widget child) async {
     ProviderScope(
       overrides: [
         repoReleasesProvider.overrideWith(
-          (Ref ref, String repoId) => Future<List<GithubRelease>>.value(_sporeReleases),
+          (Ref ref, String repoId) =>
+              Future<List<GithubRelease>>.value(_sporeReleases),
         ),
         githubUserProvider.overrideWith(
           // Avatar vazio nos goldens: o CachedNetworkImage exige plugin de
@@ -144,7 +154,9 @@ ThemeData _readableTheme() {
   final ThemeData base = AppTheme.dark();
   return base.copyWith(
     textTheme: base.textTheme.apply(fontFamily: 'Liberation Sans'),
-    primaryTextTheme: base.primaryTextTheme.apply(fontFamily: 'Liberation Sans'),
+    primaryTextTheme: base.primaryTextTheme.apply(
+      fontFamily: 'Liberation Sans',
+    ),
   );
 }
 
@@ -168,8 +180,9 @@ void main() {
     await _loadFonts();
   });
 
-  testWidgets('mobile 375px — seletor + novidades (3 releases reais)',
-      (WidgetTester tester) async {
+  testWidgets('mobile 375px — seletor + novidades (3 releases reais)', (
+    WidgetTester tester,
+  ) async {
     if (!_goldensEnabled) {
       return;
     }
@@ -185,8 +198,9 @@ void main() {
               children: <Widget>[
                 Text(
                   'Spore',
-                  style: context.texts.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 VersionSelector(
@@ -206,8 +220,9 @@ void main() {
     await _snap(tester, 'seletor_mobile_375');
   });
 
-  testWidgets('wide 768px — seletor segmentado + desenvolvedor',
-      (WidgetTester tester) async {
+  testWidgets('wide 768px — seletor segmentado + desenvolvedor', (
+    WidgetTester tester,
+  ) async {
     if (!_goldensEnabled) {
       return;
     }
@@ -250,8 +265,9 @@ void main() {
     await _snap(tester, 'seletor_dev_wide_768');
   });
 
-  testWidgets('estado rate limit (403/429) da seção de versões',
-      (WidgetTester tester) async {
+  testWidgets('estado rate limit (403/429) da seção de versões', (
+    WidgetTester tester,
+  ) async {
     if (!_goldensEnabled) {
       return;
     }
@@ -290,8 +306,9 @@ void main() {
     await _snap(tester, 'estado_rate_limit');
   });
 
-  testWidgets('hero com capa procedural (sem rede) — header real',
-      (WidgetTester tester) async {
+  testWidgets('hero com capa procedural (sem rede) — header real', (
+    WidgetTester tester,
+  ) async {
     if (!_goldensEnabled) {
       return;
     }
@@ -342,8 +359,7 @@ void main() {
               Future<List<GithubRelease>>.value(kSporeReleases),
         ),
         githubUserProvider.overrideWith(
-          (Ref ref, String owner) =>
-              Future<GithubUser?>.value(kSporeUser),
+          (Ref ref, String owner) => Future<GithubUser?>.value(kSporeUser),
         ),
         downloadsProvider.overrideWith(IdleDownloads.new),
       ],
@@ -384,8 +400,9 @@ void main() {
     await _snap(tester, 'detalhes_completo_375');
   });
 
-  testWidgets('TELA COMPLETA tablet 768px (2 colunas)',
-      (WidgetTester tester) async {
+  testWidgets('TELA COMPLETA tablet 768px (2 colunas)', (
+    WidgetTester tester,
+  ) async {
     if (!_goldensEnabled) {
       return;
     }

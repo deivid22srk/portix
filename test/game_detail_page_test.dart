@@ -1,4 +1,3 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -58,14 +57,14 @@ class FakeCatalogRepository implements CatalogRepository {
       const <CompatReport>[];
 
   @override
-  Future<UserProfile> fetchProfile() async =>
-      const UserProfile(id: 'me');
+  Future<UserProfile> fetchProfile() async => const UserProfile(id: 'me');
 
   @override
   Future<void> setHandle(String handle) async {}
 
   @override
-  Future<List<UserResult>> searchUsers(String query) async => const <UserResult>[];
+  Future<List<UserResult>> searchUsers(String query) async =>
+      const <UserResult>[];
 
   @override
   Future<PublicProfile> fetchPublicProfile(String id) async =>
@@ -163,11 +162,11 @@ const GameDetail _detail = GameDetail(
 );
 
 ApkAsset _apk(String name) => ApkAsset(
-      name: name,
-      url: 'https://github.com/VinTeRuS/spore-re/releases/download/v1/$name',
-      sizeBytes: 98818871,
-      downloadCount: 106,
-    );
+  name: name,
+  url: 'https://github.com/VinTeRuS/spore-re/releases/download/v1/$name',
+  sizeBytes: 98818871,
+  downloadCount: 106,
+);
 
 final List<GithubRelease> _releases = <GithubRelease>[
   GithubRelease(
@@ -212,10 +211,12 @@ Future<ProviderContainer> _container({
         (Ref ref, String slug) => Future<GameDetail>.value(_detail),
       ),
       gameCompatReportsProvider.overrideWith(
-        (Ref ref, String gameId) => Future<List<CompatReport>>.value(const <CompatReport>[]),
+        (Ref ref, String gameId) =>
+            Future<List<CompatReport>>.value(const <CompatReport>[]),
       ),
       repoReleasesProvider.overrideWith(
-        (Ref ref, String repoId) => Future<List<GithubRelease>>.value(_releases),
+        (Ref ref, String repoId) =>
+            Future<List<GithubRelease>>.value(_releases),
       ),
       githubUserProvider.overrideWith(
         (Ref ref, String owner) => Future<GithubUser?>.value(
@@ -230,10 +231,15 @@ Future<ProviderContainer> _container({
       ),
       installedAppProvider.overrideWith(
         (Ref ref, String packageName) => Future<ApkSummary?>.value(
-          const ApkSummary(packageName: 'com.portix.spore', versionName: '0.1.4'),
+          const ApkSummary(
+            packageName: 'com.portix.spore',
+            versionName: '0.1.4',
+          ),
         ),
       ),
-      downloadsProvider.overrideWith(() => downloads ?? FakeDownloadsController()),
+      downloadsProvider.overrideWith(
+        () => downloads ?? FakeDownloadsController(),
+      ),
     ],
   );
 }
@@ -259,58 +265,65 @@ Widget _host(ProviderContainer container) {
 }
 
 void main() {
-  testWidgets('CTA mostra "Abrir o app" com a versão instalada pré-selecionada',
-      (WidgetTester tester) async {
-    _mobileViewport(tester);
-    final ProviderContainer container = await _container();
-    addTearDown(container.dispose);
-    await tester.pumpWidget(_host(container));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'CTA mostra "Abrir o app" com a versão instalada pré-selecionada',
+    (WidgetTester tester) async {
+      _mobileViewport(tester);
+      final ProviderContainer container = await _container();
+      addTearDown(container.dispose);
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Baixar v0.1.4'), findsNothing);
-    expect(find.text('Abrir o app'), findsOneWidget);
-    // Estatísticas refletem a versão pré-selecionada.
-    expect(find.text('v0.1.4'), findsWidgets);
-    expect(find.text('94,2 MB'), findsOneWidget);
-  });
+      expect(find.text('Baixar v0.1.4'), findsNothing);
+      expect(find.text('Abrir o app'), findsOneWidget);
+      // Estatísticas refletem a versão pré-selecionada.
+      expect(find.text('v0.1.4'), findsWidgets);
+      expect(find.text('94,2 MB'), findsOneWidget);
+    },
+  );
 
-  testWidgets('selecionar versão antiga → CTA "Atualizar" e diálogo de downgrade',
-      (WidgetTester tester) async {
-    _mobileViewport(tester);
-    final FakeDownloadsController downloads = FakeDownloadsController();
-    final ProviderContainer container = await _container(downloads: downloads);
-    addTearDown(container.dispose);
-    await tester.pumpWidget(_host(container));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'selecionar versão antiga → CTA "Atualizar" e diálogo de downgrade',
+    (WidgetTester tester) async {
+      _mobileViewport(tester);
+      final FakeDownloadsController downloads = FakeDownloadsController();
+      final ProviderContainer container = await _container(
+        downloads: downloads,
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
 
-    // Task concluída (v0.1.4); o usuário toca na v0.1.3 (card com 1 APK).
-    await tester.tap(find.text('v0.1.3'), warnIfMissed: false);
-    await tester.pump();
-    expect(find.text('Atualizar'), findsOneWidget);
+      // Task concluída (v0.1.4); o usuário toca na v0.1.3 (card com 1 APK).
+      await tester.tap(find.text('v0.1.3'), warnIfMissed: false);
+      await tester.pump();
+      expect(find.text('Atualizar'), findsOneWidget);
 
-    // Toca no CTA: 1 asset (sem sheet) → isOlderThan → diálogo de downgrade.
-    await tester.tap(find.text('Atualizar'));
-    await tester.pumpAndSettle();
+      // Toca no CTA: 1 asset (sem sheet) → isOlderThan → diálogo de downgrade.
+      await tester.tap(find.text('Atualizar'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Versão mais antiga'), findsOneWidget);
-    expect(find.textContaining('v0.1.4 já está instalada'), findsOneWidget);
-    expect(find.text('Baixar assim mesmo'), findsOneWidget);
-    expect(downloads.started, isEmpty); // nada baixado antes da confirmação
+      expect(find.text('Versão mais antiga'), findsOneWidget);
+      expect(find.textContaining('v0.1.4 já está instalada'), findsOneWidget);
+      expect(find.text('Baixar assim mesmo'), findsOneWidget);
+      expect(downloads.started, isEmpty); // nada baixado antes da confirmação
 
-    await tester.tap(find.text('Baixar assim mesmo'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Baixar assim mesmo'));
+      await tester.pumpAndSettle();
 
-    // Download da versão específica (não a mais recente) comprovado:
-    expect(downloads.started, hasLength(1));
-    expect(downloads.started.single.releaseTag, 'v0.1.3');
-    expect(
-      downloads.started.single.url,
-      'https://github.com/VinTeRuS/spore-re/releases/download/v1/spore-v0.1.3.apk',
-    );
-  });
+      // Download da versão específica (não a mais recente) comprovado:
+      expect(downloads.started, hasLength(1));
+      expect(downloads.started.single.releaseTag, 'v0.1.3');
+      expect(
+        downloads.started.single.url,
+        'https://github.com/VinTeRuS/spore-re/releases/download/v1/spore-v0.1.3.apk',
+      );
+    },
+  );
 
-  testWidgets('escolher "Depois" no diálogo de downgrade não baixa',
-      (WidgetTester tester) async {
+  testWidgets('escolher "Depois" no diálogo de downgrade não baixa', (
+    WidgetTester tester,
+  ) async {
     _mobileViewport(tester);
     final FakeDownloadsController downloads = FakeDownloadsController();
     final ProviderContainer container = await _container(downloads: downloads);
@@ -328,8 +341,9 @@ void main() {
     expect(downloads.started, isEmpty);
   });
 
-  testWidgets('release sem APK: card desabilitado e badge Beta',
-      (WidgetTester tester) async {
+  testWidgets('release sem APK: card desabilitado e badge Beta', (
+    WidgetTester tester,
+  ) async {
     _mobileViewport(tester);
     final ProviderContainer container = await _container();
     addTearDown(container.dispose);

@@ -31,18 +31,19 @@ const GameDetail kSporeDetail = GameDetail(
 );
 
 ApkAsset kApk(String name) => ApkAsset(
-      name: name,
-      url: 'https://github.com/VinTeRuS/spore-re/releases/download/v1/$name',
-      sizeBytes: 98818871,
-      downloadCount: 106,
-    );
+  name: name,
+  url: 'https://github.com/VinTeRuS/spore-re/releases/download/v1/$name',
+  sizeBytes: 98818871,
+  downloadCount: 106,
+);
 
 // Dados REAIS capturados de GET /repos/VinTeRuS/spore-re/releases (17/11/2026).
 final List<GithubRelease> kSporeReleases = <GithubRelease>[
   GithubRelease(
     tag: 'v0.1.4',
     publishedAt: DateTime(2026, 11, 16, 19, 45),
-    body: 'Early build, expect bugs.\n- `spore.apk` is for **Vulkan 1.3 GPUs** (most phones)\n- `spore-vk11.apk` for older ones with Vulkan 1.1',
+    body:
+        'Early build, expect bugs.\n- `spore.apk` is for **Vulkan 1.3 GPUs** (most phones)\n- `spore-vk11.apk` for older ones with Vulkan 1.1',
     assets: <ApkAsset>[kApk('spore.apk'), kApk('spore-vk11.apk')],
   ),
   GithubRelease(

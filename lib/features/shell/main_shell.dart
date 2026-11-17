@@ -55,14 +55,9 @@ class MainShell extends StatelessWidget {
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
-        child: Stack(
-          children: <Widget>[
-            navigationShell,
-            const UpdateGate(),
-          ],
-        ),
+        child: Stack(children: <Widget>[navigationShell, const UpdateGate()]),
       ),
       bottomNavigationBar: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -80,8 +75,11 @@ class MainShell extends StatelessWidget {
                 onSelect: _select,
               ),
             ),
-            const SizedBox(width: 10),
-            SearchFab(onTap: () => context.push<Object?>('/search')),
+            const SizedBox(width: AppSpacing.sm),
+            SearchFab(
+              tooltip: l10n.tooltipSearch,
+              onTap: () => context.push<Object?>('/search'),
+            ),
           ],
         ),
       ),

@@ -35,8 +35,9 @@ GithubRepo? githubRepoOf(String url) {
   if (uri == null || !uri.host.toLowerCase().endsWith('github.com')) {
     return null;
   }
-  final List<String> segments =
-      uri.pathSegments.where((String part) => part.isNotEmpty).toList();
+  final List<String> segments = uri.pathSegments
+      .where((String part) => part.isNotEmpty)
+      .toList();
   if (segments.length < 2 || _reservedPaths.contains(segments[0])) {
     return null;
   }
@@ -45,7 +46,12 @@ GithubRepo? githubRepoOf(String url) {
 
 /// Um arquivo .apk anexado a uma release.
 class ApkAsset {
-  const ApkAsset({required this.name, required this.url, this.sizeBytes = 0, this.downloadCount = 0});
+  const ApkAsset({
+    required this.name,
+    required this.url,
+    this.sizeBytes = 0,
+    this.downloadCount = 0,
+  });
 
   final String name;
   final String url;
@@ -64,19 +70,20 @@ class ApkAsset {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'name': name,
-        'url': url,
-        'sizeBytes': sizeBytes,
-        'downloadCount': downloadCount,
-      };
+    'name': name,
+    'url': url,
+    'sizeBytes': sizeBytes,
+    'downloadCount': downloadCount,
+  };
 
   factory ApkAsset.fromJson(Map<String, dynamic> map) => ApkAsset(
-        name: (map['name'] ?? '').toString(),
-        url: (map['url'] ?? '').toString(),
-        sizeBytes: map['sizeBytes'] is num ? (map['sizeBytes'] as num).toInt() : 0,
-        downloadCount:
-            map['downloadCount'] is num ? (map['downloadCount'] as num).toInt() : 0,
-      );
+    name: (map['name'] ?? '').toString(),
+    url: (map['url'] ?? '').toString(),
+    sizeBytes: map['sizeBytes'] is num ? (map['sizeBytes'] as num).toInt() : 0,
+    downloadCount: map['downloadCount'] is num
+        ? (map['downloadCount'] as num).toInt()
+        : 0,
+  );
 }
 
 /// Uma release do GitHub (tag, notas em markdown e assets .apk).
@@ -111,8 +118,10 @@ class GithubRelease {
   bool get hasApk => assets.isNotEmpty;
 
   /// Soma dos downloads de todos os assets .apk.
-  int get downloadCount =>
-      assets.fold<int>(0, (int total, ApkAsset asset) => total + asset.downloadCount);
+  int get downloadCount => assets.fold<int>(
+    0,
+    (int total, ApkAsset asset) => total + asset.downloadCount,
+  );
 
   factory GithubRelease.fromMap(Map<Object?, Object?> map) {
     final List<ApkAsset> apks = <ApkAsset>[];
@@ -121,7 +130,8 @@ class GithubRelease {
       for (final Object? asset in rawAssets) {
         if (asset is Map) {
           final ApkAsset parsed = ApkAsset.fromMap(asset);
-          if (parsed.url.isNotEmpty && parsed.name.toLowerCase().endsWith('.apk')) {
+          if (parsed.url.isNotEmpty &&
+              parsed.name.toLowerCase().endsWith('.apk')) {
             apks.add(parsed);
           }
         }
@@ -145,26 +155,29 @@ class GithubRelease {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'tag': tag,
-        'name': name,
-        'publishedAt': publishedAt?.toIso8601String(),
-        'body': body,
-        'prerelease': prerelease,
-        'assets': assets.map((ApkAsset asset) => asset.toJson()).toList(growable: false),
-      };
+    'tag': tag,
+    'name': name,
+    'publishedAt': publishedAt?.toIso8601String(),
+    'body': body,
+    'prerelease': prerelease,
+    'assets': assets
+        .map((ApkAsset asset) => asset.toJson())
+        .toList(growable: false),
+  };
 
   factory GithubRelease.fromJson(Map<String, dynamic> map) => GithubRelease(
-        tag: (map['tag'] ?? '').toString(),
-        name: map['name'] as String?,
-        publishedAt:
-            map['publishedAt'] is String ? DateTime.tryParse(map['publishedAt'] as String) : null,
-        body: map['body'] as String?,
-        prerelease: map['prerelease'] == true,
-        assets: (map['assets'] as List<dynamic>? ?? const <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .map(ApkAsset.fromJson)
-            .toList(growable: false),
-      );
+    tag: (map['tag'] ?? '').toString(),
+    name: map['name'] as String?,
+    publishedAt: map['publishedAt'] is String
+        ? DateTime.tryParse(map['publishedAt'] as String)
+        : null,
+    body: map['body'] as String?,
+    prerelease: map['prerelease'] == true,
+    assets: (map['assets'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(ApkAsset.fromJson)
+        .toList(growable: false),
+  );
 }
 
 /// Perfil público do dono do repositório (usuário ou organização).
@@ -192,7 +205,8 @@ class GithubUser {
   bool get isOrganization => type == 'Organization';
 
   /// Nome para exibição: `name` com fallback para o `login`.
-  String get displayName => (name == null || name!.trim().isEmpty) ? login : name!.trim();
+  String get displayName =>
+      (name == null || name!.trim().isEmpty) ? login : name!.trim();
 
   /// URL do avatar com tamanho fixo (sem query aleatória) para o cache bater.
   String avatarUrlFor(int size) {
@@ -201,37 +215,41 @@ class GithubUser {
   }
 
   factory GithubUser.fromMap(Map<Object?, Object?> map) => GithubUser(
-        login: (map['login'] ?? '').toString(),
-        name: map['name'] as String?,
-        avatarUrl: (map['avatar_url'] ?? '').toString(),
-        htmlUrl: (map['html_url'] ?? '').toString(),
-        bio: map['bio'] as String?,
-        type: (map['type'] ?? 'User').toString(),
-        publicRepos: map['public_repos'] is num ? (map['public_repos'] as num).toInt() : 0,
-        followers: map['followers'] is num ? (map['followers'] as num).toInt() : 0,
-      );
+    login: (map['login'] ?? '').toString(),
+    name: map['name'] as String?,
+    avatarUrl: (map['avatar_url'] ?? '').toString(),
+    htmlUrl: (map['html_url'] ?? '').toString(),
+    bio: map['bio'] as String?,
+    type: (map['type'] ?? 'User').toString(),
+    publicRepos: map['public_repos'] is num
+        ? (map['public_repos'] as num).toInt()
+        : 0,
+    followers: map['followers'] is num ? (map['followers'] as num).toInt() : 0,
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'login': login,
-        'name': name,
-        'avatarUrl': avatarUrl,
-        'htmlUrl': htmlUrl,
-        'bio': bio,
-        'type': type,
-        'publicRepos': publicRepos,
-        'followers': followers,
-      };
+    'login': login,
+    'name': name,
+    'avatarUrl': avatarUrl,
+    'htmlUrl': htmlUrl,
+    'bio': bio,
+    'type': type,
+    'publicRepos': publicRepos,
+    'followers': followers,
+  };
 
   factory GithubUser.fromJson(Map<String, dynamic> map) => GithubUser(
-        login: (map['login'] ?? '').toString(),
-        name: map['name'] as String?,
-        avatarUrl: (map['avatarUrl'] ?? '').toString(),
-        htmlUrl: (map['htmlUrl'] ?? '').toString(),
-        bio: map['bio'] as String?,
-        type: (map['type'] ?? 'User').toString(),
-        publicRepos: map['publicRepos'] is num ? (map['publicRepos'] as num).toInt() : 0,
-        followers: map['followers'] is num ? (map['followers'] as num).toInt() : 0,
-      );
+    login: (map['login'] ?? '').toString(),
+    name: map['name'] as String?,
+    avatarUrl: (map['avatarUrl'] ?? '').toString(),
+    htmlUrl: (map['htmlUrl'] ?? '').toString(),
+    bio: map['bio'] as String?,
+    type: (map['type'] ?? 'User').toString(),
+    publicRepos: map['publicRepos'] is num
+        ? (map['publicRepos'] as num).toInt()
+        : 0,
+    followers: map['followers'] is num ? (map['followers'] as num).toInt() : 0,
+  );
 }
 
 // ============================================================================
@@ -266,8 +284,9 @@ List<GithubRelease> visibleReleases(List<GithubRelease> releases) {
 }
 
 /// Somente releases com APK anexado (usadas para instalação/atualização).
-List<GithubRelease> releasesWithApk(List<GithubRelease> releases) =>
-    releases.where((GithubRelease release) => release.hasApk).toList(growable: false);
+List<GithubRelease> releasesWithApk(List<GithubRelease> releases) => releases
+    .where((GithubRelease release) => release.hasApk)
+    .toList(growable: false);
 
 /// Escolhe o APK mais compatível de uma release: arm64 > universal > primeiro.
 ApkAsset? preferredApkAsset(List<ApkAsset> assets) {
@@ -279,7 +298,9 @@ ApkAsset? preferredApkAsset(List<ApkAsset> assets) {
   }
   for (final ApkAsset asset in assets) {
     final String lower = asset.name.toLowerCase();
-    if (lower.contains('arm64') || lower.contains('arm64-v8a') || lower.contains('aarch64')) {
+    if (lower.contains('arm64') ||
+        lower.contains('arm64-v8a') ||
+        lower.contains('aarch64')) {
       return asset;
     }
   }
@@ -294,8 +315,9 @@ ApkAsset? preferredApkAsset(List<ApkAsset> assets) {
 
 /// Comparação semver simplificada: extrai `1.2(.3)` de qualquer tag.
 List<int>? semverPartsOf(String tag) {
-  final RegExpMatch? match =
-      RegExp(r'(\d+)\.(\d+)(?:\.(\d+))?').firstMatch(tag);
+  final RegExpMatch? match = RegExp(
+    r'(\d+)\.(\d+)(?:\.(\d+))?',
+  ).firstMatch(tag);
   if (match == null) {
     return null;
   }

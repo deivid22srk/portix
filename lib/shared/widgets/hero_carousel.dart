@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
@@ -142,11 +143,16 @@ class _HeroCarouselState extends State<HeroCarousel> {
                           _controller.position.hasContentDimensions) {
                         delta = (_controller.page ?? _index.toDouble()) - index;
                       }
-                      final double scale = (1 - delta.abs() * 0.05).clamp(0.94, 1.0);
+                      final double scale = (1 - delta.abs() * 0.05).clamp(
+                        0.94,
+                        1.0,
+                      );
                       return Transform.scale(scale: scale, child: child);
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
                       child: _CarouselCard(
                         game: game,
                         heroTag: '${widget.tagPrefix}-${game.id}',
@@ -182,14 +188,16 @@ class _HeroCarouselState extends State<HeroCarousel> {
                         child: AnimatedContainer(
                           duration: AppMotion.indicator,
                           curve: AppMotion.emphasized,
-                          margin: const EdgeInsets.only(right: 6),
+                          margin: const EdgeInsets.only(right: AppSpacing.xxs),
                           width: i == _index ? 24 : 8,
                           height: 8,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(AppRadii.pill),
                             color: i == _index
-                                ? AppColors.textPrimary
-                                : AppColors.textPrimary.withValues(alpha: 0.4),
+                                ? context.colors.textPrimary
+                                : context.colors.textPrimary.withValues(
+                                    alpha: 0.4,
+                                  ),
                           ),
                         ),
                       ),
@@ -198,19 +206,21 @@ class _HeroCarouselState extends State<HeroCarousel> {
               ),
               GlassCircleButton(
                 icon: Icons.chevron_left_rounded,
-                size: 40,
+                tooltip: context.l10n.tooltipPrevious,
                 onTap: () => _go(-1),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               GlassCircleButton(
                 icon: _paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                size: 40,
+                tooltip: _paused
+                    ? context.l10n.tooltipPlayCarousel
+                    : context.l10n.tooltipPauseCarousel,
                 onTap: _togglePause,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               GlassCircleButton(
                 icon: Icons.chevron_right_rounded,
-                size: 40,
+                tooltip: context.l10n.tooltipNext,
                 onTap: () => _go(1),
               ),
             ],
@@ -251,13 +261,13 @@ class _CarouselCard extends StatelessWidget {
                 borderRadius: 0,
               ),
             ),
-            const DecoratedBox(
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: <Color>[
-                    Color(0x33000000),
-                    Color(0x00000000),
-                    Color(0xCC000000),
+                    AppContentColors.scrim.withValues(alpha: 0.20),
+                    AppContentColors.transparent,
+                    AppContentColors.scrim.withValues(alpha: 0.80),
                   ],
                   stops: <double>[0, 0.4, 1],
                   begin: Alignment.topCenter,
@@ -270,16 +280,19 @@ class _CarouselCard extends StatelessWidget {
                 left: 14,
                 top: 14,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0x66000000),
+                    color: AppContentColors.scrim.withValues(alpha: 0.40),
                     borderRadius: BorderRadius.circular(AppRadii.pill),
-                    border: Border.all(color: AppColors.glassBorder),
+                    border: Border.all(color: context.colors.glassBorder),
                   ),
                   child: Text(
                     game.primaryPlatform,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -294,7 +307,7 @@ class _CarouselCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: context.texts.headlineSmall?.copyWith(
-                  color: Colors.white,
+                  color: AppContentColors.onMedia,
                   fontWeight: FontWeight.w700,
                   height: 1.06,
                 ),

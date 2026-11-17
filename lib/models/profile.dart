@@ -4,7 +4,7 @@ import 'parsing.dart';
 class UserProfile {
   const UserProfile({
     required this.id,
-    this.displayName = 'Jogador',
+    this.displayName = '',
     this.coverUrl,
     this.handle,
   });
@@ -15,9 +15,18 @@ class UserProfile {
   final String? handle;
 
   factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
-        id: asTextOr(map['id'], ''),
-        displayName: asTextOr(map['display_name'], 'Jogador'),
-        coverUrl: asText(map['cover_url']),
-        handle: asText(map['handle']),
-      );
+    id: asTextOr(map['id'], ''),
+    displayName: asTextOr(map['display_name'], ''),
+    coverUrl: asText(map['cover_url']),
+    handle: asText(map['handle']),
+  );
+
+  /// Mesmo formato do banco — permite persistir o último valor bom no
+  /// CacheStore (stale-while-revalidate) e reler com [UserProfile.fromMap].
+  Map<String, dynamic> toMap() => <String, dynamic>{
+    'id': id,
+    'display_name': displayName,
+    'cover_url': coverUrl,
+    'handle': handle,
+  };
 }

@@ -1,0 +1,53 @@
+# Downloads (peça central — `lib/features/downloads/`)
+
+## Antes (U1)
+
+- Sem filtros (ativos/concluídos/falhos), sem ações em lote, sem reordenação — fila crua no Hub
+  (`hub_page.dart:131-164` lista tudo sempre).
+- Espaçamento fora do grid 4/8: `height: 3` (:140), `5` (:157), `9` (:148,198) em `downloads_tile.dart`.
+- Troca de estado sem transição (badge/ação pulam; zero `AnimatedSwitcher`).
+- Sem `Semantics` no progresso — TalkBack não anuncia percentual; badge só mostra % no estado
+  `downloading` (`_statusLabel`).
+- Cancelar/remover sem snackbar com desfazer (destructive sem rede de proteção).
+- Offline e sem espaço caem em `failed` genérico — mensagem humanizada existe
+  (`dlErrDiskFull`/`dlErrNetwork`) mas visual não diferencia estado.
+- Tile reconstrói inteira a cada tick (~10/s) — sem `select`/escopo de rebuild; sem `RepaintBoundary`
+  na barra animada.
+- Capa 58×78 fixa; em telas grandes sobra hierarquia.
+- Erro com ícone 15px + texto labelSmall — densidade baixa de leitura em falha (informação crítica).
+
+## Depois (iterações U1 + U3)
+
+- Botão "Abrir fonte" 38 → **48dp** (`AppSpacing.secondaryButtonHeight`) — alvo de toque AA
+  (verificado por `androidTapTargetGuideline`).
+- Linha de ações do estado de falha Row → **Wrap**: um overflow real de 62px (paisagem 891×411
+  e fonte 2.0) capturado por `expectNoOverflow` — agora quebra de linha em vez de estourar.
+- `textTertiary` 42% → **55% branco**: contraste do ETA 3,9 → 6,0:1 sobre o vidro
+  (verificado por `textContrastGuideline`).
+- Espaçamentos 3/5/9 → grid 4/8 (`AppSpacing.xs/sm`); barra 6→8; capa 58×78 → tokens
+  (`tileCoverWidth/Height`) — allowlist `tok_size` drenada para o arquivo.
+- Corpo do tile por grupo de estado (progresso/falha/concluído) com `AnimatedSize` +
+  `AnimatedSwitcher` — conecting→downloading não pisca mais.
+- `GradientProgress.semanticLabel` com `Semantics(container: true)` — TalkBack anuncia o
+  estado/percentual ("32%"); verificado com `find.bySemanticsLabel` no teste.
+- Testes: conteúdo (160 MB / 500 MB · 2,0 MB/s · 3:14 · 32%), erro humanizado sem string crua,
+  guidelines nos 4 estados, overflow × 6 dispositivos — `test/ui/downloads_tile_test.dart`.
+
+## Pendente para U5
+
+- Escopo de rebuild (`select`) nos ticks; grade adaptativa no Hub; goldens dos estados.
+
+## U4 — snackbar com desfazer (2026-11-15)
+
+- `AppSnackbar` (`lib/shared/widgets/app_snackbar.dart`): vidro elevado, raio do tema,
+  flutuante acima da barra de navegação (token `snackbarBottomGap`), ação opcional.
+- Remover **e** cancelar agora têm **Desfazer** — `DownloadsController.restore(task)`:
+  concluída volta como done; ativa volta como **paused** (nunca retoma sem gesto);
+  id duplicado → versão atual vence.
+- `RepaintBoundary` na barra de progresso — o tick (~10/s) repinta só a barra.
+- 2 testes novos (undo done / undo ativa→paused); suíte 41/41.
+
+## Pendente para U4
+
+- Escopo de rebuild (`select`) nos ticks; `RepaintBoundary` na barra animada (feito U4).
+- Goldens dos estados × escala 1.0/1.5 (fonte já embutida).

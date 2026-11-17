@@ -58,120 +58,123 @@ class NewsArticlePage extends ConsumerWidget {
     final NewsItem? item = async.value ?? initial;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           bottom: false,
-          child: item == null
-              ? _MissingArticle(
-                  loading: async.isLoading,
-                  message: async.hasError
-                      ? context.failureText(async.error)
-                      : l10n.newsEmpty,
-                  retryLabel: l10n.tryAgain,
-                  onRetry: () => ref.invalidate(newsArticleProvider(slug)),
-                  onBack: () => _back(context),
-                )
-              : ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.screen,
-                    AppSpacing.md,
-                    AppSpacing.screen,
-                    context.systemBottomInset + AppSpacing.xxl,
-                  ),
-                  children: <Widget>[
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: GlassCircleButton(
-                        icon: Icons.arrow_back_rounded,
-                        onTap: () => _back(context),
-                      ),
+          child: AppContentMax(
+            child: item == null
+                ? _MissingArticle(
+                    loading: async.isLoading,
+                    message: async.hasError
+                        ? context.failureText(async.error)
+                        : l10n.newsEmpty,
+                    retryLabel: l10n.tryAgain,
+                    onRetry: () => ref.invalidate(newsArticleProvider(slug)),
+                    onBack: () => _back(context),
+                  )
+                : ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.screen,
+                      AppSpacing.md,
+                      AppSpacing.screen,
+                      context.systemBottomInset + AppSpacing.xxl,
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: NewsCover(item: item, memWidth: 1400),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      item.category.toUpperCase(),
-                      style: context.texts.labelSmall?.copyWith(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.title,
-                      style: context.texts.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        height: 1.15,
-                      ),
-                    ),
-                    if (item.titleOriginal != null) ...<Widget>[
-                      const SizedBox(height: 6),
-                      Text(
-                        item.titleOriginal!,
-                        style: context.texts.bodySmall?.copyWith(
-                          color: AppColors.textTertiary,
-                          fontStyle: FontStyle.italic,
+                    children: <Widget>[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: GlassCircleButton(
+                          icon: Icons.arrow_back_rounded,
+                          tooltip: context.l10n.tooltipBack,
+                          onTap: () => _back(context),
                         ),
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.md),
-                    _ArticleMeta(item: item, l10n: l10n),
-                    if (item.summary.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: AppSpacing.lg),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: NewsCover(item: item, memWidth: 1400),
+                        ),
+                      ),
                       const SizedBox(height: AppSpacing.xl),
                       Text(
-                        item.summary,
-                        style: context.texts.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.55,
+                        item.category.toUpperCase(),
+                        style: context.texts.labelSmall?.copyWith(
+                          color: context.colors.accent,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
                         ),
                       ),
-                    ],
-                    if (item.keyPoints.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: AppSpacing.xl),
-                      GlassContainer(
-                        radius: AppRadii.lg,
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              l10n.keyPointsTitle,
-                              style: context.texts.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            for (final String point in item.keyPoints)
-                              _KeyPoint(text: point),
-                          ],
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        item.title,
+                        style: context.texts.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.15,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.xl),
-                    if (item.sourceUrl != null)
-                      PrimaryButton(
-                        label: l10n.readOnSource,
-                        icon: Icons.open_in_new_rounded,
-                        onPressed: () => _open(item.sourceUrl),
-                      ),
-                    if (item.projectUrl != null) ...<Widget>[
+                      if (item.titleOriginal != null) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          item.titleOriginal!,
+                          style: context.texts.bodySmall?.copyWith(
+                            color: context.colors.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.md),
-                      SecondaryButton(
-                        label: l10n.viewProject,
-                        icon: Icons.code_rounded,
-                        onPressed: () => _open(item.projectUrl),
-                      ),
+                      _ArticleMeta(item: item, l10n: l10n),
+                      if (item.summary.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          item.summary,
+                          style: context.texts.bodyLarge?.copyWith(
+                            color: context.colors.textSecondary,
+                            height: 1.55,
+                          ),
+                        ),
+                      ],
+                      if (item.keyPoints.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xl),
+                        GlassContainer(
+                          radius: AppRadii.lg,
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                l10n.keyPointsTitle,
+                                style: context.texts.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              for (final String point in item.keyPoints)
+                                _KeyPoint(text: point),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl),
+                      if (item.sourceUrl != null)
+                        PrimaryButton(
+                          label: l10n.readOnSource,
+                          icon: Icons.open_in_new_rounded,
+                          onPressed: () => _open(item.sourceUrl),
+                        ),
+                      if (item.projectUrl != null) ...<Widget>[
+                        const SizedBox(height: AppSpacing.md),
+                        SecondaryButton(
+                          label: l10n.viewProject,
+                          icon: Icons.code_rounded,
+                          onPressed: () => _open(item.projectUrl),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
+          ),
         ),
       ),
     );
@@ -179,7 +182,7 @@ class NewsArticlePage extends ConsumerWidget {
 }
 
 class _ArticleMeta extends StatelessWidget {
-  const _ArticleMeta({required this.item, required this.l10n});
+  _ArticleMeta({required this.item, required this.l10n});
 
   final NewsItem item;
   final L10n l10n;
@@ -197,14 +200,14 @@ class _ArticleMeta extends StatelessWidget {
     return Text(
       parts.join('  ·  '),
       style: context.texts.bodySmall?.copyWith(
-        color: AppColors.textTertiary,
+        color: context.colors.textTertiary,
       ),
     );
   }
 }
 
 class _KeyPoint extends StatelessWidget {
-  const _KeyPoint({required this.text});
+  _KeyPoint({required this.text});
 
   final String text;
 
@@ -216,22 +219,22 @@ class _KeyPoint extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.only(top: 7),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Container(
               width: 6,
               height: 6,
-              decoration: const BoxDecoration(
-                color: AppColors.accent,
+              decoration: BoxDecoration(
+                color: context.colors.accent,
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,
               style: context.texts.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -243,7 +246,7 @@ class _KeyPoint extends StatelessWidget {
 }
 
 class _MissingArticle extends StatelessWidget {
-  const _MissingArticle({
+  _MissingArticle({
     required this.loading,
     required this.message,
     required this.retryLabel,
@@ -272,19 +275,20 @@ class _MissingArticle extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: GlassCircleButton(
               icon: Icons.arrow_back_rounded,
+              tooltip: context.l10n.tooltipBack,
               onTap: onBack,
             ),
           ),
         ),
         Expanded(
           child: loading
-              ? const Center(
+              ? Center(
                   child: SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
                 )

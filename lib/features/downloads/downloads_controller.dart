@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,19 +14,22 @@ import '../../models/game_detail.dart';
 import '../collections/collections_controller.dart';
 
 final downloadsProvider =
-    NotifierProvider<DownloadsController, List<DownloadTask>>(DownloadsController.new);
+    NotifierProvider<DownloadsController, List<DownloadTask>>(
+      DownloadsController.new,
+    );
 
-final downloadForGameProvider = Provider.family<DownloadTask?, String>(
-  (ref, String gameId) {
-    final List<DownloadTask> tasks = ref.watch(downloadsProvider);
-    for (final DownloadTask task in tasks) {
-      if (task.gameId == gameId) {
-        return task;
-      }
+final downloadForGameProvider = Provider.family<DownloadTask?, String>((
+  ref,
+  String gameId,
+) {
+  final List<DownloadTask> tasks = ref.watch(downloadsProvider);
+  for (final DownloadTask task in tasks) {
+    if (task.gameId == gameId) {
+      return task;
     }
-    return null;
-  },
-);
+  }
+  return null;
+});
 
 /// Fila de downloads. No Android usa o motor nativo (Rust + serviço em primeiro
 /// plano com notificação); em outras plataformas cai numa simulação local.
@@ -51,7 +55,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
   }
 
   List<DownloadTask> _loadPersisted() {
-    final String? raw = ref.read(sharedPreferencesProvider).getString(_storageKey);
+    final String? raw = ref
+        .read(sharedPreferencesProvider)
+        .getString(_storageKey);
     if (raw == null || raw.isEmpty) {
       return const <DownloadTask>[];
     }
@@ -63,8 +69,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       final List<DownloadTask> tasks = <DownloadTask>[];
       for (final Object? item in decoded) {
         if (item is Map) {
-          final DownloadTask task =
-              DownloadTask.fromJson(Map<String, dynamic>.from(item));
+          final DownloadTask task = DownloadTask.fromJson(
+            Map<String, dynamic>.from(item),
+          );
           if (task.gameId.isEmpty) {
             continue;
           }
@@ -89,8 +96,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     String? releaseTag,
     bool restart = false,
   }) {
-    final int index =
-        state.indexWhere((DownloadTask task) => task.gameId == game.id);
+    final int index = state.indexWhere(
+      (DownloadTask task) => task.gameId == game.id,
+    );
     if (index >= 0 && !restart) {
       final DownloadTask current = state[index];
       if (current.status == DownloadStatus.done) {
@@ -160,35 +168,69 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
   }
 
   void _onNativeEvent(NativeDownloadEvent event) {
-    final int index =
-        state.indexWhere((DownloadTask task) => task.nativeId == event.id);
+    final int index = state.indexWhere(
+      (DownloadTask task) => task.nativeId == event.id,
+    );
     if (index < 0) {
       return;
     }
     final DownloadTask task = state[index];
     switch (event.status) {
-      case 'downloading':
-        final double? progress = event.progress;
-        _update(
-          task.gameId,
-          (DownloadTask current) => current.copyWith(
-            status: DownloadStatus.downloading,
-            progress: progress ?? current.progress,
-          ),
-        );
       case 'done':
         unawaited(_finishNative(task, event.path));
       case 'failed':
         _update(
           task.gameId,
-          (DownloadTask current) => current.copyWith(
-            status: DownloadStatus.failed,
-            error: event.error ?? 'falha',
-          ),
+          (DownloadTask current) => applyNativeEvent(current, event),
         );
         _persist();
       default:
-        break;
+        _update(
+          task.gameId,
+          (DownloadTask current) => applyNativeEvent(current, event),
+        );
+    }
+  }
+
+  /// Fusão pura de um evento nativo no estado atual da tarefa (visível para
+  /// testes). Ponto crítico do contrato: o motor emite DOIS tipos de evento
+  /// `downloading` — o rico (~10/s, com velocidade/ETA) e o legado de
+  /// notificação (~3/s, sem `speed`/`eta`). O legado chega aqui com
+  /// `speedBps`/`etaSecs` nulos e NÃO rebaixa a última estatística válida:
+  /// antes ele chegava como 0/-1 e sobrescrevia os valores, fazendo a
+  /// velocidade e o tempo restante piscarem na fila do Meu Hub.
+  @visibleForTesting
+  static DownloadTask applyNativeEvent(
+    DownloadTask current,
+    NativeDownloadEvent event,
+  ) {
+    switch (event.status) {
+      case 'connecting':
+        return current.copyWith(status: DownloadStatus.connecting);
+      case 'downloading':
+        return current.copyWith(
+          status: DownloadStatus.downloading,
+          progress: event.progress ?? current.progress,
+          // null = evento sem estatística → copyWith mantém o valor anterior.
+          speedBps: event.speedBps,
+          etaSecs: event.etaSecs,
+          doneBytes: event.done,
+          totalBytes: event.total,
+        );
+      case 'verifying':
+        return current.copyWith(
+          status: DownloadStatus.verifying,
+          progress: event.progress ?? current.progress,
+        );
+      case 'failed':
+        return current.copyWith(
+          status: DownloadStatus.failed,
+          error: event.error ?? 'internal|',
+          speedBps: 0,
+          etaSecs: -1,
+        );
+      default:
+        return current;
     }
   }
 
@@ -238,7 +280,8 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     final DownloadTask? task = taskFor(gameId);
     _update(
       gameId,
-      (DownloadTask current) => current.copyWith(status: DownloadStatus.downloading),
+      (DownloadTask current) =>
+          current.copyWith(status: DownloadStatus.downloading),
     );
     _persist();
     _syncFor(gameId);
@@ -266,6 +309,20 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
   }
 
   void remove(String gameId) => cancel(gameId);
+
+  /// Reinsere uma tarefa removida (ação "Desfazer" do snackbar). Tarefas
+  /// ativas voltam como pausadas — nada é retomado sem gesto do usuário;
+  /// se o id já existe de novo, a versão atual vence (nunca regredir estado).
+  void restore(DownloadTask task) {
+    if (taskFor(task.gameId) != null) {
+      return;
+    }
+    final DownloadTask safe = task.isActive
+        ? task.copyWith(status: DownloadStatus.paused)
+        : task;
+    state = <DownloadTask>[...state, safe];
+    _persist();
+  }
 
   void clearCompleted() {
     state = state
@@ -296,7 +353,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
 
   void _update(String gameId, DownloadTask Function(DownloadTask) transform) {
     state = state
-        .map((DownloadTask task) => task.gameId == gameId ? transform(task) : task)
+        .map(
+          (DownloadTask task) => task.gameId == gameId ? transform(task) : task,
+        )
         .toList(growable: false);
   }
 
@@ -315,9 +374,10 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
     _ticks = 0;
   }
 
-  bool get _hasSimulated =>
-      state.any((DownloadTask task) =>
-          task.nativeId == null && task.status == DownloadStatus.downloading);
+  bool get _hasSimulated => state.any(
+    (DownloadTask task) =>
+        task.nativeId == null && task.status == DownloadStatus.downloading,
+  );
 
   void _stopTickerIfIdle() {
     if (!_hasSimulated) {
@@ -335,8 +395,10 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
       }
       final double value = task.progress + 0.028;
       if (value >= 1) {
-        final DownloadTask done =
-            task.copyWith(status: DownloadStatus.done, progress: 1);
+        final DownloadTask done = task.copyWith(
+          status: DownloadStatus.done,
+          progress: 1,
+        );
         next.add(done);
         finished.add(done);
       } else {
@@ -385,7 +447,9 @@ class DownloadsController extends Notifier<List<DownloadTask>> {
 
   Future<void> _pushSync(DownloadTask task) async {
     try {
-      await ref.read(catalogRepositoryProvider).syncDownload(
+      await ref
+          .read(catalogRepositoryProvider)
+          .syncDownload(
             gameId: task.gameId,
             portKey: task.portKey,
             status: task.status.name,

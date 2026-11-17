@@ -44,8 +44,8 @@ class CoverPlaceholder extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: <Color>[
-                    AppColors.accent.withValues(alpha: 0.22),
-                    AppColors.accent.withValues(alpha: 0),
+                    context.colors.accent.withValues(alpha: 0.22),
+                    context.colors.accent.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -56,7 +56,7 @@ class CoverPlaceholder extends StatelessWidget {
               child: Text(
                 initialsOf(title),
                 style: context.texts.displaySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: AppContentColors.onMedia.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w800,
                   letterSpacing: -2,
                 ),
@@ -156,9 +156,9 @@ class GameCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: <Color>[
-                        Colors.transparent,
-                        Color(0x22000000),
-                        Color(0xD9000000),
+                        AppContentColors.transparent,
+                        AppContentColors.scrimSoft,
+                        AppContentColors.scrimStrong,
                       ],
                       stops: <double>[0.45, 0.68, 1],
                       begin: Alignment.topCenter,
@@ -170,7 +170,10 @@ class GameCard extends StatelessWidget {
                   Positioned(
                     left: 10,
                     top: 10,
-                    child: StatBadge(rating: game.rating, downloads: game.downloadCount),
+                    child: StatBadge(
+                      rating: game.rating,
+                      downloads: game.downloadCount,
+                    ),
                   ),
                 Positioned(
                   left: 14,
@@ -181,9 +184,8 @@ class GameCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: context.texts.titleSmall?.copyWith(
-                      color: Colors.white,
+                      color: AppContentColors.onMedia,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
                       height: 1.2,
                     ),
                   ),
@@ -218,7 +220,8 @@ class GameRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String meta = subtitle ??
+    final String meta =
+        subtitle ??
         <String>[
           if (game.year != null) game.year.toString(),
           if (game.primaryPlatform.isNotEmpty) game.primaryPlatform,
@@ -249,18 +252,22 @@ class GameRow extends StatelessWidget {
                   game.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: context.texts.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (meta.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: AppSpacing.hairline),
                   Text(
                     meta,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                    style: context.texts.bodySmall?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
                 ],
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xxs),
                 Row(
                   children: <Widget>[
                     if (game.hasRating)
@@ -269,7 +276,7 @@ class GameRow extends StatelessWidget {
                       Text(
                         context.l10n.newGame,
                         style: context.texts.labelSmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     const Spacer(),

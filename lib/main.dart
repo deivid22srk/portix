@@ -15,25 +15,15 @@ Future<void> main() async {
   // Edge-to-edge: o conteúdo desenha sob as barras do sistema e o app reserva
   // os insets (viewPadding) — evita sobreposição em aparelhos com 3 botões.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarContrastEnforced: false,
-    ),
-  );
+  // O estilo das barras (ícones claro/escuro) é declarativo: o
+  // AnnotatedRegion<SystemUiOverlayStyle> do builder do PortixApp resolve
+  // pelo tema já no 1º frame e reage a modo Sistema/brilho do SO.
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
 
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const PortixApp(),
     ),
   );

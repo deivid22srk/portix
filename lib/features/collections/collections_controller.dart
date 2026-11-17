@@ -5,7 +5,9 @@ import '../../models/collections.dart';
 import '../../models/game.dart';
 
 final collectionsProvider =
-    AsyncNotifierProvider<CollectionsNotifier, Collections>(CollectionsNotifier.new);
+    AsyncNotifierProvider<CollectionsNotifier, Collections>(
+      CollectionsNotifier.new,
+    );
 
 class CollectionsNotifier extends AsyncNotifier<Collections> {
   @override
@@ -22,11 +24,14 @@ class CollectionsNotifier extends AsyncNotifier<Collections> {
     final Collections current = state.value ?? Collections.empty;
     final bool wasFavorite = current.isFavorite(game.id);
     state = AsyncData(
-      wasFavorite ? current.withoutFavorite(game.id) : current.withFavorite(game),
+      wasFavorite
+          ? current.withoutFavorite(game.id)
+          : current.withFavorite(game),
     );
     try {
-      final bool nowFavorite =
-          await ref.read(catalogRepositoryProvider).toggleFavorite(game.id);
+      final bool nowFavorite = await ref
+          .read(catalogRepositoryProvider)
+          .toggleFavorite(game.id);
       if (nowFavorite == wasFavorite) {
         await refresh();
       }
@@ -41,11 +46,14 @@ class CollectionsNotifier extends AsyncNotifier<Collections> {
     final Collections current = state.value ?? Collections.empty;
     final bool wasInLibrary = current.isInLibrary(game.id);
     state = AsyncData(
-      wasInLibrary ? current.withoutLibraryGame(game.id) : current.withLibraryGame(game),
+      wasInLibrary
+          ? current.withoutLibraryGame(game.id)
+          : current.withLibraryGame(game),
     );
     try {
-      final bool nowInLibrary =
-          await ref.read(catalogRepositoryProvider).toggleLibrary(game.id);
+      final bool nowInLibrary = await ref
+          .read(catalogRepositoryProvider)
+          .toggleLibrary(game.id);
       if (nowInLibrary == wasInLibrary) {
         await refresh();
       }

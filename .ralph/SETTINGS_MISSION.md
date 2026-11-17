@@ -1,0 +1,216 @@
+# PORTIX — Missão Configurações (feat/configuracoes-categorias-temas-cache)
+
+Objetivos do dono: (1) configurações por categorias com hub + telas, (2) cache da
+imagem de perfil (0 downloads ao reabrir), (3) sistema de temas. Referência:
+Linear / Stripe / Vercel / iOS Settings. Ciclo CRIADOR (agente principal) →
+CI (build.yml via dispatch) → CRÍTICO (subagente independente), máx 10 iterações,
+parada: média ≥9,5, nenhum critério <9, zero 🔴/🟡, CI verde, 2 avaliações
+consecutivas.
+
+## FASE 0 — Reconhecimento (2026-11-17)
+
+### Suposições registradas
+- Branch `feat/configuracoes-categorias-temas-cache` criada a partir de
+  `ux/melhorias-iterativas` (4713dfa) — SUPOSIÇÃO CONSERVADORA: a main (9060a14,
+  só dados do dono) não tem motor v2 nem as 3 iterações de UI (notas 6,6→7,9);
+  basear na branch de trabalho preserva tudo. Nunca push na main.
+- build.yml gatilhos: `push→main` + `workflow_dispatch` (lido no arquivo).
+  Iterações via dispatch (curl, sem gh CLI) + polling por RUN_ID.
+- Evidências headless (sem device): testes instrumentados — contador de
+  requisições HTTP (HttpOverrides) para o cache, cálculo WCAG dos pares
+  fg/bg de cada paleta, pump das telas em 375/768/1440px e texto 2.0,
+  ui_gates/analyze/suíte. Screenshots não são possíveis neste ambiente.
+
+### Stack/telas
+Flutter 3.50, package `material_ui` (NÃO flutter/material), Riverpod 3.5
+(**FutureProvider é autoDispose por padrão**), go_router 18 com
+StatefulShellRoute (5 abas; menu = `/menu`), l10n manual `L10n` (pt/en),
+`cached_network_image` 4.x, `shared_preferences`. Gates `tool/ui_gates.sh`
+(proíbe raw_color/raw_font/raw_text/tok_size fora de tokens; allowlist com 50
+linhas; meta: vazia). Suíte atual: 66 testes. Navbar de vidro em MainShell,
+`AppContentMax` 1200px, Poppins embutida.
+
+### Inventário TOTAL de configurações hoje (nada pode se perder)
+| # | Item atual | Onde está (menu_page.dart) | Nova categoria |
+|---|---|---|---|
+| 1 | Cabeçalho perfil: foto (GameCover), nome, @handle, badge ADM | 121-195 | Conta e Perfil (resumo permanece no hub) |
+| 2 | Status da conta (logado/convidado) | 161-189 | Conta e Perfil |
+| 3 | Entrar / Cadastrar (convidado) | 217-222 | Conta e Perfil |
+| 4 | Editar perfil → /profile/edit | 197-216 | Conta e Perfil |
+| 5 | Sair da conta (com showAppConfirm) | 34-45, 209-214 | Conta e Perfil (destrutivo isolado) |
+| 6 | Stats: favoritos/instalados/downloads | 224-254 | Conta e Perfil (resumo no hub) |
+| 7 | Atalho "Hub" (/hub) | 256-267 | REMOVIDO do hub — navegação, não configuração (já há aba na navbar). Decisão registrada |
+| 8 | Idioma pt/en | 271-303 (hoje em "Aparência") | Idioma e Região |
+| 9 | Notificações (toggle) | 305-337 (hoje em "Aparência") | Notificações |
+| 10 | Recarregar catálogo | 343-347 | Dados e Armazenamento |
+| 11 | Limpar cache | 349-353 | Dados e Armazenamento |
+| 12 | Sobre: marca, tagline, versão, fonte de dados, "feito com" | 357-423 | Ajuda e Sobre |
+| 13 | Termos de uso (link) | 428-432 | Ajuda e Sobre |
+| 14 | Política de privacidade (link) | 434-438 | Ajuda e Sobre |
+
+Categorias finais (vazias removidas — sem itens hoje para Privacidade/Acessibilidade
+como seções próprias): **Conta e Perfil · Aparência e Temas · Notificações ·
+Idioma e Região · Dados e Armazenamento · Ajuda e Sobre** (6).
+Novidades: Tema (Aparência e Temas).
+
+### Causa raiz do reload da imagem de perfil (registrada)
+1. `profileProvider` é `FutureProvider` **autoDispose** (Riverpod 3.5) → ao sair
+   do menu o provider morre; ao reabrir refaz o fetch do Supabase e volta a
+   `AsyncLoading` SEM valor anterior → `profile.coverUrl` = null durante o
+   loading → menu renderiza fallback `UserProfile(displayName)` **sem foto**
+   (menu_page.dart:85-87) → quando resolve, imagem entra com fade → FLASH.
+2. O menu usa `GameCover(imageUrl: profile.coverUrl)` (capa quadrada de jogo,
+   memCacheWidth 180) em vez do componente `ProfileAvatar` (que já existe e
+   também usa CachedNetworkImage).
+3. O cache de disco existe (cached_network_image), mas: sem stale-while-revalidate
+   do dado (coverUrl some durante o loading), sem chave por versão (updated_at),
+   e o signOut não limpa o cache de imagem (auth.dart:73-75).
+Plano do fix: perfil com SWR (mantém último valor + revalida em background,
+persistido no CacheStore), ProfileAvatar no menu, invalidação por versão da URL,
+signOut limpa o cache de imagem; teste instrumentado contando requisições.
+
+### Cores/tema hoje
+Tema escuro ÚNICO "Aurora": `AppTheme.dark()` estático, `AppPalette.darkPalette`
+estático, `AppColors.*` estático global (345 ocorrências em lib/). ThemeData
+aplicado em app.dart (3 MaterialApp; splash incluído) via `darkThemeProvider`.
+`AppSettings` (locale+notifications) persiste em SharedPreferences sincronamente
+(no build) — não há flash de idioma; mesma técnica servirá para o tema.
+Allowlist raw_color: 20 arquivos fora de core/theme. Sem claro/sistema/extras,
+sem seletor, sem persistência de tema.
+
+## Execução
+
+- **iter 1** (3bd465b) `feat(settings): sistema de temas com 6 paletas AA e seletor`
+  — AppColorsTheme (ThemeExtension) + Aurora escuro/claro, Midnight (AMOLED),
+  Oceano, Floresta + modo Sistema; migração de 345 usos de AppColors.* estático
+  para context.colors.* (raw_color drenado a ZERO — allowlist de cor removida);
+  tokens de conteúdo (AppContentColors/AppBrandColors) para scrims/marca;
+  settings.themeId persistido (default escuro Aurora preservado; id inválido
+  normalizado); seletor com miniaturas reais + Semantics + reduced motion;
+  SystemChrome por tema; MaterialApp theme/darkTheme/themeMode sem flash.
+  Testes: contraste WCAG (15 grupos, todas as paletas), persistência/reinício,
+  id inválido, 1º frame sem flash, troca pelo seletor. **CI 44091086142 success.**
+- **iter 2** (c218395) `fix(settings): perfil com stale-while-revalidate e cache do avatar`
+  — profileProvider → AsyncNotifier keepAlive com SWR (cache.profile no
+  CacheStore; abre instantâneo, revalida em bg, zero flicker); ProfileAvatar no
+  menu (antes GameCover); troca de foto invalida o arquivo no
+  DefaultCacheManager (cobre reupload na mesma URL); logout limpa cache do
+  perfil + imagem em disco; flutter_cache_manager dependência direta.
+  Evidências: HttpClient sintético contando downloads — 5 aberturas = 0
+  downloads, URL nova = 1, removeFile = 1; SWR com repo fake. **CI 44095990091
+  success.**
+- **iter 3** (3a4d6bf) `feat(settings): configurações em categorias com hub e master-detail` — hub com perfil resumido + 6 categorias (Conta e Perfil, Aparência e Temas, Notificações, Idioma e Região, Dados e Armazenamento, Ajuda e Sobre); rotas/deep link /menu/<id>; drill-down mobile com voltar do sistema; master-detail ≥768px (rota como fonte do estado); limpar cache com confirmação; GlassHeader com expandedHeight adaptativo (overflow em texto 2.0 corrigido) + estado de erro da home → SliverFillRemaining. Testes: tabela por categoria, tap+voltar, deep link, 768px, 375px, texto 2.0. **CI 44099472112 success.**
+- **iter 4** (47c2b99) busca nas configurações + drenagem de tokens. **CI 44100937756 success.**
+- **iter 5** (4402944) correções da avaliação 8,43. **CI 44102964417 success.**
+- **iter 6** (8a37443) correções da reavaliação 8,60 + 5 testes de regressão. **CI 44105416754 success.**
+- **iter 7** `fix(settings): invalidação de memória, loading real e drenagem total dos gates` —
+  🟡-1 cache de MEMÓRIA do framework limpo no logout/troca de foto
+  (clearInMemoryImageCache: imageCache.clear + clearLiveImages — invalidação
+  por URL não é confiável com ResizeImage/memCacheWidth); 🟡-2 integração REAL
+  do ProfileAvatar (pump do widget + HttpClient contando: 1º uso = 1 download,
+  5 renders = 0 memória, clear = 0 disco, removeFile = 1 re-download);
+  🟡-3 recarregar catálogo com spinner + tap desabilitado durante o await
+  (teste com repo travado em Completer); 🟡-4/🟡-6 SystemChrome declarativo via
+  AnnotatedRegion no builder (reage a tema, modo Sistema e troca de brilho do
+  SO) — chamada no build e ref.listen removidos de verdade; 🟡-5 allowlist
+  drenada 25→0 (novos tokens hairline/xxs/compact/fieldVertical/inlineSpinner;
+  raw_font resolvido com estilos do tema + FittedBox no rótulo da navbar;
+  raw_text FPS/downloads/versão via l10n); 🟢 confirmação menciona perfil e
+  imagens, showAppConfirm destructive (danger) para sair/limpar cache,
+  darkThemeProvider morto removido, pares glassFloating em contraste,
+  teste do e-mail no header, themeAnimationDuration.zero com reduced motion.
+  Suíte 116/116; analyze limpo; gates verdes com allowlist vazia.
+
+Baseline: CI 44087292104 success (4713dfa).
+
+## Série de notas (CRÍTICO — critérios da missão)
+
+Base: 5/10; notas >5 exigem evidência de código/teste. Máximos: build quebrado ≤6
+no geral; imagem recarregando = cache ≤5 e média ≤7; tema ilegível/sub-AA ≤6.
+
+| Iter | Commit | Média | Δ | CI | Resumo |
+|---|---|---|---|---|---|
+| 0 | 4713dfa | **5,0** | — | 44087292104 | linha de base (ver abaixo) |
+| 1-3 | 3bd465b/c218395/3a4d6bf | — | — | success | implementação (avaliação após iter 4) |
+| 4 | 47c2b99 | **8,43** | +3,43 | 44100937756 | 1 🔴 (navbar cobre conteúdo no detail desktop) + 7 🟡 (confirmação de cache promete o que não faz; master-detail full-bleed; sucesso falso offline; Convidado duplo; Jogador hardcoded; toggle órfã; busca perdida) + 6 🟢. CRÍTICO subagente (agent-6cadbf88). Veredito: CONTINUAR |
+| 5 | 4402944 | — | — | 44102964417 | correções da 8,43 (sem avaliação própria) |
+| 5b | (reavaliação pós-iter 5) | **8,60** | +0,17 | — | 7 apontamentos; SystemChrome parcial; detalhes no commit 8a37443 |
+| 6 | 8a37443 | — | — | 44105416754 | correções da 8,60 + 5 testes de regressão |
+| 7 | 8a37443 (estado) | **9,05** | +0,45 | 44105416754 | CRÍTICO subagente (agent-508c1fc6, .ralph/CRITICO_ITER7.md): AI 9,5 · Temas 9,0 · Cache 8,5 · Consistência 9,0 · A11y 9,0 · Resp 9,5 · Estados 8,5 · Microinter 9,0 · Microcopy 9,0. 0 🔴 + 6 🟡 (mem-cache ignorado; teste avatar cosmético; reload sem loading; SystemChrome sistema/brilho; allowlist 25; commit infiel) + 8 🟢. 7/8 apontamentos da 8,60 corrigidos de verdade. Veredito: CONTINUAR |
+| 8 | 164af31 (iter 7) | — | — | 44112141331 | correções dos 6 🟡 + 8 🟢 da 9,05 (invalidação de memória, integração real do avatar, spinner no reload, AnnotatedRegion, allowlist 25→0, destructive danger, reduced motion) |
+| 9 | (reavaliação pós-iter-7) | **9,45** | +0,40 | 44112141331 | CRÍTICO subagente (agent-298c6284, .ralph/CRITICO_ITER8.md): AI 9,5 · Temas 9,5 · Cache 9,5 · Consistência 9,5 · **A11y 9,0** · Resp 9,5 · Estados 9,5 · Microinter 9,5 · Microcopy 9,5. 0 🔴 + 0 🟡 (primeiro sem médios) + 8 🟢. 6/6 🟡 do iter-7 corrigidos de verdade (nenhum fake fix). Falta: média 9,45<9,5 (só A11y 9,0). Veredito: CONTINUAR |
+| 10 | (iter 8, 98ab145) | — | — | 44117056475 | correção dos 🟢 que desbloqueiam o APROVADO: teste permanente do PortixApp (modo Sistema/brilho/AnnotatedRegion), label explícito na busca (A11y), numericLabel morto removido, SystemChrome do boot removido, par danger/bgElevated no contraste, cabeçalho do teste de cache |
+| 11 | (reavaliação pós-iter-8) | **9,50** | +0,05 | 44117056475 | CRÍTICO subagente (agent-161193f2, .ralph/CRITICO_ITER9.md): TODOS os 9 critérios em 9,5 (soma 1,900+1,900+1,425+0,950+0,950+0,950+0,475+0,475+0,475). 0 🔴 + 0 🟡 + 5 🟢 (R1 semântica da busca com texto; R2 assert de reduced motion sem teste permanente; R3/R4/R5 carregados pós-APROVADO). 6/6 claims do iter-8 reais. Condições técnicas de parada TODAS cumpridas. **1ª LEITURA CONSECUTIVA ≥9,5 ATINGIDA — falta 1 reavaliação de estabilidade** |
+| 12 | (leitura de estabilidade, mesmo HEAD 98ab145) | **9,505** | +0,005 | 44117056475 | CRÍTICO subagente INDEPENDENTE/cego (agent-7ef71a64, .ralph/CRITICO_ESTABILIDADE.md): AI 9,6 · Temas 9,5 · Cache 9,5 · Consistência 9,4 · A11y 9,5 · Resp 9,5 · Estados 9,5 · Microinter 9,5 · Microcopy 9,4. 0 🔴 + 0 🟡 + 7 🟢 (backlog pós-aprovação). CI autenticada por API na SHA. Condições de parada TODAS confirmadas. **Veredito: MISSÃO APROVADA** |
+
+## Execução iter-8 (nota do CRÍTICO: a busca sem label era o único desconto de A11y)
+
+- **iter 8** `fix(settings): acessibilidade da busca e teste permanente do modo Sistema`
+  - 🟢-N1 (A11y): teste permanente do PortixApp em theme_settings_test.dart —
+    bootstrap pendente (splash), platformBrightnessTestValue dark→light:
+    1º frame resolve o brilho REAL do SO, AnnotatedRegion<SystemUiOverlayStyle>
+    condizente (ícones claros/dark), troca de brilho com o app aberto reage
+    (tema + chrome) — protege a área com histórico de 3 🟡.
+  - 🟢-N4 (A11y): campo de busca com labelText + floatingLabelBehavior.never
+    (semântica de label explícita; visual idêntico ao hint).
+  - 🟢-N2: SystemChrome imperativo do boot removido do main.dart
+    (AnnotatedRegion cobre o 1º frame; comentário documenta).
+  - 🟢-N3: numericLabel (código morto) removido; 🟢-N5: cabeçalho do teste
+    de cache atualizado (2 níveis de evidência); 🟢-N6: par danger/bgElevated
+    no contraste (diálogo destrutivo).
+  - Suíte 117/117; analyze limpo; gates verdes com allowlist vazia.
+
+### CRÍTICO — iteração 0 (evidências)
+| Critério | Peso | Nota | Evidência |
+|---|---|---|---|
+| Arquitetura de informação | 20% | 3,5 | menu_page.dart: scroll único misturando perfil+conta+stats+navegação+idioma+notificações+dados+sobre+legal; zero subtelas; zero deep link de categoria |
+| Sistema de temas | 20% | 3,0 | theme.dart: `AppTheme.dark()` único; `AppPalette.darkPalette` estático; tokens.dart "Tema único (escuro)"; sem seletor/persistência |
+| Cache da imagem de perfil | 15% | 4,0 | profile_controller.dart:11 FutureProvider autoDispose → refetch+loading a cada abertura; menu_page.dart:85-87 fallback sem foto (flash); menu usa GameCover:129; sem SWR/versão/limpeza no logout |
+| Consistência e design system | 10% | 7,5 | primitives.dart (GlassContainer/SectionTile/AppToggle/SegmentedControl/AppContentMax/showAppConfirm) reusados; allowlist 50 pendências |
+| Acessibilidade | 10% | 7,0 | alvos 48px, Semantics em AppToggle, tooltip 24/24, texto 2.0 testado em grades; telas de menu sem teste de overflow; contraste não medido por paleta (1 paleta) |
+| Responsividade e navegação | 10% | 6,0 | AppContentMax 1200px no menu; sem master-detail ≥768px; sem drill-down (não há subtelas) |
+| Estados e feedback | 5% | 6,5 | snackbars padrão, sign-out confirmado; limpar cache sem confirmação; reload catálogo sem loading na tile |
+| Microinterações e performance | 5% | 6,5 | Pressable scale + fades; flash da foto é defeito direto de performance percebida |
+| Microcopy | 5% | 8,0 | l10n pt/en consistente no menu |
+| **Média ponderada** | | **5,0** | 0,70+0,60+0,60+0,75+0,70+0,60+0,325+0,325+0,40 = 5,000 |
+
+**Problemas iter 0:**
+- 🔴 P1 sem categorias/telas (objetivo 1 ausente) — menu_page.dart
+- 🔴 P2 tema único estático (objetivo 3 ausente) — theme.dart/tokens.dart
+- 🔴 P3 foto pisca + refetch a cada abertura (objetivo 2 violado) — profile_controller.dart/menu_page.dart
+- 🟡 P4 signOut não limpa cache de imagem — auth.dart:73
+- 🟡 P5 avatar no menu é GameCover (capa), não ProfileAvatar — menu_page.dart:129
+- 🟡 P6 limpar cache sem confirmação (ação que apaga dados locais) — menu_page.dart:58
+- 🟡 P7 raw_color em 20 arquivos fora de core/theme (blocos de reuso do multi-tema)
+- 🟢 P8 tok_size (tamanhos mágicos) em 20 arquivos — drenagem gradual
+- 🟢 P9 idioma dentro de "Aparência" (vai para Idioma e Região)
+- 🟢 P10 sem busca nas configurações (opcional na missão)
+
+**Veredito: CONTINUAR.**
+
+## Plano de iterações (ordem do CRIADOR)
+1. **iter 1 — fundação de temas**: paletas por tema (ThemeExtension + contexto),
+   ThemeData dinâmico (claro/escuro/sistema + Midnight, Oceano, Floresta),
+   persistência no AppSettings, aplicação sem flash, migração `AppColors.*` →
+   cor resolvida do tema (drena raw_color), contraste AA medido por teste.
+2. **iter 2 — cache do avatar**: SWR do perfil, ProfileAvatar no menu, versão na
+   chave, logout limpa imagem, testes instrumentados (contagem de requisições).
+3. **iter 3 — categorias**: hub + telas com rotas/deep link, master-detail ≥768px,
+   voltar do sistema, tabela antiga→nova aplicada, destrutivos isolados.
+4. **iter 4+ — polimento**: estados, microcopy, drenagem da allowlist, busca
+   opcional, overflow 2.0, novas notas do CRÍTICO.
+
+## Estado FINAL (missão APROVADA)
+- Branch local+remota `feat/configuracoes-categorias-temas-cache` @ 98ab145
+  (iter 8) + commit docs do diário.
+- Suíte 117/117; analyze limpo; ui_gates verdes com allowlist VAZIA (drenada
+  50→0 na missão anterior, mantida 0 aqui).
+- CI: run 44117056475 success na SHA 98ab145.
+- Série final: 5,00 → 8,43 → 8,60 → 9,05 → 9,45 → **9,50 → 9,505 (2 leituras
+  consecutivas ≥9,5, zero 🔴/🟡) — APROVADO**.
+- Guard: main intacta (9060a14, commits de dados do dono).
+- Backlog 🟢 pós-aprovação (CRITICO_ESTABILIDADE.md): labelText nos inputs do
+  editor de perfil; chaves l10n mortas (profileEmailLabel, themeSelected);
+  teste do fluxo _invalidateCover end-to-end; teste "contrato" do avatar;
+  fontSize proporcional do avatar fora da escala; par accent/vidro forte;
+  busca indexando itens internos das categorias; token para strokeWidth.

@@ -21,11 +21,11 @@ class CompatSummary {
   bool get isEmpty => total == 0;
 
   factory CompatSummary.fromMap(Map<String, dynamic> map) => CompatSummary(
-        perfect: asInt(map['perfect']),
-        good: asInt(map['good']),
-        stutter: asInt(map['stutter']),
-        unplayable: asInt(map['unplayable']),
-        notRun: asInt(map['not_run']),
-        total: asInt(map['total']),
-      );
+    perfect: asInt(map['perfect']),
+    good: asInt(map['good']),
+    stutter: asInt(map['stutter']),
+    unplayable: asInt(map['unplayable']),
+    notRun: asInt(map['not_run']),
+    total: asInt(map['total']),
+  );
 }

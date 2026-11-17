@@ -31,6 +31,7 @@ import '../../shared/widgets/feedback_report_row.dart';
 import '../../shared/widgets/markdown_lite.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
+import '../../shared/widgets/app_snackbar.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/downloads_controller.dart';
 import 'developer_card.dart';
@@ -40,10 +41,11 @@ final gameDetailProvider = FutureProvider.family<GameDetail, String>(
   (ref, String slug) => ref.watch(catalogRepositoryProvider).fetchGame(slug),
 );
 
-final gameCompatReportsProvider = FutureProvider.family<List<CompatReport>, String>(
-  (ref, String gameId) =>
-      ref.watch(catalogRepositoryProvider).fetchCompatReports(gameId),
-);
+final gameCompatReportsProvider =
+    FutureProvider.family<List<CompatReport>, String>(
+      (ref, String gameId) =>
+          ref.watch(catalogRepositoryProvider).fetchCompatReports(gameId),
+    );
 
 /// Estado de instalação do app correspondente ao pacote de um APK baixado.
 final installedAppProvider = FutureProvider.family<ApkSummary?, String>(
@@ -117,24 +119,17 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
   }
 
-  void _showSnack(String message, {String? actionLabel, VoidCallback? onAction}) {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.bgElevated,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
-        action: actionLabel == null
-            ? null
-            : SnackBarAction(
-                label: actionLabel,
-                textColor: AppColors.accent,
-                onPressed: onAction ?? () {},
-              ),
-      ),
+  void _showSnack(
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    // Padrão único do app (posição acima da barra de vidro, cor, duração).
+    showAppSnackBar(
+      context,
+      message: message,
+      actionLabel: actionLabel,
+      onAction: onAction,
     );
   }
 
@@ -144,7 +139,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   Future<void> _ctaPressed(GameDetail detail) async {
     final L10n l10n = context.l10n;
-    final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
+    final DownloadTask? current = ref.read(
+      downloadForGameProvider(detail.game.id),
+    );
     final GithubRelease? selected = _resolveSelected();
 
     if (current != null && current.isDone) {
@@ -206,7 +203,11 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   String? _repoId() {
-    final String? sourceUrl = ref.read(gameDetailProvider(widget.slug)).value?.primaryPort?.url;
+    final String? sourceUrl = ref
+        .read(gameDetailProvider(widget.slug))
+        .value
+        ?.primaryPort
+        ?.url;
     return githubRepoOf(sourceUrl ?? '')?.id;
   }
 
@@ -227,7 +228,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   /// Baixa a versão escolhida: escolhe o asset, avisa sobre downgrade e
   /// repassa para o motor de download existente (sem duplicar lógica).
-  Future<void> _downloadRelease(GameDetail detail, GithubRelease release) async {
+  Future<void> _downloadRelease(
+    GameDetail detail,
+    GithubRelease release,
+  ) async {
     if (!mounted) {
       return;
     }
@@ -243,13 +247,16 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       _showSnack(l10n.noCompatibleApk);
       return;
     }
-    final ApkAsset? asset =
-        assets.length == 1 ? assets.first : await _pickApkAsset(assets);
+    final ApkAsset? asset = assets.length == 1
+        ? assets.first
+        : await _pickApkAsset(assets);
     if (asset == null || !mounted) {
       return;
     }
 
-    final DownloadTask? current = ref.read(downloadForGameProvider(detail.game.id));
+    final DownloadTask? current = ref.read(
+      downloadForGameProvider(detail.game.id),
+    );
     final String? installedTag = current?.releaseTag;
     if (installedTag != null &&
         installedTag.isNotEmpty &&
@@ -260,7 +267,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       }
     }
 
-    ref.read(downloadsProvider.notifier).start(
+    ref
+        .read(downloadsProvider.notifier)
+        .start(
           detail.game,
           port: port,
           urlOverride: asset.url,
@@ -293,18 +302,22 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) => AlertDialog(
-        backgroundColor: AppColors.bgElevated,
+        backgroundColor: dialogContext.colors.bgElevated,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.lg),
-          side: const BorderSide(color: AppColors.glassBorder),
+          side: BorderSide(color: dialogContext.colors.glassBorder),
         ),
         title: Text(
           l10n.oldVersionTitle,
-          style: dialogContext.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: dialogContext.texts.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         content: Text(
           l10n.oldVersionBody(installedTag),
-          style: dialogContext.texts.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          style: dialogContext.texts.bodyMedium?.copyWith(
+            color: dialogContext.colors.textSecondary,
+          ),
         ),
         actions: <Widget>[
           TextButton(
@@ -316,7 +329,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
             child: Text(
               l10n.downloadAnyway,
               style: dialogContext.texts.labelLarge?.copyWith(
-                color: AppColors.accent,
+                color: dialogContext.colors.accent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -346,11 +359,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       return;
     }
 
-    ref.read(downloadsProvider.notifier).start(
-          detail.game,
-          port: port,
-          urlOverride: direct,
-        );
+    ref
+        .read(downloadsProvider.notifier)
+        .start(detail.game, port: port, urlOverride: direct);
     _showSnack(
       l10n.downloadStarted,
       actionLabel: l10n.viewDownloads,
@@ -359,7 +370,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   Future<void> _toggleFavorite(GameDetail detail) async {
-    final bool ok = await ref.read(collectionsProvider.notifier).toggleFavorite(detail.game);
+    final bool ok = await ref
+        .read(collectionsProvider.notifier)
+        .toggleFavorite(detail.game);
     if (!mounted) {
       return;
     }
@@ -370,8 +383,11 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   Future<void> _toggleLibrary(GameDetail detail) async {
     final bool wasInLibrary =
-        ref.read(collectionsProvider).value?.isInLibrary(detail.game.id) ?? false;
-    final bool ok = await ref.read(collectionsProvider.notifier).toggleLibrary(detail.game);
+        ref.read(collectionsProvider).value?.isInLibrary(detail.game.id) ??
+        false;
+    final bool ok = await ref
+        .read(collectionsProvider.notifier)
+        .toggleLibrary(detail.game);
     if (!mounted) {
       return;
     }
@@ -380,8 +396,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       !ok
           ? l10n.errorGeneric
           : wasInLibrary
-              ? l10n.removedFromLibrary
-              : l10n.addedToLibrary,
+          ? l10n.removedFromLibrary
+          : l10n.addedToLibrary,
     );
   }
 
@@ -442,7 +458,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       return;
     }
     try {
-      await ref.read(catalogRepositoryProvider).submitReview(
+      await ref
+          .read(catalogRepositoryProvider)
+          .submitReview(
             gameId: detail.game.id,
             rating: result.rating,
             body: result.body,
@@ -469,7 +487,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final AsyncValue<GameDetail> async = ref.watch(gameDetailProvider(widget.slug));
+    final AsyncValue<GameDetail> async = ref.watch(
+      gameDetailProvider(widget.slug),
+    );
 
     if (async.hasValue) {
       return _buildDetail(context, async.requireValue);
@@ -486,16 +506,20 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                 top: AppSpacing.sm,
                 child: GlassCircleButton(
                   icon: Icons.arrow_back_rounded,
+                  tooltip: context.l10n.tooltipBack,
                   onTap: _back,
                 ),
               ),
               if (async.hasError)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                  ),
                   child: ErrorStateView(
                     message: context.failureText(async.error),
                     retryLabel: context.l10n.tryAgain,
-                    onRetry: () => ref.invalidate(gameDetailProvider(widget.slug)),
+                    onRetry: () =>
+                        ref.invalidate(gameDetailProvider(widget.slug)),
                   ),
                 )
               else
@@ -510,7 +534,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   Widget _buildDetail(BuildContext context, GameDetail detail) {
     final L10n l10n = context.l10n;
     final Game game = detail.game;
-    final Collections collections = ref.watch(collectionsProvider).value ?? Collections.empty;
+    final Collections collections =
+        ref.watch(collectionsProvider).value ?? Collections.empty;
     final bool favorite = collections.isFavorite(game.id);
     final bool inLibrary = collections.isInLibrary(game.id);
     final DownloadTask? task = ref.watch(downloadForGameProvider(game.id));
@@ -527,14 +552,16 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
 
     final String? sourceUrl = detail.primaryPort?.url;
-    final GithubRepo? sourceRepo =
-        sourceUrl == null ? null : githubRepoOf(sourceUrl);
+    final GithubRepo? sourceRepo = sourceUrl == null
+        ? null
+        : githubRepoOf(sourceUrl);
     final String? repoId = sourceRepo?.id;
 
     final List<GithubRelease> sorted = repoId == null
         ? const <GithubRelease>[]
         : visibleReleases(
-            ref.watch(repoReleasesProvider(repoId)).value ?? const <GithubRelease>[],
+            ref.watch(repoReleasesProvider(repoId)).value ??
+                const <GithubRelease>[],
           );
     GithubRelease? selected = _selectedRelease;
     if (selected == null && sorted.isNotEmpty) {
@@ -550,7 +577,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
     final String? installedTag = done ? task.releaseTag : null;
     final bool installedVersionSelected =
-        installedTag != null && selected != null && selected.tag == installedTag;
+        installedTag != null &&
+        selected != null &&
+        selected.tag == installedTag;
 
     final String ctaLabel;
     final IconData ctaIcon;
@@ -594,86 +623,99 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           SafeArea(
             bottom: false,
             child: CustomScrollView(
-            controller: _scroll,
-            physics: const BouncingScrollPhysics(),
-            slivers: <Widget>[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.screen,
-                    AppSpacing.md,
-                    AppSpacing.screen,
-                    0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      GlassCircleButton(
-                        icon: Icons.arrow_back_rounded,
-                        onTap: _back,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _Header(game: game, heroTag: widget.heroTag, repoOwner: sourceRepo?.owner),
-                      const SizedBox(height: AppSpacing.lg),
-                      _Chips(game: game),
-                      const SizedBox(height: AppSpacing.lg),
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: _FavoritePill(
-                              active: favorite,
-                              label: l10n.favoriteTooltip,
-                              onTap: () => _toggleFavorite(detail),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          SecondaryButton(
-                            label: inLibrary ? l10n.inLibrary : l10n.addToLibrary,
-                            icon: inLibrary ? Icons.check_rounded : Icons.download_done_rounded,
-                            active: inLibrary,
-                            height: AppSpacing.secondaryButtonHeight,
-                            expand: false,
-                            onPressed: () => _toggleLibrary(detail),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          GlassCircleButton(
-                            icon: Icons.ios_share_rounded,
-                            size: AppSpacing.secondaryButtonHeight,
-                            tooltip: l10n.share,
-                            onTap: () => _share(detail),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      _DetailSections(
-                        detail: detail,
-                        repoOwner: sourceRepo?.owner,
-                        repoId: repoId,
-                        selected: selected,
-                        installedTag: installedTag,
-                        longDescription: longDescription,
-                        expandedDescription: _expandedDescription,
-                        onToggleDescription: () => setState(
-                          () => _expandedDescription = !_expandedDescription,
+              controller: _scroll,
+              physics: const BouncingScrollPhysics(),
+              slivers: <Widget>[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.screen,
+                      AppSpacing.md,
+                      AppSpacing.screen,
+                      0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        GlassCircleButton(
+                          icon: Icons.arrow_back_rounded,
+                          tooltip: context.l10n.tooltipBack,
+                          onTap: _back,
                         ),
-                        onSelectedRelease: (GithubRelease release) =>
-                            setState(() => _selectedRelease = release),
-                        onReport: () => _openFeedbackSheet(detail),
-                        onOpenLink: _openLink,
-                      ),
-                      SizedBox(height: context.systemBottomInset + 140),
-                    ],
+                        const SizedBox(height: AppSpacing.lg),
+                        _Header(
+                          game: game,
+                          heroTag: widget.heroTag,
+                          repoOwner: sourceRepo?.owner,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _Chips(game: game),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: _FavoritePill(
+                                active: favorite,
+                                label: l10n.favoriteTooltip,
+                                onTap: () => _toggleFavorite(detail),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            SecondaryButton(
+                              label: inLibrary
+                                  ? l10n.inLibrary
+                                  : l10n.addToLibrary,
+                              icon: inLibrary
+                                  ? Icons.check_rounded
+                                  : Icons.download_done_rounded,
+                              active: inLibrary,
+                              height: AppSpacing.secondaryButtonHeight,
+                              expand: false,
+                              onPressed: () => _toggleLibrary(detail),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            GlassCircleButton(
+                              icon: Icons.ios_share_rounded,
+                              size: AppSpacing.secondaryButtonHeight,
+                              tooltip: l10n.share,
+                              onTap: () => _share(detail),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        _DetailSections(
+                          detail: detail,
+                          repoOwner: sourceRepo?.owner,
+                          repoId: repoId,
+                          selected: selected,
+                          installedTag: installedTag,
+                          longDescription: longDescription,
+                          expandedDescription: _expandedDescription,
+                          onToggleDescription: () => setState(
+                            () => _expandedDescription = !_expandedDescription,
+                          ),
+                          onSelectedRelease: (GithubRelease release) =>
+                              setState(() => _selectedRelease = release),
+                          onReport: () => _openFeedbackSheet(detail),
+                          onOpenLink: _openLink,
+                        ),
+                        SizedBox(height: context.systemBottomInset + 140),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: _TopBar(visible: _barTitle, title: game.title, onBack: _back),
+            child: _TopBar(
+              visible: _barTitle,
+              title: game.title,
+              onBack: _back,
+            ),
           ),
           Positioned(
             left: 0,
@@ -747,7 +789,7 @@ class _CtaBar extends StatelessWidget {
                 child: Text(
                   l10n.progressPercent((progress * 100).round()),
                   style: context.texts.labelLarge?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -781,11 +823,7 @@ class _CtaBar extends StatelessWidget {
       body = Row(
         children: <Widget>[
           Expanded(
-            child: PrimaryButton(
-              label: label,
-              icon: icon,
-              onPressed: onMain,
-            ),
+            child: PrimaryButton(label: label, icon: icon, onPressed: onMain),
           ),
           const SizedBox(width: AppSpacing.md),
           GlassCircleButton(
@@ -802,10 +840,8 @@ class _CtaBar extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.bg.withValues(alpha: 0.82),
-            border: const Border(
-              top: BorderSide(color: AppColors.glassBorder),
-            ),
+            color: context.colors.bg.withValues(alpha: 0.82),
+            border: Border(top: BorderSide(color: context.colors.glassBorder)),
           ),
           child: SafeArea(
             top: false,
@@ -882,7 +918,10 @@ class _DetailSections extends ConsumerWidget {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _BlockTitle(title: l10n.versionsTitle, trailing: l10n.versionsSubtitle),
+              _BlockTitle(
+                title: l10n.versionsTitle,
+                trailing: l10n.versionsSubtitle,
+              ),
               const SizedBox(height: AppSpacing.md),
               VersionSelector(
                 repoId: repo,
@@ -892,7 +931,9 @@ class _DetailSections extends ConsumerWidget {
               ),
             ],
           );
-    final Widget? whatsNew = picked == null ? null : _WhatsNewCard(release: picked);
+    final Widget? whatsNew = picked == null
+        ? null
+        : _WhatsNewCard(release: picked);
     final Widget? developer = owner == null
         ? null
         : Column(
@@ -922,7 +963,10 @@ class _DetailSections extends ConsumerWidget {
               for (final GamePort port in detail.ports)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: _PortCard(port: port, onOpen: () => onOpenLink(port.url)),
+                  child: _PortCard(
+                    port: port,
+                    onOpen: () => onOpenLink(port.url),
+                  ),
                 ),
             ],
           );
@@ -1073,7 +1117,9 @@ class _CommunityReportsHeader extends ConsumerWidget {
           onTap: () => context.push<Object?>('/game/$gameId/reports'),
           child: Text(
             l10n.seeAllReports,
-            style: context.texts.labelMedium?.copyWith(color: AppColors.accent),
+            style: context.texts.labelMedium?.copyWith(
+              color: context.colors.accent,
+            ),
           ),
         ),
       ],
@@ -1103,9 +1149,9 @@ class _StatsRow extends StatelessWidget {
       ),
       _StatCell(
         label: l10n.statsSize,
-        value: release == null
+        value: preferredApkAsset(release?.assets ?? const <ApkAsset>[]) == null
             ? '—'
-            : formatBytes(preferredApkAsset(release.assets)?.sizeBytes ?? 0),
+            : formatBytes(preferredApkAsset(release!.assets)!.sizeBytes),
         icon: Icons.data_usage_rounded,
       ),
       _StatCell(
@@ -1115,9 +1161,11 @@ class _StatsRow extends StatelessWidget {
       ),
       _StatCell(
         label: l10n.statsRating,
-        value: game.hasRating ? formatRating(game.rating) : l10n.statsRatingEmpty,
+        value: game.hasRating
+            ? formatRating(game.rating)
+            : l10n.statsRatingEmpty,
         icon: Icons.star_rounded,
-        iconColor: game.hasRating ? AppColors.warning : null,
+        iconColor: game.hasRating ? context.colors.warning : null,
       ),
     ];
 
@@ -1132,7 +1180,7 @@ class _StatsRow extends StatelessWidget {
               Container(
                 width: 1,
                 height: 34,
-                color: AppColors.glassBorder,
+                color: context.colors.glassBorder,
               ),
           ],
         ],
@@ -1161,7 +1209,7 @@ class _StatCell extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 17, color: iconColor ?? AppColors.textTertiary),
+          Icon(icon, size: 17, color: iconColor ?? context.colors.textTertiary),
           const SizedBox(height: 6),
           Text(
             value,
@@ -1169,7 +1217,7 @@ class _StatCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: context.texts.labelMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
@@ -1178,7 +1226,9 @@ class _StatCell extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+            style: context.texts.labelSmall?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -1225,12 +1275,16 @@ class _DescriptionCard extends StatelessWidget {
                 curve: AppMotion.out,
                 alignment: Alignment.topCenter,
                 child: Text(
-                  game.description.isEmpty ? l10n.notInformed : game.description,
+                  game.description.isEmpty
+                      ? l10n.notInformed
+                      : game.description,
                   maxLines: expanded ? null : 5,
-                  overflow:
-                      expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                  style: context.texts.bodyMedium
-                      ?.copyWith(color: AppColors.textSecondary),
+                  overflow: expanded
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
+                  style: context.texts.bodyMedium?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
               ),
               if (long) ...<Widget>[
@@ -1239,7 +1293,9 @@ class _DescriptionCard extends StatelessWidget {
                   onTap: onToggle,
                   child: Text(
                     expanded ? l10n.readLess : l10n.readMore,
-                    style: context.texts.labelMedium?.copyWith(color: AppColors.accent),
+                    style: context.texts.labelMedium?.copyWith(
+                      color: context.colors.accent,
+                    ),
                   ),
                 ),
               ],
@@ -1269,7 +1325,9 @@ class _WhatsNewCard extends StatelessWidget {
             Expanded(child: _BlockTitle(title: l10n.whatsNewTitle)),
             Text(
               release.tag,
-              style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+              style: context.texts.labelSmall?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -1280,7 +1338,9 @@ class _WhatsNewCard extends StatelessWidget {
           child: body == null || body.trim().isEmpty
               ? Text(
                   l10n.releasesEmptyNotes,
-                  style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  style: context.texts.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 )
               : MarkdownLite(data: body),
         ),
@@ -1322,15 +1382,16 @@ class _TopBar extends StatelessWidget {
                 bottom: 10,
               ),
               decoration: BoxDecoration(
-                color: AppColors.bg.withValues(alpha: 0.75),
-                border: const Border(
-                  bottom: BorderSide(color: AppColors.glassBorder),
+                color: context.colors.bg.withValues(alpha: 0.75),
+                border: Border(
+                  bottom: BorderSide(color: context.colors.glassBorder),
                 ),
               ),
               child: Row(
                 children: <Widget>[
                   GlassCircleButton(
                     icon: Icons.arrow_back_rounded,
+                    tooltip: context.l10n.tooltipBack,
                     size: 44,
                     onTap: onBack,
                   ),
@@ -1377,9 +1438,7 @@ class _Header extends ConsumerWidget {
     final Widget coverBox = SizedBox(
       width: 122,
       height: 164,
-      child: heroTag == null
-          ? cover
-          : Hero(tag: heroTag!, child: cover),
+      child: heroTag == null ? cover : Hero(tag: heroTag!, child: cover),
     );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -1387,13 +1446,9 @@ class _Header extends ConsumerWidget {
         DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.md),
-            boxShadow: AppShadows.glass,
+            boxShadow: context.colors.glassShadow,
           ),
-          child: Semantics(
-            image: true,
-            label: game.title,
-            child: coverBox,
-          ),
+          child: Semantics(image: true, label: game.title, child: coverBox),
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(
@@ -1412,7 +1467,8 @@ class _Header extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
-              if (game.hasRating) RatingLine(rating: game.rating, count: game.ratingCount),
+              if (game.hasRating)
+                RatingLine(rating: game.rating, count: game.ratingCount),
               if (repoOwner != null) ...<Widget>[
                 const SizedBox(height: AppSpacing.sm),
                 _DeveloperChip(owner: repoOwner!),
@@ -1457,12 +1513,12 @@ class _DeveloperChip extends ConsumerWidget {
       child: ClipOval(
         child: photoUrl == null
             ? ColoredBox(
-                color: AppColors.glassStrong,
+                color: context.colors.glassStrong,
                 child: Center(
                   child: Text(
                     initialsOf(owner),
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1475,9 +1531,10 @@ class _DeveloperChip extends ConsumerWidget {
                 memCacheWidth: 66,
                 fadeInDuration: AppMotion.fast,
                 placeholder: (BuildContext context, String value) =>
-                    const ColoredBox(color: AppColors.glassStrong),
-                errorWidget: (BuildContext context, String value, Object error) =>
-                    const ColoredBox(color: AppColors.glassStrong),
+                    ColoredBox(color: context.colors.glassStrong),
+                errorWidget:
+                    (BuildContext context, String value, Object error) =>
+                        ColoredBox(color: context.colors.glassStrong),
               ),
       ),
     );
@@ -1496,7 +1553,9 @@ class _DeveloperChip extends ConsumerWidget {
                 '@${user?.login ?? owner}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: context.texts.labelMedium?.copyWith(color: AppColors.accent),
+                style: context.texts.labelMedium?.copyWith(
+                  color: context.colors.accent,
+                ),
               ),
             ),
           ],
@@ -1519,7 +1578,8 @@ class _Chips extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     final List<Widget> chips = <Widget>[
-      if (game.genre != null) InfoChip(label: game.genre!, icon: Icons.category_rounded),
+      if (game.genre != null)
+        InfoChip(label: game.genre!, icon: Icons.category_rounded),
       if (game.primaryPlatform.isNotEmpty)
         InfoChip(label: game.primaryPlatform, icon: Icons.layers_rounded),
       if (game.year != null)
@@ -1528,18 +1588,26 @@ class _Chips extends StatelessWidget {
         InfoChip(
           label: formatPercent(game.rating / 5),
           icon: Icons.star_rounded,
-          color: AppColors.warning,
+          color: context.colors.warning,
         ),
       if (game.downloadCount > 0)
         InfoChip(
           label: '${compactNumber(game.downloadCount)} ${l10n.downloadsLabel}',
           icon: Icons.download_rounded,
-          color: AppColors.accentAlt,
+          color: context.colors.accentAlt,
         ),
       if (game.isFree)
-        InfoChip(label: l10n.freeBadge, icon: Icons.bolt_rounded, color: AppColors.success),
+        InfoChip(
+          label: l10n.freeBadge,
+          icon: Icons.bolt_rounded,
+          color: context.colors.success,
+        ),
       if (game.needsRom)
-        InfoChip(label: l10n.needsFiles, icon: Icons.folder_rounded, color: AppColors.warning),
+        InfoChip(
+          label: l10n.needsFiles,
+          icon: Icons.folder_rounded,
+          color: context.colors.warning,
+        ),
     ];
     return Wrap(spacing: 10, runSpacing: 10, children: chips);
   }
@@ -1567,20 +1635,23 @@ class _FavoritePillState extends State<_FavoritePill>
     duration: const Duration(milliseconds: 320),
   );
 
-  late final Animation<double> _scale = TweenSequence<double>(
-    <TweenSequenceItem<double>>[
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 1, end: 1.35)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 1.35, end: 1)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
-        weight: 60,
-      ),
-    ],
-  ).animate(_controller);
+  late final Animation<double> _scale =
+      TweenSequence<double>(<TweenSequenceItem<double>>[
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: 1,
+            end: 1.35,
+          ).chain(CurveTween(curve: Curves.easeOut)),
+          weight: 40,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: 1.35,
+            end: 1,
+          ).chain(CurveTween(curve: Curves.easeOutBack)),
+          weight: 60,
+        ),
+      ]).animate(_controller);
 
   @override
   void dispose() {
@@ -1603,11 +1674,13 @@ class _FavoritePillState extends State<_FavoritePill>
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          color: active ? AppColors.accent.withValues(alpha: 0.16) : AppColors.glass,
+          color: active
+              ? context.colors.accent.withValues(alpha: 0.16)
+              : context.colors.glass,
           border: Border.all(
             color: active
-                ? AppColors.accent.withValues(alpha: 0.5)
-                : AppColors.glassBorder,
+                ? context.colors.accent.withValues(alpha: 0.5)
+                : context.colors.glassBorder,
           ),
         ),
         child: Row(
@@ -1621,7 +1694,9 @@ class _FavoritePillState extends State<_FavoritePill>
               child: Icon(
                 active ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 size: 19,
-                color: active ? AppColors.favorite : AppColors.textPrimary,
+                color: active
+                    ? context.colors.favorite
+                    : context.colors.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -1631,7 +1706,9 @@ class _FavoritePillState extends State<_FavoritePill>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.texts.labelLarge?.copyWith(
-                  color: active ? AppColors.accent : AppColors.textPrimary,
+                  color: active
+                      ? context.colors.accent
+                      : context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1666,7 +1743,9 @@ class _BlockTitle extends StatelessWidget {
         if (trailing != null)
           Text(
             trailing!,
-            style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+            style: context.texts.labelSmall?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
       ],
     );
@@ -1674,7 +1753,11 @@ class _BlockTitle extends StatelessWidget {
 }
 
 class CompatReportCard extends StatelessWidget {
-  const CompatReportCard({super.key, required this.summary, required this.onReport});
+  const CompatReportCard({
+    super.key,
+    required this.summary,
+    required this.onReport,
+  });
 
   final CompatSummary summary;
   final VoidCallback onReport;
@@ -1695,10 +1778,15 @@ class CompatReportCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadii.sm),
-                  color: AppColors.accent.withValues(alpha: 0.14),
-                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.32)),
+                  color: context.colors.accent.withValues(alpha: 0.14),
+                  border: Border.all(
+                    color: context.colors.accent.withValues(alpha: 0.32),
+                  ),
                 ),
-                child: const Icon(Icons.phone_android_rounded, color: AppColors.accent),
+                child: Icon(
+                  Icons.phone_android_rounded,
+                  color: context.colors.accent,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -1707,13 +1795,15 @@ class CompatReportCard extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       l10n.compatTitle,
-                      style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                      style: context.texts.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       l10n.compatSubtitle,
                       style: context.texts.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -1721,7 +1811,9 @@ class CompatReportCard extends StatelessWidget {
               ),
               Text(
                 l10n.compatReports(summary.total),
-                style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
+                style: context.texts.labelSmall?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -1729,7 +1821,9 @@ class CompatReportCard extends StatelessWidget {
           if (summary.isEmpty)
             Text(
               l10n.notInformed,
-              style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+              style: context.texts.bodySmall?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             )
           else
             Wrap(
@@ -1739,27 +1833,27 @@ class CompatReportCard extends StatelessWidget {
                 _CompatPill(
                   label: l10n.compatPerfect,
                   count: summary.perfect,
-                  color: AppColors.success,
+                  color: context.colors.success,
                 ),
                 _CompatPill(
                   label: l10n.compatGood,
                   count: summary.good,
-                  color: AppColors.accentAlt,
+                  color: context.colors.accentAlt,
                 ),
                 _CompatPill(
                   label: l10n.compatStutter,
                   count: summary.stutter,
-                  color: AppColors.warning,
+                  color: context.colors.warning,
                 ),
                 _CompatPill(
                   label: l10n.compatUnplayable,
                   count: summary.unplayable,
-                  color: AppColors.danger,
+                  color: context.colors.danger,
                 ),
                 _CompatPill(
                   label: l10n.compatNotRun,
                   count: summary.notRun,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ],
             ),
@@ -1777,7 +1871,11 @@ class CompatReportCard extends StatelessWidget {
 }
 
 class _CompatPill extends StatelessWidget {
-  const _CompatPill({required this.label, required this.count, required this.color});
+  const _CompatPill({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 
   final String label;
   final int count;
@@ -1805,7 +1903,7 @@ class _CompatPill extends StatelessWidget {
           Text(
             count.toString(),
             style: context.texts.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1853,13 +1951,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
 
   void _submit() {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.ratingRequired),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.bgElevated,
-        ),
-      );
+      showAppSnackBar(context, message: context.l10n.ratingRequired);
       return;
     }
     Navigator.of(context).pop(
@@ -1895,10 +1987,10 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
     ].join(' · ');
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
+      decoration: BoxDecoration(
+        color: context.colors.bgElevated,
         borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+        border: Border(top: BorderSide(color: context.colors.glassBorder)),
       ),
       child: SafeArea(
         top: false,
@@ -1914,7 +2006,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                       borderRadius: BorderRadius.circular(AppRadii.pill),
                     ),
                   ),
@@ -1922,27 +2014,29 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   l10n.feedbackTitle,
-                  style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   device.isEmpty ? l10n.compatYourDevice : device,
                   style: context.texts.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 if (details.isNotEmpty)
                   Text(
                     details,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   l10n.ratingLabel,
                   style: context.texts.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -1954,7 +2048,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 Text(
                   l10n.verdictLabel,
                   style: context.texts.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -1982,7 +2076,8 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     ),
                     AppToggle(
                       value: _showFps,
-                      onChanged: (bool value) => setState(() => _showFps = value),
+                      onChanged: (bool value) =>
+                          setState(() => _showFps = value),
                     ),
                   ],
                 ),
@@ -1996,10 +2091,11 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                           max: 120,
                           divisions: 120,
                           value: _fps,
-                          activeColor: AppColors.accent,
-                          inactiveColor: AppColors.glassStrong,
+                          activeColor: context.colors.accent,
+                          inactiveColor: context.colors.glassStrong,
                           label: '${_fps.round()}',
-                          onChanged: (double value) => setState(() => _fps = value),
+                          onChanged: (double value) =>
+                              setState(() => _fps = value),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
@@ -2019,14 +2115,14 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                   minLines: 2,
                   maxLength: 1000,
                   style: context.texts.bodyMedium,
-                  cursorColor: AppColors.accent,
+                  cursorColor: context.colors.accent,
                   decoration: InputDecoration(
                     hintText: l10n.reviewHint,
                     hintStyle: context.texts.bodySmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                     filled: true,
-                    fillColor: AppColors.glassStrong,
+                    fillColor: context.colors.glassStrong,
                     counterText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadii.md),
@@ -2058,18 +2154,22 @@ class _CommunityReports extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
-    final AsyncValue<List<CompatReport>> async =
-        ref.watch(gameCompatReportsProvider(gameId));
+    final AsyncValue<List<CompatReport>> async = ref.watch(
+      gameCompatReportsProvider(gameId),
+    );
     final List<CompatReport> reports = async.value ?? const <CompatReport>[];
 
     if (async.isLoading && reports.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
         child: Center(
           child: SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.colors.accent,
+            ),
           ),
         ),
       );
@@ -2080,7 +2180,9 @@ class _CommunityReports extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Text(
           l10n.compatNoReports,
-          style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+          style: context.texts.bodySmall?.copyWith(
+            color: context.colors.textSecondary,
+          ),
         ),
       );
     }
@@ -2132,7 +2234,10 @@ class _InfoPanel extends StatelessWidget {
 
     return GlassContainer(
       radius: AppRadii.lg,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: 6,
+      ),
       child: Column(
         children: <Widget>[
           for (int index = 0; index < rows.length; index += 1) ...<Widget>[
@@ -2146,7 +2251,7 @@ class _InfoPanel extends StatelessWidget {
                     child: Text(
                       rows[index][0],
                       style: context.texts.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ),
@@ -2163,7 +2268,7 @@ class _InfoPanel extends StatelessWidget {
               ),
             ),
             if (index < rows.length - 1)
-              const Divider(height: 1, color: AppColors.glassBorder),
+              Divider(height: 1, color: context.colors.glassBorder),
           ],
         ],
       ),
@@ -2182,19 +2287,19 @@ class _PortCard extends StatelessWidget {
     final L10n l10n = context.l10n;
     final String? works = port.works;
     String worksLabel = l10n.worksUntested;
-    Color worksColor = AppColors.textSecondary;
+    Color worksColor = context.colors.textSecondary;
     if (works == 'yes') {
       worksLabel = l10n.worksYes;
-      worksColor = AppColors.success;
+      worksColor = context.colors.success;
     } else if (works == 'no') {
       worksLabel = l10n.worksNo;
-      worksColor = AppColors.danger;
+      worksColor = context.colors.danger;
     } else if (works == 'bug') {
       worksLabel = l10n.worksBug;
-      worksColor = AppColors.warning;
+      worksColor = context.colors.warning;
     } else if (works == 'partial') {
       worksLabel = l10n.worksPartial;
-      worksColor = AppColors.accentAlt;
+      worksColor = context.colors.accentAlt;
     }
 
     return GlassContainer(
@@ -2205,12 +2310,15 @@ class _PortCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              BadgeChip(label: port.platformName, color: AppColors.accent),
+              BadgeChip(label: port.platformName, color: context.colors.accent),
               const SizedBox(width: 6),
               BadgeChip(label: worksLabel, color: worksColor),
               const Spacer(),
               if (port.url == null)
-                BadgeChip(label: l10n.noLink, color: AppColors.textSecondary),
+                BadgeChip(
+                  label: l10n.noLink,
+                  color: context.colors.textSecondary,
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -2218,7 +2326,9 @@ class _PortCard extends StatelessWidget {
             port.project ?? port.platformName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            style: context.texts.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (port.developer != null || port.version != null) ...<Widget>[
             const SizedBox(height: 3),
@@ -2229,7 +2339,9 @@ class _PortCard extends StatelessWidget {
               ].join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+              style: context.texts.bodySmall?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
           ],
           if (port.notes != null) ...<Widget>[
@@ -2238,20 +2350,29 @@ class _PortCard extends StatelessWidget {
               port.notes!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: context.texts.bodySmall?.copyWith(color: AppColors.textSecondary),
+              style: context.texts.bodySmall?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
           ],
-          if (port.needsGameFiles && port.needsGameFilesNote != null) ...<Widget>[
+          if (port.needsGameFiles &&
+              port.needsGameFilesNote != null) ...<Widget>[
             const SizedBox(height: AppSpacing.sm),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Icon(Icons.folder_rounded, size: 13, color: AppColors.warning),
+                Icon(
+                  Icons.folder_rounded,
+                  size: 13,
+                  color: context.colors.warning,
+                ),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     port.needsGameFilesNote!,
-                    style: context.texts.labelSmall?.copyWith(color: AppColors.warning),
+                    style: context.texts.labelSmall?.copyWith(
+                      color: context.colors.warning,
+                    ),
                   ),
                 ),
               ],
@@ -2276,7 +2397,7 @@ class _PortCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.texts.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                 ),
@@ -2322,18 +2443,34 @@ class _DetailSkeleton extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.xxl),
-            const SkeletonBox(width: double.infinity, height: 72, radius: AppRadii.lg),
+            const SkeletonBox(
+              width: double.infinity,
+              height: 72,
+              radius: AppRadii.lg,
+            ),
             const SizedBox(height: AppSpacing.xxl),
             for (int index = 0; index < 3; index += 1) ...<Widget>[
-              const SkeletonBox(width: double.infinity, height: 64, radius: AppRadii.md),
+              const SkeletonBox(
+                width: double.infinity,
+                height: 64,
+                radius: AppRadii.md,
+              ),
               const SizedBox(height: AppSpacing.sm),
             ],
             const SizedBox(height: AppSpacing.xl),
             const SkeletonBox(width: 200, height: 18),
             const SizedBox(height: AppSpacing.md),
-            const SkeletonBox(width: double.infinity, height: 110, radius: AppRadii.lg),
+            const SkeletonBox(
+              width: double.infinity,
+              height: 110,
+              radius: AppRadii.lg,
+            ),
             const SizedBox(height: 120),
-            const SkeletonBox(width: double.infinity, height: 52, radius: AppRadii.pill),
+            const SkeletonBox(
+              width: double.infinity,
+              height: 52,
+              radius: AppRadii.pill,
+            ),
           ],
         ),
       ),
@@ -2354,7 +2491,7 @@ class _CoverBackdrop extends StatelessWidget {
     final double screenHeight = MediaQuery.sizeOf(context).height;
     return Stack(
       children: <Widget>[
-        const ColoredBox(color: AppColors.bg, child: SizedBox.expand()),
+        ColoredBox(color: context.colors.bg, child: SizedBox.expand()),
         if (coverUrl != null)
           // A capa ocupa a tela inteira e perde opacidade gradualmente por uma
           // máscara de alfa vertical: nada de corte reto, some no fundo.
@@ -2403,8 +2540,8 @@ class _CoverBackdrop extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   colors: <Color>[
-                    AppColors.accent.withValues(alpha: 0.16),
-                    AppColors.accent.withValues(alpha: 0),
+                    context.colors.accent.withValues(alpha: 0.16),
+                    context.colors.accent.withValues(alpha: 0),
                   ],
                 ),
               ),

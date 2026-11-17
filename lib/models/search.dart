@@ -16,7 +16,11 @@ class SearchFilters {
   final String sort;
 
   bool get isDefault =>
-      platform == null && genre == null && !freeOnly && !needsRom && sort == 'trending';
+      platform == null &&
+      genre == null &&
+      !freeOnly &&
+      !needsRom &&
+      sort == 'trending';
 
   int get activeCount =>
       (platform == null ? 0 : 1) +
@@ -33,14 +37,13 @@ class SearchFilters {
     String? sort,
     bool clearPlatform = false,
     bool clearGenre = false,
-  }) =>
-      SearchFilters(
-        platform: clearPlatform ? null : (platform ?? this.platform),
-        genre: clearGenre ? null : (genre ?? this.genre),
-        freeOnly: freeOnly ?? this.freeOnly,
-        needsRom: needsRom ?? this.needsRom,
-        sort: sort ?? this.sort,
-      );
+  }) => SearchFilters(
+    platform: clearPlatform ? null : (platform ?? this.platform),
+    genre: clearGenre ? null : (genre ?? this.genre),
+    freeOnly: freeOnly ?? this.freeOnly,
+    needsRom: needsRom ?? this.needsRom,
+    sort: sort ?? this.sort,
+  );
 }
 
 class SearchRequest {

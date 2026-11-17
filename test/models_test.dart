@@ -6,21 +6,21 @@ import 'package:portix/models/home_feed.dart';
 import 'package:portix/models/search.dart';
 
 Map<String, dynamic> _gameMap() => <String, dynamic>{
-      'id': 'game-1',
-      'slug': 'super-mario-64',
-      'title': 'Super Mario 64',
-      'year': 1996,
-      'genre': 'Platformer',
-      'cover_url': 'https://example.com/cover.jpg',
-      'platforms': <Object?>['Nintendo 64', null, ''],
-      'port_count': '2',
-      'visit_count': 1500,
-      'download_count': 7,
-      'rating_avg': '4.5',
-      'rating_count': 8,
-      'is_free': true,
-      'needs_rom': false,
-    };
+  'id': 'game-1',
+  'slug': 'super-mario-64',
+  'title': 'Super Mario 64',
+  'year': 1996,
+  'genre': 'Platformer',
+  'cover_url': 'https://example.com/cover.jpg',
+  'platforms': <Object?>['Nintendo 64', null, ''],
+  'port_count': '2',
+  'visit_count': 1500,
+  'download_count': 7,
+  'rating_avg': '4.5',
+  'rating_count': 8,
+  'is_free': true,
+  'needs_rom': false,
+};
 
 void main() {
   group('Game', () {
@@ -71,17 +71,15 @@ void main() {
           },
         ],
         'reviews': <Object?>[
+          <String, dynamic>{'id': 'review-1', 'rating': 5, 'body': 'Roda liso'},
+        ],
+        'related': <Object?>[
           <String, dynamic>{
-            'id': 'review-1',
-            'rating': 5,
-            'body': 'Roda liso',
+            'id': 'game-2',
+            'slug': 'mario-kart-64',
+            'title': 'Mario Kart 64',
           },
         ],
-        'related': <Object?>[<String, dynamic>{
-          'id': 'game-2',
-          'slug': 'mario-kart-64',
-          'title': 'Mario Kart 64',
-        }],
       });
 
       expect(detail.game.title, 'Super Mario 64');
@@ -90,13 +88,14 @@ void main() {
       expect(detail.ports.first.needsGameFiles, isTrue);
       expect(detail.ports.first.visits, 12);
       expect(detail.reviews.single.rating, 5);
-      expect(detail.reviews.single.author, 'Jogador');
+      expect(detail.reviews.single.author, '');
       expect(detail.related.single.slug, 'mario-kart-64');
     });
 
     test('exige o objeto do jogo', () {
       expect(
-        () => GameDetail.fromMap(<String, dynamic>{'game': <String, dynamic>{}}),
+        () =>
+            GameDetail.fromMap(<String, dynamic>{'game': <String, dynamic>{}}),
         throwsA(isA<FormatException>()),
       );
     });

@@ -14,7 +14,7 @@ class NotFoundPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppContentColors.transparent,
       body: AppBackdrop(
         child: SafeArea(
           child: Center(
@@ -30,21 +30,23 @@ class NotFoundPage extends StatelessWidget {
                     style: context.texts.displayMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 6,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     l10n.noResultsTitle,
                     textAlign: TextAlign.center,
-                    style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    style: context.texts.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     l10n.errorNotFound,
                     textAlign: TextAlign.center,
                     style: context.texts.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),

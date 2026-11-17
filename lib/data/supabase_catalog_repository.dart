@@ -68,7 +68,8 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<GameDetail> fetchGame(String slug) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('game_detail', params: <String, dynamic>{'p_slug': slug}),
+      () =>
+          _client.rpc('game_detail', params: <String, dynamic>{'p_slug': slug}),
     );
     if (response == null) {
       throw const AppFailure(FailureKind.notFound);
@@ -83,16 +84,19 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<SearchPayload> search(SearchRequest request) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('search_games', params: <String, dynamic>{
-        'p_query': request.query.isEmpty ? null : request.query,
-        'p_platform': request.filters.platform,
-        'p_genre': request.filters.genre,
-        'p_free_only': request.filters.freeOnly,
-        'p_needs_rom': request.filters.needsRom,
-        'p_sort': request.filters.sort,
-        'p_limit': request.limit,
-        'p_offset': request.offset,
-      }),
+      () => _client.rpc(
+        'search_games',
+        params: <String, dynamic>{
+          'p_query': request.query.isEmpty ? null : request.query,
+          'p_platform': request.filters.platform,
+          'p_genre': request.filters.genre,
+          'p_free_only': request.filters.freeOnly,
+          'p_needs_rom': request.filters.needsRom,
+          'p_sort': request.filters.sort,
+          'p_limit': request.limit,
+          'p_offset': request.offset,
+        },
+      ),
     );
     final Map<String, dynamic> map = _map(response);
     return SearchPayload(
@@ -104,14 +108,16 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<NewsPayload> fetchNews({int offset = 0, int limit = 20}) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('news_feed', params: <String, dynamic>{
-        'p_limit': limit,
-        'p_offset': offset,
-      }),
+      () => _client.rpc(
+        'news_feed',
+        params: <String, dynamic>{'p_limit': limit, 'p_offset': offset},
+      ),
     );
     final Map<String, dynamic> map = _map(response);
     return NewsPayload(
-      items: asMapList(map['items']).map(NewsItem.fromMap).toList(growable: false),
+      items: asMapList(
+        map['items'],
+      ).map(NewsItem.fromMap).toList(growable: false),
       total: asInt(map['total']),
     );
   }
@@ -119,9 +125,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<NewsItem?> fetchNewsArticle(String slug) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('news_article', params: <String, dynamic>{
-        'p_slug': slug,
-      }),
+      () => _client.rpc(
+        'news_article',
+        params: <String, dynamic>{'p_slug': slug},
+      ),
     );
     if (response is! Map) {
       return null;
@@ -133,9 +140,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<List<CompatReport>> fetchCompatReports(String gameId) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('game_compat_reports', params: <String, dynamic>{
-        'p_game': gameId,
-      }),
+      () => _client.rpc(
+        'game_compat_reports',
+        params: <String, dynamic>{'p_game': gameId},
+      ),
     );
     if (response is List) {
       return response
@@ -185,29 +193,36 @@ class SupabaseCatalogRepository implements CatalogRepository {
       throw const AppFailure(FailureKind.auth);
     }
     await _guard<Object?>(
-      () => _client.rpc('set_handle', params: <String, dynamic>{'p_handle': handle}),
+      () => _client.rpc(
+        'set_handle',
+        params: <String, dynamic>{'p_handle': handle},
+      ),
     );
   }
 
   @override
   Future<List<UserResult>> searchUsers(String query) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('search_users', params: <String, dynamic>{
-        'p_query': query.trim().isEmpty ? null : query.trim(),
-        'p_limit': 30,
-        'p_offset': 0,
-      }),
+      () => _client.rpc(
+        'search_users',
+        params: <String, dynamic>{
+          'p_query': query.trim().isEmpty ? null : query.trim(),
+          'p_limit': 30,
+          'p_offset': 0,
+        },
+      ),
     );
     final Map<String, dynamic> map = _map(response);
-    return asMapList(map['items'])
-        .map(UserResult.fromMap)
-        .toList(growable: false);
+    return asMapList(
+      map['items'],
+    ).map(UserResult.fromMap).toList(growable: false);
   }
 
   @override
   Future<PublicProfile> fetchPublicProfile(String id) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('profile_public', params: <String, dynamic>{'p_id': id}),
+      () =>
+          _client.rpc('profile_public', params: <String, dynamic>{'p_id': id}),
     );
     final Map<String, dynamic> map = _map(response);
     if (map.isEmpty) {
@@ -223,10 +238,14 @@ class SupabaseCatalogRepository implements CatalogRepository {
       throw const AppFailure(FailureKind.auth);
     }
     await _guard<void>(
-      () => _client.from('profiles').update(<String, dynamic>{
-        if (displayName != null) 'display_name': displayName.trim(),
-        if (coverUrl != null) 'cover_url': coverUrl.trim().isEmpty ? null : coverUrl.trim(),
-      }).eq('id', user.id),
+      () => _client
+          .from('profiles')
+          .update(<String, dynamic>{
+            if (displayName != null) 'display_name': displayName.trim(),
+            if (coverUrl != null)
+              'cover_url': coverUrl.trim().isEmpty ? null : coverUrl.trim(),
+          })
+          .eq('id', user.id),
     );
   }
 
@@ -245,7 +264,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<bool> toggleFavorite(String gameId) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('toggle_favorite', params: <String, dynamic>{'p_game': gameId}),
+      () => _client.rpc(
+        'toggle_favorite',
+        params: <String, dynamic>{'p_game': gameId},
+      ),
     );
     return response == true;
   }
@@ -253,7 +275,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
   @override
   Future<bool> toggleLibrary(String gameId) async {
     final Object? response = await _guard<Object?>(
-      () => _client.rpc('toggle_library', params: <String, dynamic>{'p_game': gameId}),
+      () => _client.rpc(
+        'toggle_library',
+        params: <String, dynamic>{'p_game': gameId},
+      ),
     );
     return response == true;
   }
@@ -265,10 +290,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
       return;
     }
     await _guard<void>(
-      () => _client.from('library').upsert(
-        <String, dynamic>{'user_id': user.id, 'game_id': gameId},
-        onConflict: 'user_id,game_id',
-      ),
+      () => _client.from('library').upsert(<String, dynamic>{
+        'user_id': user.id,
+        'game_id': gameId,
+      }, onConflict: 'user_id,game_id'),
     );
   }
 
@@ -290,23 +315,20 @@ class SupabaseCatalogRepository implements CatalogRepository {
       throw const AppFailure(FailureKind.auth);
     }
     await _guard<void>(
-      () => _client.from('reviews').upsert(
-        <String, dynamic>{
-          'game_id': gameId,
-          'user_id': user.id,
-          'rating': rating,
-          'body': body,
-          'verdict': verdict,
-          'fps': fps,
-          'brand': brand,
-          'model': model,
-          'soc': soc,
-          'gpu': gpu,
-          'ram_gb': ramGb,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'game_id,user_id',
-      ),
+      () => _client.from('reviews').upsert(<String, dynamic>{
+        'game_id': gameId,
+        'user_id': user.id,
+        'rating': rating,
+        'body': body,
+        'verdict': verdict,
+        'fps': fps,
+        'brand': brand,
+        'model': model,
+        'soc': soc,
+        'gpu': gpu,
+        'ram_gb': ramGb,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'game_id,user_id'),
     );
   }
 
@@ -322,17 +344,14 @@ class SupabaseCatalogRepository implements CatalogRepository {
       return;
     }
     await _guard<void>(
-      () => _client.from('downloads').upsert(
-        <String, dynamic>{
-          'user_id': user.id,
-          'game_id': gameId,
-          'port_key': portKey,
-          'status': status,
-          'progress': progress.clamp(0, 100),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'user_id,game_id',
-      ),
+      () => _client.from('downloads').upsert(<String, dynamic>{
+        'user_id': user.id,
+        'game_id': gameId,
+        'port_key': portKey,
+        'status': status,
+        'progress': progress.clamp(0, 100),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'user_id,game_id'),
     );
   }
 

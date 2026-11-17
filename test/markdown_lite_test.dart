@@ -32,7 +32,9 @@ Texto simples com **negrito** e `código`.
     });
 
     test('HTML cru NÃO é interpretado — aparece como texto literal', () {
-      final List<MarkdownChunk> chunks = parseMarkdownLines('<script>alert(1)</script>');
+      final List<MarkdownChunk> chunks = parseMarkdownLines(
+        '<script>alert(1)</script>',
+      );
       expect(chunks.single.text, '<script>alert(1)</script>');
       expect(chunks.single.type, 'paragraph');
     });
@@ -84,13 +86,16 @@ Texto simples com **negrito** e `código`.
     });
   });
 
-  testWidgets('MarkdownLite renderiza blocos sem erro', (WidgetTester tester) async {
+  testWidgets('MarkdownLite renderiza blocos sem erro', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
         home: Scaffold(
           body: MarkdownLite(
-            data: '## Novidades\n- **Crash** corrigido\n- Link para o [repo](https://github.com/o/r)\n<script>js</script>',
+            data:
+                '## Novidades\n- **Crash** corrigido\n- Link para o [repo](https://github.com/o/r)\n<script>js</script>',
           ),
         ),
       ),

@@ -21,14 +21,14 @@ class DownloadRecord {
   final String? portKey;
 
   factory DownloadRecord.fromMap(Map<String, dynamic> map) => DownloadRecord(
-        gameId: asTextOr(map['game_id'], ''),
-        status: asTextOr(map['status'], 'queued'),
-        progress: asInt(map['progress']),
-        title: asTextOr(map['title'], ''),
-        slug: asTextOr(map['slug'], ''),
-        coverUrl: asText(map['cover_url']),
-        portKey: asText(map['port_key']),
-      );
+    gameId: asTextOr(map['game_id'], ''),
+    status: asTextOr(map['status'], 'queued'),
+    progress: asInt(map['progress']),
+    title: asTextOr(map['title'], ''),
+    slug: asTextOr(map['slug'], ''),
+    coverUrl: asText(map['cover_url']),
+    portKey: asText(map['port_key']),
+  );
 }
 
 class Collections {
@@ -44,39 +44,52 @@ class Collections {
 
   static const Collections empty = Collections();
 
-  bool isFavorite(String gameId) => favorites.any((Game game) => game.id == gameId);
+  bool isFavorite(String gameId) =>
+      favorites.any((Game game) => game.id == gameId);
 
-  bool isInLibrary(String gameId) => library.any((Game game) => game.id == gameId);
+  bool isInLibrary(String gameId) =>
+      library.any((Game game) => game.id == gameId);
 
   Collections withFavorite(Game game) => Collections(
-        favorites: <Game>[game, ...favorites.where((Game item) => item.id != game.id)],
-        library: library,
-        downloads: downloads,
-      );
+    favorites: <Game>[
+      game,
+      ...favorites.where((Game item) => item.id != game.id),
+    ],
+    library: library,
+    downloads: downloads,
+  );
 
   Collections withoutFavorite(String gameId) => Collections(
-        favorites: favorites.where((Game game) => game.id != gameId).toList(growable: false),
-        library: library,
-        downloads: downloads,
-      );
+    favorites: favorites
+        .where((Game game) => game.id != gameId)
+        .toList(growable: false),
+    library: library,
+    downloads: downloads,
+  );
 
   Collections withLibraryGame(Game game) => Collections(
-        favorites: favorites,
-        library: <Game>[game, ...library.where((Game item) => item.id != game.id)],
-        downloads: downloads,
-      );
+    favorites: favorites,
+    library: <Game>[game, ...library.where((Game item) => item.id != game.id)],
+    downloads: downloads,
+  );
 
   Collections withoutLibraryGame(String gameId) => Collections(
-        favorites: favorites,
-        library: library.where((Game game) => game.id != gameId).toList(growable: false),
-        downloads: downloads,
-      );
+    favorites: favorites,
+    library: library
+        .where((Game game) => game.id != gameId)
+        .toList(growable: false),
+    downloads: downloads,
+  );
 
   factory Collections.fromMap(Map<String, dynamic> map) => Collections(
-        favorites: asMapList(map['favorites']).map(Game.fromMap).toList(growable: false),
-        library: asMapList(map['library']).map(Game.fromMap).toList(growable: false),
-        downloads: asMapList(map['downloads'])
-            .map(DownloadRecord.fromMap)
-            .toList(growable: false),
-      );
+    favorites: asMapList(
+      map['favorites'],
+    ).map(Game.fromMap).toList(growable: false),
+    library: asMapList(
+      map['library'],
+    ).map(Game.fromMap).toList(growable: false),
+    downloads: asMapList(
+      map['downloads'],
+    ).map(DownloadRecord.fromMap).toList(growable: false),
+  );
 }
