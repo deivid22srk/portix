@@ -90,8 +90,10 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     }
   }
 
-  /// Remove do cache de imagem o arquivo da capa antiga/trocada e revalida
-  /// o perfil (o SWR traz o novo valor sem loading).
+  /// Remove do cache de imagem o arquivo da capa antiga/trocada (disco) e
+  /// limpa o cache de memória do framework — reupload na MESMA URL não pode
+  /// exibir o avatar antigo enquanto o ImageCache tiver a imagem decodificada.
+  /// A seguir revalida o perfil (o SWR traz o novo valor sem loading).
   Future<void> _invalidateCover(String? oldCover) async {
     final List<String> targets = <String>[
       if (oldCover != null && oldCover.isNotEmpty) oldCover,
@@ -104,6 +106,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
         // Sem arquivo em cache (ou falha local): refetch resolve na revalida.
       }
     }
+    clearInMemoryImageCache();
     await ref.read(profileProvider.notifier).refresh();
   }
 
@@ -264,7 +267,9 @@ class _Input extends StatelessWidget {
           hintStyle: context.texts.bodyMedium?.copyWith(
             color: context.colors.textTertiary,
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.fieldVertical,
+          ),
         ),
       ),
     );

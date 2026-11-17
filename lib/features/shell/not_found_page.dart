@@ -33,7 +33,7 @@ class NotFoundPage extends StatelessWidget {
                       color: context.colors.accent,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     l10n.noResultsTitle,
                     textAlign: TextAlign.center,

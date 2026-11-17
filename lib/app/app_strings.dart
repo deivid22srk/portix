@@ -256,7 +256,9 @@ class L10n {
   String get settingsCatAppearance =>
       _t('Aparência e Temas', 'Appearance & themes');
   String get settingsCatAppearanceDesc =>
-      _t('Temas com contraste garantido', 'Themes with guaranteed contrast');
+      _t('Temas claros, escuros e coloridos', 'Light, dark and colorful');
+  String get settingsReloading =>
+      _t('Recarregando catálogo…', 'Reloading catalog…');
   String get settingsCatNotifications => _t('Notificações', 'Notifications');
   String get settingsCatNotificationsDesc =>
       _t('Avisos de novos ports', 'New port alerts');
@@ -270,9 +272,23 @@ class L10n {
   String get settingsCatAboutDesc =>
       _t('Versão, legal e créditos', 'Version, legal and credits');
   String get settingsClearCacheConfirm => _t(
-    'O cache local de dados do catálogo será apagado e baixado de novo quando necessário.',
-    'The local catalog data cache will be cleared and re-downloaded when needed.',
+    'O cache local (dados do catálogo, perfil e imagens) será apagado e baixado de novo quando necessário.',
+    'The local cache (catalog data, profile and images) will be cleared and re-downloaded when needed.',
   );
+
+  /// Rótulo numérico genérico (ex.: valor do slider de FPS) — passa pela l10n
+  /// para receber formatação de número por idioma no futuro.
+  String numericLabel(Object value) => _t('$value', '$value');
+
+  /// Valor atual do alvo de FPS: "30 FPS".
+  String fpsValue(Object value) => _t('$value FPS', '$value FPS');
+
+  /// Contador de downloads de um jogo: "12,3 mil baixados".
+  String downloadsCount(Object count) =>
+      _t('$count baixados', '$count downloads');
+
+  /// Badge de versão: "v1.2.3".
+  String versionBadge(Object version) => _t('v$version', 'v$version');
   String get profileEmailLabel => _t('E-mail', 'Email');
 
   // ----------------------------------------------------------------- temas

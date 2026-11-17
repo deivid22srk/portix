@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show Widget;
+import 'package:flutter/widgets.dart' show Key, ValueKey, Widget;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portix/features/profile/profile_controller.dart';
 import 'package:portix/shared/widgets/profile_avatar.dart';
+
+import 'ui/ui_test_helpers.dart';
 
 // ============================================================================
 // Evidência do cache da imagem de perfil (mesmo mecanismo do ProfileAvatar —
@@ -22,6 +25,10 @@ import 'package:portix/shared/widgets/profile_avatar.dart';
 
 const String _avatarUrl = 'http://cache-test.portix/avatar.png';
 const String _avatarUrlV2 = 'http://cache-test.portix/avatar.png?v=2';
+
+/// URL exclusiva do teste de integração (nenhum outro teste popula o disco
+/// com ela — o 1º render tem que baixar de verdade).
+const String _widgetAvatarUrl = 'http://cache-test.portix/widget-avatar.png';
 
 int _downloads = 0;
 
@@ -347,7 +354,7 @@ void main() {
     expect(_downloads, 1, reason: 'URL nova não está no cache → 1 download');
   });
 
-  test('PerfilAvatar é o componente de imagem em cache (integração)', () {
+  test('contrato do ProfileAvatar (fallback de iniciais, tamanho, URL)', () {
     final ProfileAvatar avatar = const ProfileAvatar(
       name: 'Ana',
       imageUrl: _avatarUrl,
@@ -360,4 +367,80 @@ void main() {
     // (mesmo DefaultCacheManager validado acima) com iniciais como fallback.
     expect(avatar, isA<Widget>());
   });
+
+  // ========================================================================
+  // Integração REAL no widget: pump do ProfileAvatar com o mesmo HttpClient
+  // sintético. Prova a cadeia completa — memória (ImageCache do framework)
+  // e disco (DefaultCacheManager) — no caminho que o app de fato usa.
+  // ========================================================================
+
+  /// Renderiza o avatar e espera o IO real terminar (dentro de runAsync o
+  /// event loop real vive): sai quando o contador atinge `want` ou expira.
+  Future<void> renderAvatar(
+    WidgetTester tester, {
+    required String url,
+    required int want,
+    required String reason,
+    Key? key,
+  }) async {
+    await pumpUi(
+      tester,
+      child: ProfileAvatar(key: key, name: 'Ana', imageUrl: url, size: 62),
+    );
+    final Stopwatch sw = Stopwatch()..start();
+    while (_downloads < want && sw.elapsedMilliseconds < 5000) {
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+    }
+    await tester.pumpAndSettle(const Duration(milliseconds: 150));
+    expect(_downloads, want, reason: reason);
+  }
+
+  testWidgets(
+    'PerfilAvatar renderizado: 1 download no 1º uso; 0 nos 5 seguintes; '
+    'clear de memória atende do disco; removeFile → 1 re-download',
+    (WidgetTester tester) async {
+      await tester.runAsync(() async {
+        // 1º uso: rede sintética responde 1x e grava em disco.
+        await renderAvatar(
+          tester,
+          url: _widgetAvatarUrl,
+          want: 1,
+          reason: '1º uso faz exatamente 1 download',
+        );
+
+        // 5 "aberturas" seguintes (novas chaves de widget): memória atende.
+        for (int i = 0; i < 5; i++) {
+          await renderAvatar(
+            tester,
+            url: _widgetAvatarUrl,
+            want: 1,
+            key: ValueKey<int>(100 + i),
+            reason: '2ª abertura em diante = 0 downloads (meta da missão)',
+          );
+        }
+
+        // Logout / troca de foto: limpa o cache de MEMÓRIA do framework —
+        // o disco atende na sequência, ainda sem rede.
+        clearInMemoryImageCache();
+        await renderAvatar(
+          tester,
+          url: _widgetAvatarUrl,
+          want: 1,
+          key: const ValueKey<String>('pos-clear'),
+          reason: 'Após clear do ImageCache o disco atende (0 downloads)',
+        );
+
+        // Invalidação explícita (removeFile) + clear de memória: 1 re-download.
+        await DefaultCacheManager().removeFile(_widgetAvatarUrl);
+        clearInMemoryImageCache();
+        await renderAvatar(
+          tester,
+          url: _widgetAvatarUrl,
+          want: 2,
+          key: const ValueKey<String>('pos-remove'),
+          reason: 'Cache invalidado de verdade → 1 novo download',
+        );
+      });
+    },
+  );
 }

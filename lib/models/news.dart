@@ -35,20 +35,20 @@ class NewsItem {
   final DateTime? publishedAt;
 
   factory NewsItem.fromMap(Map<String, dynamic> map) => NewsItem(
-        id: asTextOr(map['id'], ''),
-        slug: asTextOr(map['slug'], ''),
-        category: asTextOr(map['category'], 'Notícias'),
-        title: asTextOr(map['title'], ''),
-        titleOriginal: asText(map['title_original']),
-        author: asText(map['author']),
-        summary: asTextOr(map['summary'], ''),
-        keyPoints: asStringList(map['key_points']),
-        coverUrl: asText(map['cover_url']),
-        sourceName: asText(map['source_name']),
-        sourceUrl: asText(map['source_url']),
-        projectUrl: asText(map['project_url']),
-        publishedAt: asDate(map['published_at']),
-      );
+    id: asTextOr(map['id'], ''),
+    slug: asTextOr(map['slug'], ''),
+    category: asTextOr(map['category'], 'Notícias'),
+    title: asTextOr(map['title'], ''),
+    titleOriginal: asText(map['title_original']),
+    author: asText(map['author']),
+    summary: asTextOr(map['summary'], ''),
+    keyPoints: asStringList(map['key_points']),
+    coverUrl: asText(map['cover_url']),
+    sourceName: asText(map['source_name']),
+    sourceUrl: asText(map['source_url']),
+    projectUrl: asText(map['project_url']),
+    publishedAt: asDate(map['published_at']),
+  );
 }
 
 class NewsPayload {

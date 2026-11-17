@@ -265,7 +265,6 @@ class _FilterBadge extends StatelessWidget {
       child: Text(
         count.toString(),
         style: context.texts.labelSmall?.copyWith(
-          fontSize: 9,
           color: context.colors.onAccent,
           fontWeight: FontWeight.w700,
         ),

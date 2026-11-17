@@ -37,8 +37,9 @@ String resolveDirectUrl(String url) {
   final String host = uri.host.toLowerCase();
 
   if (host.endsWith('drive.google.com')) {
-    final RegExpMatch? match =
-        RegExp(r'/file/d/([A-Za-z0-9_-]+)').firstMatch(uri.path);
+    final RegExpMatch? match = RegExp(
+      r'/file/d/([A-Za-z0-9_-]+)',
+    ).firstMatch(uri.path);
     final String? id = match?.group(1) ?? uri.queryParameters['id'];
     if (id != null && id.isNotEmpty) {
       return 'https://drive.google.com/uc?export=download&id=$id';
@@ -46,10 +47,9 @@ String resolveDirectUrl(String url) {
   }
   if (host.endsWith('dropbox.com')) {
     return uri
-        .replace(queryParameters: <String, String>{
-          ...uri.queryParameters,
-          'dl': '1',
-        })
+        .replace(
+          queryParameters: <String, String>{...uri.queryParameters, 'dl': '1'},
+        )
         .toString();
   }
   return url;

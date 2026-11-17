@@ -9,8 +9,8 @@ class AppUpdate {
   final String? url;
 
   factory AppUpdate.fromMap(Map<String, dynamic> map) => AppUpdate(
-        version: asTextOr(map['version'], ''),
-        message: asTextOr(map['message'], ''),
-        url: asText(map['url']),
-      );
+    version: asTextOr(map['version'], ''),
+    message: asTextOr(map['message'], ''),
+    url: asText(map['url']),
+  );
 }

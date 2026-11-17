@@ -25,10 +25,25 @@ class AppRadii {
 class AppSpacing {
   const AppSpacing._();
 
+  /// Sub-grade óptica de 2px: separadores e respiros mínimos (ícone-rótulo
+  /// apertado, badges). Use só quando 4px fica visivelmente largo.
+  static const double hairline = 2;
+
+  /// Entre ícones/rótulos compactos (chips, contadores).
+  static const double xxs = 6;
+
   static const double xs = 4;
   static const double sm = 8;
+
+  /// Respiro interno de controles compactos (chips, filtros).
+  static const double compact = 10;
+
   static const double md = 12;
   static const double lg = 16;
+
+  /// Respiro vertical de campos de texto (inputs).
+  static const double fieldVertical = 14;
+
   static const double xl = 20;
   static const double xxl = 24;
   static const double xxxl = 32;
@@ -55,6 +70,9 @@ class AppSpacing {
 
   /// Folga da snackbar flutuante acima da barra de navegação de vidro.
   static const double snackbarBottomGap = 96;
+
+  /// Diâmetro do spinner pequeno em tiles/botões (estado ocupado).
+  static const double inlineSpinner = 18;
 }
 
 /// Durações e curvas de animação.

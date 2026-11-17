@@ -81,7 +81,7 @@ class FeedbackReportRow extends StatelessWidget {
                 level: report.authorRole,
               ),
             ),
-            const SizedBox(width: 9),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +98,7 @@ class FeedbackReportRow extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.xxs),
                       BadgeChip(
                         label: compatVerdictLabel(l10n, report.status),
                         color: compatVerdictColor(
@@ -138,7 +138,7 @@ class FeedbackReportRow extends StatelessWidget {
                           ),
                         if (report.fps != null)
                           BadgeChip(
-                            label: '${report.fps} FPS',
+                            label: context.l10n.fpsValue(report.fps!),
                             color: context.colors.accent,
                             icon: Icons.speed_rounded,
                           ),
@@ -146,7 +146,7 @@ class FeedbackReportRow extends StatelessWidget {
                           AdminBadge(level: report.authorRole!),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                   ],
                   // Autor em linha própria: antes dividia espaço com as specs
                   // e truncava junto (@handle · nome · soc · gpu · ram).
@@ -160,7 +160,7 @@ class FeedbackReportRow extends StatelessWidget {
                   ),
                   ..._deviceSpecsLine(context),
                   if (report.body.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xxs),
                     Text(
                       report.body,
                       maxLines: 3,
@@ -171,7 +171,7 @@ class FeedbackReportRow extends StatelessWidget {
                     ),
                   ],
                   if (sameSoc) ...<Widget>[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xxs),
                     BadgeChip(
                       label: l10n.compatSameSoc,
                       color: context.colors.accent,
@@ -223,7 +223,7 @@ class FeedbackReportRow extends StatelessWidget {
       return const <Widget>[];
     }
     return <Widget>[
-      const SizedBox(height: 6),
+      const SizedBox(height: AppSpacing.xxs),
       Row(
         children: <Widget>[
           Icon(
@@ -231,7 +231,7 @@ class FeedbackReportRow extends StatelessWidget {
             size: 12,
             color: context.colors.textSecondary,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text.rich(
               TextSpan(children: spans),

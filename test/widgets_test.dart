@@ -7,7 +7,9 @@ import 'package:portix/shared/widgets/primitives.dart';
 import 'package:portix/shared/widgets/states.dart';
 
 void main() {
-  testWidgets('GameCard mostra capa procedural e título', (WidgetTester tester) async {
+  testWidgets('GameCard mostra capa procedural e título', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
@@ -36,7 +38,9 @@ void main() {
     expect(find.text('SM'), findsOneWidget);
   });
 
-  testWidgets('StatBadge mostra nota em porcentagem', (WidgetTester tester) async {
+  testWidgets('StatBadge mostra nota em porcentagem', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -71,7 +75,9 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets('EmptyState dispara a ação principal', (WidgetTester tester) async {
+  testWidgets('EmptyState dispara a ação principal', (
+    WidgetTester tester,
+  ) async {
     bool tapped = false;
     await tester.pumpWidget(
       MaterialApp(
@@ -97,9 +103,7 @@ void main() {
   testWidgets('PortixMark desenha sem erros', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: Center(child: PortixMark(size: 120)),
-        ),
+        home: Scaffold(body: Center(child: PortixMark(size: 120))),
       ),
     );
 

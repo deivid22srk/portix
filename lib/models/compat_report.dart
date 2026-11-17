@@ -38,28 +38,25 @@ class CompatReport {
 
   /// "Marca Modelo" ou o texto de reserva informado pela tela (localizado).
   String deviceLabelOr(String fallback) {
-    final List<String> parts = <String>[
-      ?brand,
-      ?model,
-    ];
+    final List<String> parts = <String>[?brand, ?model];
     return parts.isEmpty ? fallback : parts.join(' ');
   }
 
   factory CompatReport.fromMap(Map<String, dynamic> map) => CompatReport(
-        author: asTextOr(map['author'], ''),
-        status: asTextOr(map['status'], 'good'),
-        authorCover: asText(map['author_cover']),
-        authorRole: asText(map['author_role']),
-        authorId: asText(map['author_id']),
-        authorHandle: asText(map['author_handle']),
-        rating: asInt(map['rating']),
-        body: asTextOr(map['body'], ''),
-        fps: map['fps'] == null ? null : asInt(map['fps']),
-        brand: asText(map['brand']),
-        model: asText(map['model']),
-        soc: asText(map['soc']),
-        gpu: asText(map['gpu']),
-        ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
-        createdAt: asDate(map['created_at']),
-      );
+    author: asTextOr(map['author'], ''),
+    status: asTextOr(map['status'], 'good'),
+    authorCover: asText(map['author_cover']),
+    authorRole: asText(map['author_role']),
+    authorId: asText(map['author_id']),
+    authorHandle: asText(map['author_handle']),
+    rating: asInt(map['rating']),
+    body: asTextOr(map['body'], ''),
+    fps: map['fps'] == null ? null : asInt(map['fps']),
+    brand: asText(map['brand']),
+    model: asText(map['model']),
+    soc: asText(map['soc']),
+    gpu: asText(map['gpu']),
+    ramGb: map['ram_gb'] == null ? null : asInt(map['ram_gb']),
+    createdAt: asDate(map['created_at']),
+  );
 }

@@ -73,7 +73,10 @@ class AdminBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color color = adminLevelColor(level, context.colors);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 9, vertical: 3),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? AppSpacing.xxs : AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppRadii.sm),
@@ -84,7 +87,7 @@ class AdminBadge extends StatelessWidget {
         children: <Widget>[
           Icon(adminLevelIcon(level), size: 12, color: color),
           if (!compact) ...<Widget>[
-            const SizedBox(width: 4),
+            const SizedBox(width: AppSpacing.xs),
             Flexible(
               child: Text(
                 adminLevelLabel(context.l10n, level),

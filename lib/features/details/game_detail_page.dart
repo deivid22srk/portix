@@ -902,7 +902,7 @@ class _Chips extends StatelessWidget {
         ),
       if (game.downloadCount > 0)
         InfoChip(
-          label: '${compactNumber(game.downloadCount)} ${l10n.downloadsLabel}',
+          label: l10n.downloadsCount(compactNumber(game.downloadCount)),
           icon: Icons.download_rounded,
           color: context.colors.accentAlt,
         ),
@@ -1009,7 +1009,7 @@ class _FavoritePillState extends State<_FavoritePill>
                     : context.colors.textPrimary,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Flexible(
               child: Text(
                 widget.label,
@@ -1105,7 +1105,7 @@ class CompatReportCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.hairline),
                     Text(
                       l10n.compatSubtitle,
                       style: context.texts.labelSmall?.copyWith(
@@ -1189,7 +1189,10 @@ class _CompatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.compact,
+        vertical: AppSpacing.compact,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.sm),
         color: color.withValues(alpha: 0.12),
@@ -1204,7 +1207,7 @@ class _CompatPill extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: context.texts.labelSmall?.copyWith(color: color),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.hairline),
           Text(
             count.toString(),
             style: context.texts.titleMedium?.copyWith(
@@ -1398,7 +1401,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                           value: _fps,
                           activeColor: context.colors.accent,
                           inactiveColor: context.colors.glassStrong,
-                          label: '${_fps.round()}',
+                          label: l10n.fpsValue(_fps.round()),
                           onChanged: (double value) =>
                               setState(() => _fps = value),
                         ),
@@ -1607,7 +1610,7 @@ class _InfoPanel extends StatelessWidget {
         children: <Widget>[
           for (int index = 0; index < rows.length; index += 1) ...<Widget>[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.compact),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -1676,7 +1679,7 @@ class _PortCard extends StatelessWidget {
           Row(
             children: <Widget>[
               BadgeChip(label: port.platformName, color: context.colors.accent),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xxs),
               BadgeChip(label: worksLabel, color: worksColor),
               const Spacer(),
               if (port.url == null)
@@ -1696,7 +1699,7 @@ class _PortCard extends StatelessWidget {
             ),
           ),
           if (port.developer != null || port.version != null) ...<Widget>[
-            const SizedBox(height: 3),
+            const SizedBox(height: AppSpacing.hairline),
             Text(
               <String>[
                 ?port.developer,
@@ -1731,7 +1734,7 @@ class _PortCard extends StatelessWidget {
                   size: 13,
                   color: context.colors.warning,
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: AppSpacing.xxs),
                 Expanded(
                   child: Text(
                     port.needsGameFilesNote!,
@@ -1799,7 +1802,7 @@ class _DetailSkeleton extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       const SkeletonBox(width: double.infinity, height: 24),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSpacing.compact),
                       const SkeletonBox(width: 140, height: 14),
                     ],
                   ),

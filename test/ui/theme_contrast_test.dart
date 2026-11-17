@@ -67,6 +67,17 @@ void main() {
           c.textPrimary,
           _over(c.glassStrong, c.bg),
         );
+        // Vidro do FAB flutuante (mais opaco): ícones de ação por cima.
+        expectAA(
+          'textPrimary/vidro flutuante',
+          c.textPrimary,
+          _over(c.glassFloating, c.bg),
+        );
+        expectAA(
+          'accent/vidro flutuante',
+          c.accent,
+          _over(c.glassFloating, c.bg),
+        );
       });
 
       test('texto secundário e terciário', () {

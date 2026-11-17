@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ import 'package:portix/data/catalog_repository.dart';
 import 'package:portix/models/collections.dart';
 import 'package:portix/models/home_feed.dart';
 import 'package:portix/models/profile.dart';
+import 'package:portix/shared/widgets/primitives.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,14 +26,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // ≥768px e deep link direto para cada categoria.
 // ============================================================================
 
-User _realUser() {
-  return const User(
+User _realUser({String? email}) {
+  return User(
     id: 'u-1',
     appMetadata: <String, dynamic>{},
     userMetadata: <String, dynamic>{'display_name': 'Ana'},
     aud: 'authenticated',
     createdAt: '2026-01-01T00:00:00Z',
     isAnonymous: false,
+    email: email,
   );
 }
 
@@ -68,18 +71,49 @@ class _FixedAccountController extends AccountController {
   void set(AccountState value) => state = value;
 }
 
-Future<ProviderContainer> _container({required bool signedIn}) async {
+class _GatedRepository implements CatalogRepository {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<UserProfile> fetchProfile() async {
+    return const UserProfile(id: 'u-1', displayName: 'Ana', handle: 'ana');
+  }
+
+  @override
+  Future<Collections> fetchCollections() async => Collections.empty;
+
+  @override
+  HomeFeed? readCachedHome() => null;
+
+  @override
+  Future<HomeFeed> fetchHome() async {
+    await gate.future;
+    throw const SocketException('sem rede no teste');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} não usado no teste');
+}
+
+Future<ProviderContainer> _container({
+  required bool signedIn,
+  String? email,
+  CatalogRepository? repository,
+}) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final ProviderContainer container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      catalogRepositoryProvider.overrideWithValue(_FakeRepository()),
+      catalogRepositoryProvider.overrideWithValue(
+        repository ?? _FakeRepository(),
+      ),
       accountProvider.overrideWith(_FixedAccountController.new),
     ],
   );
   (container.read(accountProvider.notifier) as _FixedAccountController).set(
-    AccountState(user: signedIn ? _realUser() : null),
+    AccountState(user: signedIn ? _realUser(email: email) : null),
   );
   return container;
 }
@@ -333,6 +367,30 @@ void main() {
       },
     );
 
+    testWidgets('header com e-mail real: e-mail vence @handle', (
+      WidgetTester tester,
+    ) async {
+      final ProviderContainer container = await _container(
+        signedIn: true,
+        email: 'ana@portix.app',
+      );
+      addTearDown(container.dispose);
+      await _pumpRouter(tester, container);
+      _go(container, '/menu');
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+      expect(
+        find.text('ana@portix.app'),
+        findsOneWidget,
+        reason: 'e-mail da conta aparece na linha secundária do header',
+      );
+      expect(
+        find.text('@ana'),
+        findsNothing,
+        reason: 'com e-mail real o @handle não duplica a linha secundária',
+      );
+    });
+
     testWidgets('busca sobrevive à troca de categoria (provider)', (
       WidgetTester tester,
     ) async {
@@ -379,6 +437,56 @@ void main() {
           find.text('Não foi possível atualizar agora'),
           findsOneWidget,
           reason: 'sem "Catálogo atualizado" quando a revalidação falha',
+        );
+      },
+    );
+
+    testWidgets(
+      'recarregar catálogo mostra spinner e trava o tap durante o refresh',
+      (WidgetTester tester) async {
+        final _GatedRepository repo = _GatedRepository();
+        final ProviderContainer container = await _container(
+          signedIn: true,
+          repository: repo,
+        );
+        addTearDown(container.dispose);
+        await _pumpRouter(tester, container);
+        _go(container, '/menu/dados');
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+        await tester.tap(find.text('Recarregar catálogo'));
+        await tester.pump();
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsOneWidget,
+          reason: 'feedback real durante o await (rede lenta inclusa)',
+        );
+        expect(
+          (tester.widget(
+                    find.widgetWithText(SectionTile, 'Recarregar catálogo'),
+                  )
+                  as SectionTile)
+              .onTap,
+          isNull,
+          reason: 'tap desabilitado durante o refresh (sem reentrância)',
+        );
+
+        repo.gate.complete();
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+        expect(
+          find.text('Não foi possível atualizar agora'),
+          findsOneWidget,
+          reason: 'fim honesto do refresh bloqueado',
+        );
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(
+          (tester.widget(
+                    find.widgetWithText(SectionTile, 'Recarregar catálogo'),
+                  )
+                  as SectionTile)
+              .onTap,
+          isNotNull,
+          reason: 'tap reabilitado após o fim do refresh',
         );
       },
     );

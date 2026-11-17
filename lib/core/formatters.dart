@@ -21,13 +21,33 @@ String compactNumber(int value) {
 String _decimal(double value) => value.toStringAsFixed(1).replaceAll('.', ',');
 
 const List<String> _monthsPt = <String>[
-  'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
-  'jul', 'ago', 'set', 'out', 'nov', 'dez',
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
 ];
 
 const List<String> _monthsEn = <String>[
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String monthShort(int month, {required bool en}) {
@@ -71,7 +91,22 @@ String relativeDay(DateTime? date, {required bool en}) {
 
 String initialsOf(String title) {
   const Set<String> skip = <String>{
-    'the', 'a', 'an', 'of', 'de', 'do', 'da', 'dos', 'das', 'o', 'os', 'as', 'e', 'and', 'in', 'on',
+    'the',
+    'a',
+    'an',
+    'of',
+    'de',
+    'do',
+    'da',
+    'dos',
+    'das',
+    'o',
+    'os',
+    'as',
+    'e',
+    'and',
+    'in',
+    'on',
   };
   final List<String> words = title
       .replaceAll(RegExp(r'[^A-Za-z0-9À-ÿ ]'), ' ')
@@ -174,6 +209,11 @@ String greetingFor(DateTime time, {required bool en}) {
 List<Color> coverColorsFor(String seed) {
   final double hue = hueFor(seed);
   final Color top = HSLColor.fromAHSL(1, hue, 0.52, 0.24).toColor();
-  final Color bottom = HSLColor.fromAHSL(1, (hue + 42) % 360, 0.62, 0.10).toColor();
+  final Color bottom = HSLColor.fromAHSL(
+    1,
+    (hue + 42) % 360,
+    0.62,
+    0.10,
+  ).toColor();
   return <Color>[top, bottom];
 }

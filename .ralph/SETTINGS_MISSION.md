@@ -99,15 +99,27 @@ sem seletor, sem persistência de tema.
   Evidências: HttpClient sintético contando downloads — 5 aberturas = 0
   downloads, URL nova = 1, removeFile = 1; SWR com repo fake. **CI 44095990091
   success.**
-- **iter 3** (3a4d6bf) `feat(settings): configurações em categorias com hub e
-  master-detail` — hub com perfil resumido + 6 categorias (Conta e Perfil,
-  Aparência e Temas, Notificações, Idioma e Região, Dados e Armazenamento,
-  Ajuda e Sobre); rotas/deep link /menu/<id>; drill-down mobile com voltar do
-  sistema; master-detail ≥768px (rota como fonte do estado); limpar cache com
-  confirmação; GlassHeader com expandedHeight adaptativo (overflow em texto
-  2.0 corrigido) + estado de erro da home → SliverFillRemaining.
-  Testes: tabela por categoria, tap+voltar, deep link, 768px, 375px, texto 2.0.
-  **CI 44099472112 em andamento.**
+- **iter 3** (3a4d6bf) `feat(settings): configurações em categorias com hub e master-detail` — hub com perfil resumido + 6 categorias (Conta e Perfil, Aparência e Temas, Notificações, Idioma e Região, Dados e Armazenamento, Ajuda e Sobre); rotas/deep link /menu/<id>; drill-down mobile com voltar do sistema; master-detail ≥768px (rota como fonte do estado); limpar cache com confirmação; GlassHeader com expandedHeight adaptativo (overflow em texto 2.0 corrigido) + estado de erro da home → SliverFillRemaining. Testes: tabela por categoria, tap+voltar, deep link, 768px, 375px, texto 2.0. **CI 44099472112 success.**
+- **iter 4** (47c2b99) busca nas configurações + drenagem de tokens. **CI 44100937756 success.**
+- **iter 5** (4402944) correções da avaliação 8,43. **CI 44102964417 success.**
+- **iter 6** (8a37443) correções da reavaliação 8,60 + 5 testes de regressão. **CI 44105416754 success.**
+- **iter 7** `fix(settings): invalidação de memória, loading real e drenagem total dos gates` —
+  🟡-1 cache de MEMÓRIA do framework limpo no logout/troca de foto
+  (clearInMemoryImageCache: imageCache.clear + clearLiveImages — invalidação
+  por URL não é confiável com ResizeImage/memCacheWidth); 🟡-2 integração REAL
+  do ProfileAvatar (pump do widget + HttpClient contando: 1º uso = 1 download,
+  5 renders = 0 memória, clear = 0 disco, removeFile = 1 re-download);
+  🟡-3 recarregar catálogo com spinner + tap desabilitado durante o await
+  (teste com repo travado em Completer); 🟡-4/🟡-6 SystemChrome declarativo via
+  AnnotatedRegion no builder (reage a tema, modo Sistema e troca de brilho do
+  SO) — chamada no build e ref.listen removidos de verdade; 🟡-5 allowlist
+  drenada 25→0 (novos tokens hairline/xxs/compact/fieldVertical/inlineSpinner;
+  raw_font resolvido com estilos do tema + FittedBox no rótulo da navbar;
+  raw_text FPS/downloads/versão via l10n); 🟢 confirmação menciona perfil e
+  imagens, showAppConfirm destructive (danger) para sair/limpar cache,
+  darkThemeProvider morto removido, pares glassFloating em contraste,
+  teste do e-mail no header, themeAnimationDuration.zero com reduced motion.
+  Suíte 116/116; analyze limpo; gates verdes com allowlist vazia.
 
 Baseline: CI 44087292104 success (4713dfa).
 
@@ -121,6 +133,10 @@ no geral; imagem recarregando = cache ≤5 e média ≤7; tema ilegível/sub-AA 
 | 0 | 4713dfa | **5,0** | — | 44087292104 | linha de base (ver abaixo) |
 | 1-3 | 3bd465b/c218395/3a4d6bf | — | — | success | implementação (avaliação após iter 4) |
 | 4 | 47c2b99 | **8,43** | +3,43 | 44100937756 | 1 🔴 (navbar cobre conteúdo no detail desktop) + 7 🟡 (confirmação de cache promete o que não faz; master-detail full-bleed; sucesso falso offline; Convidado duplo; Jogador hardcoded; toggle órfã; busca perdida) + 6 🟢. CRÍTICO subagente (agent-6cadbf88). Veredito: CONTINUAR |
+| 5 | 4402944 | — | — | 44102964417 | correções da 8,43 (sem avaliação própria) |
+| 5b | (reavaliação pós-iter 5) | **8,60** | +0,17 | — | 7 apontamentos; SystemChrome parcial; detalhes no commit 8a37443 |
+| 6 | 8a37443 | — | — | 44105416754 | correções da 8,60 + 5 testes de regressão |
+| 7 | 8a37443 (estado) | **9,05** | +0,45 | 44105416754 | CRÍTICO subagente (agent-508c1fc6, .ralph/CRITICO_ITER7.md): AI 9,5 · Temas 9,0 · Cache 8,5 · Consistência 9,0 · A11y 9,0 · Resp 9,5 · Estados 8,5 · Microinter 9,0 · Microcopy 9,0. 0 🔴 + 6 🟡 (mem-cache ignorado; teste avatar cosmético; reload sem loading; SystemChrome sistema/brilho; allowlist 25; commit infiel) + 8 🟢. 7/8 apontamentos da 8,60 corrigidos de verdade. Veredito: CONTINUAR |
 
 ### CRÍTICO — iteração 0 (evidências)
 | Critério | Peso | Nota | Evidência |

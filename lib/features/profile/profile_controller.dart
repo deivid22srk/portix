@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +14,16 @@ import '../../models/user_result.dart';
 
 /// Chave do último perfil bom no CacheStore (stale-while-revalidate).
 const String kProfileCacheKey = 'profile';
+
+/// Limpa o cache de imagens **decodificadas** do framework (ImageCache em
+/// memória). A invalidação por URL não é confiável quando o provider é
+/// embrulhado por ResizeImage (memCacheWidth do CachedNetworkImage), então a
+/// limpeza é global: as imagens voltam do DISCO instantaneamente, sem rede —
+/// a métrica "2ª abertura = 0 downloads" fica intacta.
+void clearInMemoryImageCache() {
+  PaintingBinding.instance.imageCache.clear();
+  PaintingBinding.instance.imageCache.clearLiveImages();
+}
 
 /// Perfil do usuário com **stale-while-revalidate**:
 ///
@@ -91,7 +102,8 @@ class ProfileController extends AsyncNotifier<UserProfile> {
   /// Chamado após salvar no editor de perfil: refetch imediato.
   Future<void> refresh() => _revalidate();
 
-  /// Limpa o cache do perfil e a imagem de capa em disco (logout / troca).
+  /// Limpa o cache do perfil e a imagem de capa em disco E memória
+  /// (logout / troca): reupload na mesma URL não pode exibir avatar velho.
   Future<void> _clearCaches() async {
     final String? cover = _lastCoverUrl;
     await ref.read(cacheStoreProvider).remove(kProfileCacheKey);
@@ -103,6 +115,7 @@ class ProfileController extends AsyncNotifier<UserProfile> {
       }
     }
     _lastCoverUrl = null;
+    clearInMemoryImageCache();
   }
 }
 

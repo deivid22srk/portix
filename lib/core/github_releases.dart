@@ -33,8 +33,9 @@ GithubRepo? githubRepoOf(String url) {
   if (uri == null || !uri.host.toLowerCase().endsWith('github.com')) {
     return null;
   }
-  final List<String> segments =
-      uri.pathSegments.where((String part) => part.isNotEmpty).toList();
+  final List<String> segments = uri.pathSegments
+      .where((String part) => part.isNotEmpty)
+      .toList();
   if (segments.length < 2 || _reservedPaths.contains(segments[0])) {
     return null;
   }
@@ -97,11 +98,13 @@ Future<GithubRelease?> fetchLatestApkRelease(GithubRepo repo) async {
       final String url = (asset['browser_download_url'] ?? '').toString();
       final Object? size = asset['size'];
       if (url.isNotEmpty && name.toLowerCase().endsWith('.apk')) {
-        apks.add(ApkAsset(
-          name: name,
-          url: url,
-          sizeBytes: size is num ? size.toInt() : 0,
-        ));
+        apks.add(
+          ApkAsset(
+            name: name,
+            url: url,
+            sizeBytes: size is num ? size.toInt() : 0,
+          ),
+        );
       }
     }
     if (apks.isNotEmpty) {

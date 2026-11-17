@@ -207,7 +207,7 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
                   ),
                 ),
                 BadgeChip(
-                  label: 'v${widget.update.version}',
+                  label: l10n.versionBadge(widget.update.version),
                   color: context.colors.accent,
                 ),
               ],

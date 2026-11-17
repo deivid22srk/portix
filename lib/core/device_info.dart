@@ -66,8 +66,8 @@ class DeviceInfo {
       return _cached!;
     }
     try {
-      final Map<Object?, Object?>? map =
-          await _channel.invokeMethod<Map<Object?, Object?>>('info');
+      final Map<Object?, Object?>? map = await _channel
+          .invokeMethod<Map<Object?, Object?>>('info');
       _cached = DeviceSpecs.fromMap(map ?? const <Object?, Object?>{});
     } on Object {
       _cached = DeviceSpecs.unknown;

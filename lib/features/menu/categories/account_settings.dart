@@ -28,6 +28,7 @@ class AccountSettingsBody extends ConsumerWidget {
       context,
       title: l10n.signOut,
       message: l10n.signOutConfirm,
+      destructive: true,
     );
     if (ok && context.mounted) {
       await ref.read(accountProvider.notifier).signOut();

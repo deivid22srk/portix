@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/themes.dart';
@@ -118,11 +117,6 @@ class AppTheme {
     );
   }
 }
-
-/// Tema resolvido uma única vez por sessão (padrão: Aurora escuro).
-final darkThemeProvider = Provider<ThemeData>(
-  (ref) => AppTheme.build(auroraDark),
-);
 
 // ---- acesso conveniente ao tema pelo BuildContext --------------------------
 extension AppThemeContext on BuildContext {

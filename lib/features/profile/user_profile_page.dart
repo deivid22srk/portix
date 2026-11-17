@@ -164,7 +164,7 @@ class _Content extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppSpacing.hairline),
                         Text(
                           handle,
                           style: context.texts.bodySmall?.copyWith(
@@ -172,7 +172,7 @@ class _Content extends StatelessWidget {
                           ),
                         ),
                         if (profile.level != null) ...<Widget>[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppSpacing.xxs),
                           AdminBadge(level: profile.level!),
                         ],
                       ],

@@ -176,7 +176,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     letterSpacing: -1,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   l10n.authSubtitle,
                   style: context.texts.bodyMedium?.copyWith(
@@ -304,7 +304,9 @@ class _Field extends StatelessWidget {
                 hintStyle: context.texts.bodyMedium?.copyWith(
                   color: context.colors.textTertiary,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.fieldVertical,
+                ),
               ),
             ),
           ),

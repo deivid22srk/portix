@@ -106,7 +106,7 @@ class NewsArticlePage extends ConsumerWidget {
                           letterSpacing: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.xxs),
                       Text(
                         item.title,
                         style: context.texts.headlineSmall?.copyWith(
@@ -115,7 +115,7 @@ class NewsArticlePage extends ConsumerWidget {
                         ),
                       ),
                       if (item.titleOriginal != null) ...<Widget>[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppSpacing.xxs),
                         Text(
                           item.titleOriginal!,
                           style: context.texts.bodySmall?.copyWith(
@@ -219,7 +219,7 @@ class _KeyPoint extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.only(top: 7),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Container(
               width: 6,
               height: 6,

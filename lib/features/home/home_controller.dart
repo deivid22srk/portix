@@ -7,8 +7,9 @@ import '../../data/catalog_repository.dart';
 import '../../models/app_update.dart';
 import '../../models/home_feed.dart';
 
-final homeFeedProvider =
-    AsyncNotifierProvider<HomeFeedNotifier, HomeFeed>(HomeFeedNotifier.new);
+final homeFeedProvider = AsyncNotifierProvider<HomeFeedNotifier, HomeFeed>(
+  HomeFeedNotifier.new,
+);
 
 /// Último aviso de atualização publicado pelo ADM raiz (público).
 final latestUpdateProvider = FutureProvider<AppUpdate?>(

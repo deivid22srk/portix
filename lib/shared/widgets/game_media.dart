@@ -186,7 +186,6 @@ class GameCard extends StatelessWidget {
                     style: context.texts.titleSmall?.copyWith(
                       color: AppContentColors.onMedia,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
                       height: 1.2,
                     ),
                   ),
@@ -258,7 +257,7 @@ class GameRow extends StatelessWidget {
                   ),
                 ),
                 if (meta.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: AppSpacing.hairline),
                   Text(
                     meta,
                     maxLines: 1,
@@ -268,7 +267,7 @@ class GameRow extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xxs),
                 Row(
                   children: <Widget>[
                     if (game.hasRating)

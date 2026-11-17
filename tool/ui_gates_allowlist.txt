@@ -1,27 +1,2 @@
 # Allowlist dos portões de UI (gerada por tool/ui_gates.sh --init).
 # Formato: regra:prefixo/do/caminho. Drene por tela — meta: vazia no fim do U2.
-tok_size:lib/features/details/game_detail_page.dart
-tok_size:lib/features/details/game_reports_page.dart
-tok_size:lib/features/news/news_article_page.dart
-tok_size:lib/features/news/news_page.dart
-tok_size:lib/features/profile/auth_page.dart
-tok_size:lib/features/profile/profile_edit_page.dart
-tok_size:lib/features/profile/user_profile_page.dart
-tok_size:lib/features/search/search_page.dart
-tok_size:lib/features/shell/main_shell.dart
-tok_size:lib/features/shell/not_found_page.dart
-tok_size:lib/shared/widgets/admin_crown.dart
-tok_size:lib/shared/widgets/compat_report_sheet.dart
-tok_size:lib/shared/widgets/feedback_report_row.dart
-tok_size:lib/shared/widgets/filter_sheet.dart
-tok_size:lib/shared/widgets/game_media.dart
-tok_size:lib/shared/widgets/hero_carousel.dart
-tok_size:lib/shared/widgets/primitives.dart
-tok_size:lib/shared/widgets/states.dart
-raw_font:lib/features/explore/explore_page.dart
-raw_font:lib/shared/widgets/game_media.dart
-raw_font:lib/shared/widgets/primitives.dart
-raw_text:lib/features/details/game_detail_page.dart
-raw_text:lib/features/home/update_dialog.dart
-raw_text:lib/shared/widgets/compat_report_sheet.dart
-raw_text:lib/shared/widgets/feedback_report_row.dart

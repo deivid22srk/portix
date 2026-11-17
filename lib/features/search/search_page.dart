@@ -301,7 +301,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 size: 15,
                                 color: context.colors.textTertiary,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppSpacing.xxs),
                               Expanded(
                                 child: Text(
                                   l10n.recentSearches,
@@ -345,7 +345,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 size: 15,
                                 color: context.colors.accent,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppSpacing.xxs),
                               Expanded(
                                 child: Text(
                                   l10n.sectionGenres,
@@ -577,7 +577,10 @@ class _ActiveChip extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.compact,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),
           color: context.colors.accent.withValues(alpha: 0.14),
@@ -595,7 +598,7 @@ class _ActiveChip extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(width: 5),
+            SizedBox(width: AppSpacing.xxs),
             Icon(
               Icons.close_rounded,
               size: 13,
@@ -704,7 +707,7 @@ class _UserTile extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.hairline),
                 Text(
                   user.handle == null ? l10n.noHandle : '@${user.handle}',
                   maxLines: 1,

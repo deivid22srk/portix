@@ -36,14 +36,23 @@ class PortixApp extends ConsumerWidget {
 
   /// Monte o MaterialApp uma única vez — as variantes com router e as de
   /// boot/erro (home) compartilham a mesma configuração de tema/localização.
+  /// O SystemChrome (cor dos ícones das barras) é declarativo via
+  /// AnnotatedRegion: reage a tema, modo Sistema e troca de brilho do SO sem
+  /// nenhum efeito colateral imperativo no build.
   Widget _app({
     required ThemeData theme,
     required ThemeData darkTheme,
     required ThemeMode mode,
     required AppSettings settings,
+    required AppColorsTheme colors,
+    required bool disableAnimations,
     Widget? home,
     GoRouter? router,
   }) {
+    final SystemUiOverlayStyle overlay = _overlayStyleFor(colors);
+    final Duration themeAnimation = disableAnimations
+        ? Duration.zero
+        : AppMotion.base;
     if (router != null) {
       return MaterialApp.router(
         title: 'PORTIX',
@@ -51,13 +60,17 @@ class PortixApp extends ConsumerWidget {
         theme: theme,
         darkTheme: darkTheme,
         themeMode: mode,
-        // Troca de tema animada e sutil (ver setThemeId).
-        themeAnimationDuration: AppMotion.base,
+        // Troca de tema animada e sutil (respeita reduced motion).
+        themeAnimationDuration: themeAnimation,
         themeAnimationCurve: AppMotion.emphasized,
         locale: settings.locale,
         supportedLocales: _locales,
         localizationsDelegates: _delegates,
-        builder: (BuildContext context, Widget? child) => _withTextScale(child),
+        builder: (BuildContext context, Widget? child) =>
+            AnnotatedRegion<SystemUiOverlayStyle>(
+              value: overlay,
+              child: _withTextScale(child),
+            ),
         routerConfig: router,
       );
     }
@@ -67,32 +80,33 @@ class PortixApp extends ConsumerWidget {
       theme: theme,
       darkTheme: darkTheme,
       themeMode: mode,
-      themeAnimationDuration: AppMotion.base,
+      themeAnimationDuration: themeAnimation,
       themeAnimationCurve: AppMotion.emphasized,
       locale: settings.locale,
       supportedLocales: _locales,
       localizationsDelegates: _delegates,
-      builder: (BuildContext context, Widget? child) => _withTextScale(child),
+      builder: (BuildContext context, Widget? child) =>
+          AnnotatedRegion<SystemUiOverlayStyle>(
+            value: overlay,
+            child: _withTextScale(child),
+          ),
       home: home,
     );
   }
 
-  /// Aplica os ícones das barras do sistema conforme a paleta resolvida
-  /// (operação idempotente — pode ser chamada a cada mudança de tema).
-  void _applySystemChrome(AppColorsTheme colors) {
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: AppContentColors.transparent,
-        statusBarIconBrightness: colors.isDark
-            ? Brightness.light
-            : Brightness.dark,
-        statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
-        systemNavigationBarColor: AppContentColors.transparent,
-        systemNavigationBarIconBrightness: colors.isDark
-            ? Brightness.light
-            : Brightness.dark,
-        systemNavigationBarContrastEnforced: false,
-      ),
+  /// Estilo declarativo das barras do sistema para a paleta resolvida.
+  SystemUiOverlayStyle _overlayStyleFor(AppColorsTheme colors) {
+    return SystemUiOverlayStyle(
+      statusBarColor: AppContentColors.transparent,
+      statusBarIconBrightness: colors.isDark
+          ? Brightness.light
+          : Brightness.dark,
+      statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: AppContentColors.transparent,
+      systemNavigationBarIconBrightness: colors.isDark
+          ? Brightness.light
+          : Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
     );
   }
 
@@ -104,29 +118,18 @@ class PortixApp extends ConsumerWidget {
     final ThemeMode mode = themeModeFor(settings.themeId);
     final ThemeData lightTheme = AppTheme.build(pair.light);
     final ThemeData darkTheme = AppTheme.build(pair.dark);
-
-    // Ícones das barras do sistema seguem o tema resolvido. O listener cobre
-    // a troca; o apply direto cobre o primeiro frame (operação idempotente).
-    ref.listen<AppSettings>(settingsProvider, (_, AppSettings next) {
-      final AppThemePair pairNext = appThemePairFor(next.themeId);
-      final AppColorsTheme colors = switch (themeModeFor(next.themeId)) {
-        // No modo Sistema a paleta escuro é o design de referência do app.
-        ThemeMode.light => pairNext.light,
-        ThemeMode.dark || ThemeMode.system => pairNext.dark,
-      };
-      _applySystemChrome(colors);
-    });
+    final Brightness platformBrightness = MediaQuery.platformBrightnessOf(
+      context,
+    );
+    final bool disableAnimations = MediaQuery.disableAnimationsOf(context);
     final Brightness resolved = switch (mode) {
       ThemeMode.light => Brightness.light,
       ThemeMode.dark => Brightness.dark,
-      ThemeMode.system => View.of(
-        context,
-      ).platformDispatcher.platformBrightness,
+      ThemeMode.system => platformBrightness,
     };
     final AppColorsTheme colors = resolved == Brightness.light
         ? pair.light
         : pair.dark;
-    _applySystemChrome(colors);
 
     if (bootstrap.isLoading) {
       return _app(
@@ -134,6 +137,8 @@ class PortixApp extends ConsumerWidget {
         darkTheme: darkTheme,
         mode: mode,
         settings: settings,
+        colors: colors,
+        disableAnimations: disableAnimations,
         home: const SplashPage(),
       );
     }
@@ -144,6 +149,8 @@ class PortixApp extends ConsumerWidget {
         darkTheme: darkTheme,
         mode: mode,
         settings: settings,
+        colors: colors,
+        disableAnimations: disableAnimations,
         home: BootstrapErrorPage(
           error: bootstrap.error ?? const AppFailure(FailureKind.unknown),
         ),
@@ -155,6 +162,8 @@ class PortixApp extends ConsumerWidget {
       darkTheme: darkTheme,
       mode: mode,
       settings: settings,
+      colors: colors,
+      disableAnimations: disableAnimations,
       router: ref.watch(routerProvider),
     );
   }

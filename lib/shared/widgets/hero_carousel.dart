@@ -150,7 +150,9 @@ class _HeroCarouselState extends State<HeroCarousel> {
                       return Transform.scale(scale: scale, child: child);
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
                       child: _CarouselCard(
                         game: game,
                         heroTag: '${widget.tagPrefix}-${game.id}',
@@ -186,7 +188,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
                         child: AnimatedContainer(
                           duration: AppMotion.indicator,
                           curve: AppMotion.emphasized,
-                          margin: const EdgeInsets.only(right: 6),
+                          margin: const EdgeInsets.only(right: AppSpacing.xxs),
                           width: i == _index ? 24 : 8,
                           height: 8,
                           decoration: BoxDecoration(

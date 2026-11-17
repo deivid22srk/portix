@@ -324,7 +324,8 @@ class PrimaryButton extends StatelessWidget {
                   ? context.colors.onAccent
                   : context.colors.textTertiary,
             ),
-          if (isLoading || icon != null) const SizedBox(width: 10),
+          if (isLoading || icon != null)
+            const SizedBox(width: AppSpacing.compact),
           Flexible(
             child: Text(
               label,
@@ -339,7 +340,7 @@ class PrimaryButton extends StatelessWidget {
             ),
           ),
           if (trailing != null) ...<Widget>[
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.compact),
             trailing!,
           ],
         ],
@@ -407,7 +408,7 @@ class SecondaryButton extends StatelessWidget {
                         ? context.colors.accent
                         : context.colors.textPrimary),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
             ],
             Flexible(
               child: Text(
@@ -462,7 +463,7 @@ class InfoChip extends StatelessWidget {
         children: <Widget>[
           if (icon != null) ...<Widget>[
             Icon(icon, size: 14, color: tone),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xxs),
           ],
           Text(
             label,
@@ -490,7 +491,10 @@ class StatBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.compact,
+        vertical: AppSpacing.xxs,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.pill),
         color: AppContentColors.scrim.withValues(alpha: 0.54),
@@ -501,7 +505,7 @@ class StatBadge extends StatelessWidget {
         children: <Widget>[
           if (rating > 0) ...<Widget>[
             Icon(Icons.star_rounded, size: 13, color: context.colors.warning),
-            const SizedBox(width: 3),
+            const SizedBox(width: AppSpacing.hairline),
             Text(
               formatPercent(rating / 5),
               style: context.texts.labelSmall?.copyWith(
@@ -512,7 +516,7 @@ class StatBadge extends StatelessWidget {
           ],
           if (rating > 0 && downloads > 0)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6),
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
               child: SizedBox(
                 width: 1,
                 height: 11,
@@ -525,7 +529,7 @@ class StatBadge extends StatelessWidget {
               size: 13,
               color: context.colors.accentAlt,
             ),
-            const SizedBox(width: 3),
+            const SizedBox(width: AppSpacing.hairline),
             Text(
               compactNumber(downloads),
               style: context.texts.labelSmall?.copyWith(
@@ -552,7 +556,10 @@ class BadgeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color tone = color ?? context.colors.textSecondary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: tone.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadii.sm),
@@ -563,7 +570,7 @@ class BadgeChip extends StatelessWidget {
         children: <Widget>[
           if (icon != null) ...<Widget>[
             Icon(icon, size: 12, color: tone),
-            const SizedBox(width: 4),
+            const SizedBox(width: AppSpacing.xs),
           ],
           Flexible(
             child: Text(
@@ -628,7 +635,7 @@ class AppPill extends StatelessWidget {
           children: <Widget>[
             if (leading != null) ...<Widget>[
               leading!,
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xxs),
             ],
             Text(
               label,
@@ -640,7 +647,7 @@ class AppPill extends StatelessWidget {
               ),
             ),
             if (trailing != null) ...<Widget>[
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xxs),
               trailing!,
             ],
           ],
@@ -690,7 +697,7 @@ class SectionHeader extends StatelessWidget {
                   ),
                 ),
                 if (subtitle != null) ...<Widget>[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     subtitle!,
                     style: context.texts.bodySmall?.copyWith(
@@ -705,7 +712,10 @@ class SectionHeader extends StatelessWidget {
             Pressable(
               onTap: onAction,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                  vertical: AppSpacing.xxs,
+                ),
                 child: Row(
                   children: <Widget>[
                     Text(
@@ -928,15 +938,19 @@ class _NavTap extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Icon(active ? item.activeIcon : item.icon, size: 21, color: tone),
-            const SizedBox(height: 3),
-            Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.texts.labelSmall?.copyWith(
-                fontSize: 10,
-                color: tone,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            const SizedBox(height: AppSpacing.hairline),
+            // Elástico no texto 2.0: o rótulo escala para caber na altura fixa
+            // da barra em vez de estourar (o ícone permanece no tamanho 21).
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.texts.labelSmall?.copyWith(
+                  color: tone,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -977,7 +991,7 @@ class RatingLine extends StatelessWidget {
           size: compact ? 14 : 16,
           color: context.colors.warning,
         ),
-        const SizedBox(width: 3),
+        const SizedBox(width: AppSpacing.hairline),
         Text(
           formatRating(rating),
           style: context.texts.labelMedium?.copyWith(
@@ -986,7 +1000,7 @@ class RatingLine extends StatelessWidget {
           ),
         ),
         if (count > 0 && !compact) ...<Widget>[
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             '($count)',
             style: context.texts.labelSmall?.copyWith(
@@ -1218,7 +1232,7 @@ class SegmentedControl<T> extends StatelessWidget {
                 onTap: () => onChanged(item.value),
                 child: AnimatedContainer(
                   duration: AppMotion.fast,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                     color: item.value == value
@@ -1236,7 +1250,7 @@ class SegmentedControl<T> extends StatelessWidget {
                               ? context.colors.accent
                               : context.colors.textTertiary,
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: AppSpacing.xxs),
                       ],
                       Flexible(
                         child: Text(
@@ -1354,6 +1368,10 @@ Future<bool> showAppConfirm(
   required String message,
   String? confirmLabel,
   String? cancelLabel,
+
+  /// Ação destrutiva (sair da conta, apagar cache): o botão de confirmar
+  /// ganha a cor de perigo para sinalizar consequência.
+  bool destructive = false,
 }) async {
   final L10n l10n = context.l10n;
   final bool? ok = await showDialog<bool>(
@@ -1391,7 +1409,9 @@ Future<bool> showAppConfirm(
           child: Text(
             confirmLabel ?? l10n.confirm,
             style: context.texts.labelLarge?.copyWith(
-              color: context.colors.accent,
+              color: destructive
+                  ? context.colors.danger
+                  : context.colors.accent,
               fontWeight: FontWeight.w700,
             ),
           ),

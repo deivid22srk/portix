@@ -197,7 +197,7 @@ class _NewsSkeleton extends StatelessWidget {
                             _bar(context, width: 64, height: 10),
                             const SizedBox(height: AppSpacing.md),
                             _bar(context, width: double.infinity, height: 16),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: AppSpacing.xxs),
                             _bar(context, width: 180, height: 16),
                             const SizedBox(height: AppSpacing.md),
                             _bar(context, width: 90, height: 10),
@@ -286,7 +286,7 @@ class _NewsCard extends StatelessWidget {
                       letterSpacing: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     item.title,
                     maxLines: 3,
@@ -301,7 +301,7 @@ class _NewsCard extends StatelessWidget {
                         size: 13,
                         color: context.colors.textTertiary,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         relativeDay(item.publishedAt, en: l10n.isEn),
                         style: context.texts.labelSmall?.copyWith(

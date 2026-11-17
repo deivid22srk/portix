@@ -117,7 +117,7 @@ class _CompatReportSheet extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppSpacing.hairline),
                         Row(
                           children: <Widget>[
                             if (report.authorHandle != null) ...<Widget>[
@@ -174,7 +174,7 @@ class _CompatReportSheet extends StatelessWidget {
                         ),
                         if (report.fps != null)
                           BadgeChip(
-                            label: '${report.fps} FPS',
+                            label: context.l10n.fpsValue(report.fps!),
                             color: context.colors.accent,
                             icon: Icons.speed_rounded,
                           ),
@@ -212,7 +212,7 @@ class _CompatReportSheet extends StatelessWidget {
                       ),
                     ),
                     if (specs.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         specs,
                         style: context.texts.bodySmall?.copyWith(
