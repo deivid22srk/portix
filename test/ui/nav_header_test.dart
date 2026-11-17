@@ -64,11 +64,13 @@ Future<void> _pump(
       locale: const Locale('pt', 'BR'),
       supportedLocales: const <Locale>[Locale('pt', 'BR'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      builder: (BuildContext context, Widget? inner) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(textScale)),
-        child: inner!,
-      ),
+      builder: (BuildContext context, Widget? inner) {
+        final MediaQueryData media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(textScaler: TextScaler.linear(textScale)),
+          child: inner!,
+        );
+      },
       home: Scaffold(body: child),
     ),
   );
@@ -448,13 +450,17 @@ void main() {
     testWidgets('título longo trunca em vez de estourar a faixa', (
       WidgetTester tester,
     ) async {
+      // Montado sem literal gigante: 3.14.0 e 3.14.1 quebram uma string
+      // longa em colunas diferentes (o portão de formato roda no CI).
+      final String longTitle = <String>[
+        for (int index = 0; index < 6; index += 1) 'Título muito longo ',
+      ].join();
+
       await _pump(
         tester,
-        const Align(
+        Align(
           alignment: Alignment.topCenter,
-          child: AppHeaderBar(
-            title: 'Um título absurdamente longo que não cabe na faixa do cabeçalho de forma alguma',
-          ),
+          child: AppHeaderBar(title: longTitle),
         ),
       );
 
