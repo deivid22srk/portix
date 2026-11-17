@@ -48,9 +48,12 @@ class VersionSelector extends ConsumerWidget {
     final List<GithubRelease>? data = async.value;
     if (data == null) {
       final Object? error = async.error;
+      final GitHubErrorKind? kind =
+          error is GitHubApiException ? error.kind : null;
       return _ErrorCard(
-        rateLimit: error is GitHubApiException && error.kind == GitHubErrorKind.rateLimit,
-        offline: error is GitHubApiException && error.kind == GitHubErrorKind.offline,
+        rateLimit: kind == GitHubErrorKind.rateLimit,
+        offline: kind == GitHubErrorKind.offline,
+        notFound: kind == GitHubErrorKind.notFound,
         message: context.failureText(error),
         onRetry: () => ref.invalidate(repoReleasesProvider(repoId)),
       );
@@ -141,6 +144,8 @@ class VersionCard extends StatelessWidget {
     final L10n l10n = context.l10n;
     final bool enabled = onTap != null;
     final ApkAsset? asset = preferredApkAsset(release.assets);
+    // Reduced motion: sem animação quando o sistema pede menos movimento.
+    final bool reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     final String date = release.publishedAt == null
         ? l10n.notInformed
@@ -169,7 +174,7 @@ class VersionCard extends StatelessWidget {
       child: Pressable(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: AppMotion.fast,
+          duration: reduceMotion ? Duration.zero : AppMotion.fast,
           curve: AppMotion.out,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 12),
           constraints: const BoxConstraints(minHeight: 56),
@@ -184,20 +189,22 @@ class VersionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
+                    // Wrap: tag + badges caem para a 2ª linha quando não
+                    // couberem (nada de RenderFlex overflow em 320-375px).
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: <Widget>[
-                        Flexible(
-                          child: Text(
-                            release.tag,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.texts.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: enabled ? null : AppColors.textTertiary,
-                            ),
+                        Text(
+                          release.tag,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: enabled ? null : AppColors.textTertiary,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         _Badges(
                           release: release,
                           isLatest: isLatest,
@@ -211,7 +218,7 @@ class VersionCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.texts.labelSmall?.copyWith(
-                        color: AppColors.textTertiary,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -261,20 +268,19 @@ class _Badges extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // Wrap: badges nunca estouram a largura (caem para a linha de baixo).
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         // "Mais recente" e "Instalada" coexistem (podem ser a mesma versão).
         if (isLatest && !release.prerelease)
           BadgeChip(label: l10n.latestBadge, color: AppColors.accent),
-        if (release.prerelease) ...<Widget>[
-          const SizedBox(width: 6),
+        if (release.prerelease)
           BadgeChip(label: l10n.betaBadge, color: AppColors.warning),
-        ],
-        if (installed) ...<Widget>[
-          const SizedBox(width: 6),
+        if (installed)
           BadgeChip(label: l10n.installedBadge, color: AppColors.accentAlt),
-        ],
       ],
     );
   }
@@ -417,29 +423,37 @@ class ApkPickerSheet extends StatelessWidget {
   }
 }
 
-/// Erro da seção de versões (rate limit / offline / outro).
+/// Erro da seção de versões (rate limit / offline / 404 / outro).
 class _ErrorCard extends StatelessWidget {
   const _ErrorCard({
     required this.rateLimit,
     required this.offline,
+    required this.notFound,
     required this.message,
     required this.onRetry,
   });
 
   final bool rateLimit;
   final bool offline;
+  final bool notFound;
   final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    final String title = rateLimit ? l10n.rateLimitTitle : l10n.errorGeneric;
+    final String title = rateLimit
+        ? l10n.rateLimitTitle
+        : notFound
+            ? l10n.repoNotFoundTitle
+            : l10n.errorGeneric;
     final String body = rateLimit
         ? l10n.rateLimitBody
-        : offline
-            ? l10n.githubOfflineBody
-            : message;
+        : notFound
+            ? l10n.repoNotFoundBody
+            : offline
+                ? l10n.githubOfflineBody
+                : message;
     return GlassContainer(
       radius: AppRadii.lg,
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -451,9 +465,11 @@ class _ErrorCard extends StatelessWidget {
               Icon(
                 rateLimit
                     ? Icons.hourglass_top_rounded
-                    : offline
-                        ? Icons.cloud_off_rounded
-                        : Icons.error_outline_rounded,
+                    : notFound
+                        ? Icons.inventory_2_outlined
+                        : offline
+                            ? Icons.cloud_off_rounded
+                            : Icons.error_outline_rounded,
                 color: rateLimit || offline ? AppColors.warning : AppColors.danger,
               ),
               const SizedBox(width: AppSpacing.md),

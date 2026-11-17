@@ -10,12 +10,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:portix/app/theme.dart';
 import 'package:portix/core/github_releases.dart';
+import 'package:portix/models/game_detail.dart';
 import 'package:portix/core/github_service.dart';
 import 'package:portix/features/details/developer_card.dart';
 import 'package:portix/features/details/version_selector.dart';
 import 'package:portix/shared/widgets/game_media.dart';
 import 'package:portix/shared/widgets/markdown_lite.dart';
 import 'package:portix/shared/widgets/primitives.dart';
+
+import 'package:portix/features/details/game_detail_page.dart';
+import 'package:portix/features/downloads/downloads_controller.dart';
+import 'package:portix/models/download_task.dart';
+import 'package:portix/core/providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'fakes/detail_fixtures.dart';
+import 'fakes/fake_catalog.dart';
+
+const DownloadTask kDoneTask = DownloadTask(
+  gameId: 'spore-1',
+  title: 'Spore',
+  slug: 'spore',
+  status: DownloadStatus.done,
+  progress: 1,
+  releaseTag: 'v0.1.4',
+  packageName: 'com.portix.spore',
+  apkPath: '/tmp/spore.apk',
+);
+
+/// Downloads ociosos para os goldens: sem tocar no canal nativo.
+class IdleDownloads extends DownloadsController {
+  @override
+  List<DownloadTask> build() => const <DownloadTask>[];
+}
 
 const String _outDir = 'goldens_out';
 
@@ -298,5 +325,83 @@ void main() {
       ),
     );
     await _snap(tester, 'hero_mobile_375');
+  });
+
+  Future<ProviderContainer> pageContainer() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        catalogRepositoryProvider.overrideWithValue(FakeCatalogRepository()),
+        gameDetailProvider.overrideWith(
+          (Ref ref, String slug) => Future<GameDetail>.value(kSporeDetail),
+        ),
+        repoReleasesProvider.overrideWith(
+          (Ref ref, String repoId) =>
+              Future<List<GithubRelease>>.value(kSporeReleases),
+        ),
+        githubUserProvider.overrideWith(
+          (Ref ref, String owner) =>
+              Future<GithubUser?>.value(kSporeUser),
+        ),
+        downloadsProvider.overrideWith(IdleDownloads.new),
+      ],
+    );
+  }
+
+  Future<void> pumpFullPage(
+    WidgetTester tester,
+    Size size,
+    ProviderContainer container,
+  ) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          locale: const Locale('pt'),
+          supportedLocales: const <Locale>[Locale('pt'), Locale('en')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          theme: _readableTheme(),
+          home: const Scaffold(body: GameDetailPage(slug: 'spore')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('TELA COMPLETA mobile 375px', (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
+    final ProviderContainer container = await pageContainer();
+    addTearDown(container.dispose);
+    await pumpFullPage(tester, const Size(375, 860), container);
+    await _snap(tester, 'detalhes_completo_375');
+  });
+
+  testWidgets('TELA COMPLETA tablet 768px (2 colunas)',
+      (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
+    final ProviderContainer container = await pageContainer();
+    addTearDown(container.dispose);
+    await pumpFullPage(tester, const Size(768, 1024), container);
+    await _snap(tester, 'detalhes_completo_768');
+  });
+
+  testWidgets('TELA COMPLETA desktop 1440px', (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
+    final ProviderContainer container = await pageContainer();
+    addTearDown(container.dispose);
+    await pumpFullPage(tester, const Size(1440, 900), container);
+    await _snap(tester, 'detalhes_completo_1440');
   });
 }

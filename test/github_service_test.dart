@@ -250,6 +250,28 @@ void main() {
     expect(user?.isOrganization, isTrue);
   });
 
+
+  test('cache da foto: 5 reaberturas do perfil = 1 download', () async {
+    int calls = 0;
+    final GitHubApi api = GitHubApi(
+      client: MockClient((http.Request request) async {
+        calls += 1;
+        return _json(<String, dynamic>{
+          'login': 'VinTeRuS',
+          'name': 'VinTeRuS404',
+          'avatar_url': 'https://avatars.githubusercontent.com/u/73440180?v=4',
+          'html_url': 'https://github.com/VinTeRuS',
+          'type': 'User',
+        }, headers: <String, String>{'etag': 'W/"u1"'});
+      }),
+    );
+    for (int i = 0; i < 5; i++) {
+      final GithubUser? user = await api.fetchUser('VinTeRuS');
+      expect(user?.displayName, 'VinTeRuS404');
+    }
+    expect(calls, 1); // 1 download de dados, 4 hits de memória
+  });
+
   test('fetchLatestApkRelease: primeira release com APK', () async {
     final GitHubApi api = GitHubApi(
       client: MockClient((http.Request request) async => _json(<Object?>[

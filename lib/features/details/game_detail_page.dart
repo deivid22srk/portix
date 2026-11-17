@@ -211,12 +211,18 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   /// Dados do app instalado correspondente à tarefa (ou `null`).
+  /// Lê o provider (mesma fonte usada no build) para que overrides de teste
+  /// e cache de sessão funcionem; cai no canal nativo se ainda não resolveu.
   Future<ApkSummary?> _installedApp(DownloadTask task) async {
     final String? pkg = task.packageName;
     if (pkg == null || pkg.isEmpty) {
       return null;
     }
-    return ApkTools.installed(pkg);
+    final AsyncValue<ApkSummary?> cached = ref.read(installedAppProvider(pkg));
+    if (cached.hasValue) {
+      return cached.value;
+    }
+    return ref.read(installedAppProvider(pkg).future);
   }
 
   /// Baixa a versão escolhida: escolhe o asset, avisa sobre downgrade e
@@ -748,14 +754,14 @@ class _CtaBar extends StatelessWidget {
               ),
               GlassCircleButton(
                 icon: Icons.pause_rounded,
-                size: 40,
+                size: 44,
                 tooltip: l10n.pause,
                 onTap: onPause,
               ),
               const SizedBox(width: AppSpacing.sm),
               GlassCircleButton(
                 icon: Icons.close_rounded,
-                size: 40,
+                size: 44,
                 tooltip: l10n.cancel,
                 onTap: onCancel,
               ),
@@ -1314,7 +1320,7 @@ class _TopBar extends StatelessWidget {
                 children: <Widget>[
                   GlassCircleButton(
                     icon: Icons.arrow_back_rounded,
-                    size: 40,
+                    size: 44,
                     onTap: onBack,
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -1430,11 +1436,15 @@ class _DeveloperChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
     final GithubUser? user = ref.watch(githubUserProvider(owner)).value;
+    // Sem URL de avatar: iniciais (mesma regra do DeveloperCard).
+    final String? photoUrl = (user?.avatarUrl ?? '').trim().isEmpty
+        ? null
+        : user!.avatarUrlFor(44);
     final Widget avatar = SizedBox(
       width: 22,
       height: 22,
       child: ClipOval(
-        child: user == null
+        child: photoUrl == null
             ? ColoredBox(
                 color: AppColors.glassStrong,
                 child: Center(
@@ -1449,7 +1459,7 @@ class _DeveloperChip extends ConsumerWidget {
                 ),
               )
             : CachedNetworkImage(
-                imageUrl: user.avatarUrlFor(44),
+                imageUrl: photoUrl,
                 fit: BoxFit.cover,
                 memCacheWidth: 66,
                 fadeInDuration: AppMotion.fast,

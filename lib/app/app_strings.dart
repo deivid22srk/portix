@@ -320,6 +320,10 @@ class L10n {
   String get githubOfflineBody => _t(
       'Sem conexão com o GitHub agora. Os dados salvos continuam visíveis.',
       'No connection to GitHub right now. Saved data stays visible.');
+  String get repoNotFoundTitle => _t('Repositório indisponível', 'Repository unavailable');
+  String get repoNotFoundBody => _t(
+      'O repositório do port ficou privado, foi movido ou removido do GitHub.',
+      'The port repository became private, moved or was removed from GitHub.');
   String get statsVersion => _t('Versão', 'Version');
   String get statsSize => _t('Tamanho', 'Size');
   String get statsDownloads => _t('Downloads', 'Downloads');
