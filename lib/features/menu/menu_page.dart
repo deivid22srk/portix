@@ -7,7 +7,6 @@ import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../app/settings.dart';
 import '../../core/auth.dart';
-import '../../core/ads/ads_providers.dart';
 import '../../core/env.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
@@ -35,9 +34,7 @@ class MenuPage extends ConsumerWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.bgElevated,
         margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
       ),
     );
   }
@@ -62,22 +59,6 @@ class MenuPage extends ConsumerWidget {
     _snack(context, context.l10n.cacheCleared);
   }
 
-  /// Recompensado voluntário: assistir para apoiar o projeto. Pular ou
-  /// indisponível devolve feedback honesto — nada é prometido e nada é
-  /// cobrado: só quem QUER assistir assiste.
-  Future<void> _support(BuildContext context, WidgetRef ref) async {
-    final bool watched = await ref
-        .read(adsProvider.notifier)
-        .showRewardedSupport();
-    if (!context.mounted) {
-      return;
-    }
-    _snack(
-      context,
-      watched ? context.l10n.adsThanks : context.l10n.adsUnavailable,
-    );
-  }
-
   /// Abre um documento legal da landing page no navegador.
   Future<void> _openLegal(BuildContext context, String url) async {
     final Uri? uri = Uri.tryParse(url);
@@ -96,12 +77,10 @@ class MenuPage extends ConsumerWidget {
     final L10n l10n = context.l10n;
     final AppSettings settings = ref.watch(settingsProvider);
     final AccountState account = ref.watch(accountProvider);
-    final UserProfile profile =
-        ref.watch(profileProvider).value ??
+    final UserProfile profile = ref.watch(profileProvider).value ??
         UserProfile(id: account.id ?? '', displayName: account.displayName);
     final String? adminLevel = ref.watch(adminLevelProvider).value;
-    final Collections collections =
-        ref.watch(collectionsProvider).value ?? Collections.empty;
+    final Collections collections = ref.watch(collectionsProvider).value ?? Collections.empty;
     final int downloads = ref
         .watch(downloadsProvider)
         .where((DownloadTask task) => task.isDone)
@@ -213,8 +192,7 @@ class MenuPage extends ConsumerWidget {
                           child: SecondaryButton(
                             label: l10n.editProfile,
                             icon: Icons.edit_rounded,
-                            onPressed: () =>
-                                context.push<Object?>('/profile/edit'),
+                            onPressed: () => context.push<Object?>('/profile/edit'),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.md),
@@ -222,8 +200,7 @@ class MenuPage extends ConsumerWidget {
                           label: l10n.signOut,
                           icon: Icons.logout_rounded,
                           expand: false,
-                          onPressed: () =>
-                              ref.read(accountProvider.notifier).signOut(),
+                          onPressed: () => ref.read(accountProvider.notifier).signOut(),
                         ),
                       ],
                     )
@@ -243,25 +220,14 @@ class MenuPage extends ConsumerWidget {
                     child: Row(
                       children: <Widget>[
                         Expanded(
-                          child: _MenuStat(
-                            value: collections.favorites.length.toString(),
-                            label: l10n.hubFavorites,
-                          ),
+                          child: _MenuStat(value: collections.favorites.length.toString(), label: l10n.hubFavorites),
                         ),
                         const _MenuDivider(),
                         Expanded(
-                          child: _MenuStat(
-                            value: collections.library.length.toString(),
-                            label: l10n.hubInstalled,
-                          ),
+                          child: _MenuStat(value: collections.library.length.toString(), label: l10n.hubInstalled),
                         ),
                         const _MenuDivider(),
-                        Expanded(
-                          child: _MenuStat(
-                            value: downloads.toString(),
-                            label: l10n.hubDownloads,
-                          ),
-                        ),
+                        Expanded(child: _MenuStat(value: downloads.toString(), label: l10n.hubDownloads)),
                       ],
                     ),
                   ),
@@ -296,20 +262,13 @@ class MenuPage extends ConsumerWidget {
                         const SizedBox(height: AppSpacing.md),
                         SegmentedControl<String>(
                           items: const <SegmentItem<String>>[
-                            SegmentItem<String>(
-                              value: 'pt',
-                              label: 'Português (BR)',
-                            ),
+                            SegmentItem<String>(value: 'pt', label: 'Português (BR)'),
                             SegmentItem<String>(value: 'en', label: 'English'),
                           ],
                           value: settings.locale.languageCode,
                           onChanged: (String code) => ref
                               .read(settingsProvider.notifier)
-                              .setLocale(
-                                code == 'en'
-                                    ? const Locale('en')
-                                    : const Locale('pt', 'BR'),
-                              ),
+                              .setLocale(code == 'en' ? const Locale('en') : const Locale('pt', 'BR')),
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         Row(
@@ -337,9 +296,8 @@ class MenuPage extends ConsumerWidget {
                             const SizedBox(width: AppSpacing.md),
                             AppToggle(
                               value: settings.notifications,
-                              onChanged: (bool value) => ref
-                                  .read(settingsProvider.notifier)
-                                  .setNotifications(value),
+                              onChanged: (bool value) =>
+                                  ref.read(settingsProvider.notifier).setNotifications(value),
                             ),
                           ],
                         ),
@@ -359,12 +317,6 @@ class MenuPage extends ConsumerWidget {
                     icon: Icons.cleaning_services_rounded,
                     label: l10n.clearCache,
                     onTap: () => _clearCache(context, ref),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  SectionTile(
-                    icon: Icons.volunteer_activism_rounded,
-                    label: l10n.supportApp,
-                    onTap: () => _support(context, ref),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   _SectionLabel(l10n.about),
@@ -417,11 +369,7 @@ class MenuPage extends ConsumerWidget {
                         const SizedBox(height: AppSpacing.md),
                         Row(
                           children: <Widget>[
-                            const Icon(
-                              Icons.code_rounded,
-                              size: 14,
-                              color: AppColors.accent,
-                            ),
+                            const Icon(Icons.code_rounded, size: 14, color: AppColors.accent),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -482,9 +430,7 @@ class _MenuStat extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: context.texts.labelSmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: context.texts.labelSmall?.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

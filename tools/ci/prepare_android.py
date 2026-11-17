@@ -123,9 +123,6 @@ def patch_gradle(android: Path) -> None:
         "-dontwarn com.google.gson.**\n"
         "-keep class com.google.android.play.core.** { *; }\n"
         "-dontwarn com.google.android.play.core.**\n"
-        "# Unity Ads (SDK usa reflexão/JNI para o ciclo de anúncios).\n"
-        "-keep class com.unity3d.** { *; }\n"
-        "-dontwarn com.unity3d.**\n"
         "# Motor de download nativo (Rust/JNI) e serviço de primeiro plano.\n"
         "-keepclasseswithmembernames class * { native <methods>; }\n"
         "-keep class com.deivid22srk.portix.downloader.** { *; }\n",

@@ -438,34 +438,6 @@ class L10n {
   String get searchingRelease =>
       _t('Buscando a release…', 'Looking up the release…');
 
-  // ---------------------------------------------------------------- anúncios
-  String get adblockTitle =>
-      _t('Bloqueador de anúncios detectado', 'Ad blocker detected');
-  String get adblockBody => _t(
-    'O PORTIX é gratuito graças aos anúncios. Para continuar usando o app, '
-        'desligue o bloqueador de anúncios para o PORTIX.',
-    'PORTIX is free thanks to ads. To keep using the app, turn off your '
-        'ad blocker for PORTIX.',
-  );
-  String get adblockVerify => _t('Verificar novamente', 'Verify again');
-  String get adblockHint => _t(
-    'Desligue o bloqueio (DNS privado, app de VPN ou filtro de hosts) e '
-        'toque em verificar. Sem bloqueador, o app abre normalmente.',
-    'Turn off blocking (private DNS, VPN app or host filter) and verify. '
-        'Without a blocker the app opens normally.',
-  );
-  String get supportApp => _t('Apoie o PORTIX', 'Support PORTIX');
-  String get supportAppHint => _t(
-    'Assista a um anúncio para ajudar o projeto',
-    'Watch an ad to help the project',
-  );
-  String get adsThanks =>
-      _t('Obrigado por apoiar o PORTIX!', 'Thanks for supporting PORTIX!');
-  String get adsUnavailable => _t(
-    'Anúncio indisponível agora — tente mais tarde.',
-    'Ad unavailable right now — try again later.',
-  );
-
   // -------------------------------------------------------------- contagens
   String gameCount(int n) =>
       _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');
