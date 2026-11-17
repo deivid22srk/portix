@@ -7,6 +7,7 @@ import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/env.dart';
 import '../../core/theme/tokens.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
 import 'data/device_specs_models.dart';
@@ -44,44 +45,11 @@ class DeviceSpecsScreen extends ConsumerWidget {
         child: SafeArea(
           child: Column(
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
-                  AppSpacing.md,
-                  AppSpacing.screen,
-                  AppSpacing.sm,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    GlassCircleButton(
-                      icon: Icons.arrow_back_rounded,
-                      tooltip: context.l10n.tooltipBack,
-                      onTap: () => _back(context),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l10n.specsTitle,
-                            style: context.texts.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            async.value?.name ?? l10n.loading,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.texts.bodySmall?.copyWith(
-                              color: context.colors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              AppHeaderBar(
+                title: l10n.specsTitle,
+                subtitle: async.value?.name ?? l10n.loading,
+                showBack: true,
+                onBack: () => _back(context),
               ),
               Expanded(
                 child: async.value == null

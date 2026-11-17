@@ -25,10 +25,16 @@ class SettingsSearchNotifier extends Notifier<String> {
 /// Hub de configurações: título + perfil resumido + busca + lista de
 /// categorias. Usado no /menu e como coluna esquerda do master-detail (≥768px).
 class SettingsHub extends ConsumerStatefulWidget {
-  const SettingsHub({super.key, this.selectedId});
+  const SettingsHub({super.key, this.selectedId, this.scrollController});
 
   /// Categoria destacada quando a página abre em master-detail.
   final String? selectedId;
+
+  /// Controlador da aba Menu (só a instância da raiz da aba o recebe): é ele
+  /// que devolve a lista ao topo no re-toque. O master-detail da categoria
+  /// monta outra instância com `null` — dois scroll views no mesmo
+  /// controlador lançariam erro.
+  final ScrollController? scrollController;
 
   @override
   ConsumerState<SettingsHub> createState() => _SettingsHubState();
@@ -118,6 +124,7 @@ class _SettingsHubState extends ConsumerState<SettingsHub> {
           child: visible.isEmpty
               ? _SettingsEmptySearch(l10n: l10n)
               : ListView.separated(
+                  controller: widget.scrollController,
                   padding: EdgeInsets.fromLTRB(
                     AppSpacing.screen,
                     0,

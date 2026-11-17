@@ -4,7 +4,10 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/theme/tokens.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/primitives.dart';
+import '../../shared/widgets/user_avatar_action.dart';
+import '../shell/tab_scroll_registry.dart';
 import 'settings_hub.dart';
 
 /// Largura da coluna do hub no master-detail (≥768px).
@@ -20,49 +23,72 @@ class MenuPage extends ConsumerWidget {
     final L10n l10n = context.l10n;
     return SafeArea(
       bottom: false,
-      child: AppContentMax(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final bool wide =
-                constraints.maxWidth >= AppBreakpoints.settingsDetail;
-            if (wide) {
-              // Master-detail sem categoria aberta: painel de orientação.
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  SizedBox(width: _hubColumnWidth, child: const SettingsHub()),
-                  Container(width: 1, color: context.colors.glassBorder),
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.xxl),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            Icon(
-                              Icons.tune_rounded,
-                              size: 40,
-                              color: context.colors.textTertiary,
+      child: Column(
+        children: <Widget>[
+          AppHeaderBar(
+            title: l10n.menuTitle,
+            trailing: const UserAvatarAction(),
+          ),
+          Expanded(
+            child: AppContentMax(
+              child: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  final bool wide =
+                      constraints.maxWidth >= AppBreakpoints.settingsDetail;
+                  if (wide) {
+                    // Master-detail sem categoria aberta: painel de orientação.
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        SizedBox(
+                          width: _hubColumnWidth,
+                          child: SettingsHub(
+                            scrollController: TabScrollScope.controllerOf(
+                              context,
+                              AppTab.menu,
                             ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              l10n.settingsSelectHint,
-                              textAlign: TextAlign.center,
-                              style: context.texts.bodyMedium?.copyWith(
-                                color: context.colors.textSecondary,
+                          ),
+                        ),
+                        Container(width: 1, color: context.colors.glassBorder),
+                        Expanded(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.xxl),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  Icon(
+                                    Icons.tune_rounded,
+                                    size: 40,
+                                    color: context.colors.textTertiary,
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
+                                  Text(
+                                    l10n.settingsSelectHint,
+                                    textAlign: TextAlign.center,
+                                    style: context.texts.bodyMedium?.copyWith(
+                                      color: context.colors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
+                    );
+                  }
+                  return SettingsHub(
+                    scrollController: TabScrollScope.controllerOf(
+                      context,
+                      AppTab.menu,
                     ),
-                  ),
-                ],
-              );
-            }
-            return const SettingsHub();
-          },
-        ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

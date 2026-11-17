@@ -9,6 +9,7 @@ import '../../app/app_strings.dart';
 import '../../app/theme.dart';
 import '../../core/env.dart';
 import '../../core/theme/tokens.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
 import 'data/device_specs_models.dart';
@@ -80,33 +81,10 @@ class _DeviceSpecsSearchScreenState
         child: SafeArea(
           child: Column(
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
-                  AppSpacing.md,
-                  AppSpacing.screen,
-                  AppSpacing.sm,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    GlassCircleButton(
-                      icon: Icons.arrow_back_rounded,
-                      tooltip: context.l10n.tooltipBack,
-                      onTap: _back,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Text(
-                        l10n.specsSearchTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.texts.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              AppHeaderBar(
+                title: l10n.specsSearchTitle,
+                showBack: true,
+                onBack: _back,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(

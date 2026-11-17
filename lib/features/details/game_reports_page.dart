@@ -9,6 +9,7 @@ import '../../core/env.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/compat_report.dart';
 import '../../models/game_detail.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/feedback_report_row.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
@@ -54,44 +55,11 @@ class _GameReportsPageState extends ConsumerState<GameReportsPage> {
         child: SafeArea(
           child: Column(
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
-                  AppSpacing.md,
-                  AppSpacing.screen,
-                  AppSpacing.sm,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    GlassCircleButton(
-                      icon: Icons.arrow_back_rounded,
-                      tooltip: context.l10n.tooltipBack,
-                      onTap: _back,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l10n.reportsTitle,
-                            style: context.texts.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            detail.value?.game.title ?? l10n.loading,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.texts.bodySmall?.copyWith(
-                              color: context.colors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              AppHeaderBar(
+                title: l10n.reportsTitle,
+                subtitle: detail.value?.game.title ?? l10n.loading,
+                showBack: true,
+                onBack: _back,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(
