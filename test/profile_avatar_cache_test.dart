@@ -436,11 +436,15 @@ void main() {
           reason: 'Após clear do ImageCache o disco atende (0 downloads)',
         );
 
-        // Invalidação explícita (removeFile): 1 re-download no nível manager
-        // (mesmo DefaultCacheManager do widget, agora com await direto —
-        // determinístico, sem disputar estado interno durante o render).
+        // Invalidação explícita (removeFile): 1 re-download garantido via
+        // downloadFile(force: true) — contorna o WebHelper, que pode manter
+        // por um tempo o BehaviorSubject do download anterior (close
+        // pendente do completer da imagem antiga em runners lentos) e
+        // responder com replay de FileInfo velho, apontando para o arquivo
+        // já removido.
         await DefaultCacheManager().removeFile(_widgetAvatarUrl);
-        await DefaultCacheManager().getSingleFile(_widgetAvatarUrl);
+        clearInMemoryImageCache();
+        await DefaultCacheManager().downloadFile(_widgetAvatarUrl, force: true);
         clearInMemoryImageCache();
         await renderAvatar(
           tester,
