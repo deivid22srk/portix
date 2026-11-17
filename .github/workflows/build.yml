@@ -45,6 +45,11 @@ jobs:
       - name: Dependências
         run: flutter pub get
 
+      - name: DEBUG format (temporário)
+        run: |
+          dart --version
+          dart format --output=show test/ui/nav_header_test.dart
+
       - name: Portões de UI
         run: tool/ui_gates.sh --skip-analyze
 
