@@ -314,12 +314,14 @@ class _AppHeaderDelegate extends SliverPersistentHeaderDelegate {
                 Expanded(
                   child: Opacity(
                     opacity: collapsed,
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: texts.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                    child: ExcludeSemantics(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: texts.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -359,13 +361,17 @@ class _AppHeaderDelegate extends SliverPersistentHeaderDelegate {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Flexible(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: texts.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.8,
+                        // Heading: leitores de tela navegam por título.
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: texts.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.8,
+                            ),
                           ),
                         ),
                       ),
@@ -483,12 +489,15 @@ class AppHeaderBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.texts.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+                Semantics(
+                  header: true,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.texts.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 if (subtitle != null) ...<Widget>[

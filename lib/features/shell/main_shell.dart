@@ -207,31 +207,35 @@ class AccountTile extends ConsumerWidget {
                 size: AppSpacing.xxl,
                 level: adminLevel,
               ),
-              if (!compact && secondary.isNotEmpty) ...<Widget>[
-                const SizedBox(width: AppSpacing.sm),
+              // O nome aparece sempre que há espaço; e-mail/@handle só quando
+              // a conta tem um (convidado sem perfil não fica com linha vazia).
+              if (!compact)
                 Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.texts.labelLarge,
-                      ),
-                      Text(
-                        secondary,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.texts.labelSmall?.copyWith(
-                          color: context.colors.textTertiary,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: AppSpacing.sm),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.texts.labelLarge,
                         ),
-                      ),
-                    ],
+                        if (secondary.isNotEmpty)
+                          Text(
+                            secondary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.texts.labelSmall?.copyWith(
+                              color: context.colors.textTertiary,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
             ],
           ),
         );

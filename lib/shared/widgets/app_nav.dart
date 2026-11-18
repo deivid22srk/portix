@@ -133,10 +133,17 @@ class AppNavItem extends StatefulWidget {
 
 class _AppNavItemState extends State<AppNavItem> {
   bool _focused = false;
+  bool _hovered = false;
 
   void _setFocused(bool value) {
     if (_focused != value && mounted) {
       setState(() => _focused = value);
+    }
+  }
+
+  void _setHovered(bool value) {
+    if (_hovered != value && mounted) {
+      setState(() => _hovered = value);
     }
   }
 
@@ -182,6 +189,17 @@ class _AppNavItemState extends State<AppNavItem> {
       ),
     );
 
+    final Widget stackedVisuals = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        icon,
+        const SizedBox(height: AppSpacing.hairline),
+        if (widget.showLabel)
+          // Elástico no texto 2.0: o rótulo encolhe em vez de estourar a
+          // altura (que já cresce) da barra.
+          FittedBox(fit: BoxFit.scaleDown, child: label),
+      ],
+    );
     final Widget visuals = widget.layout == AppNavItemLayout.inline
         ? Row(
             children: <Widget>[
@@ -190,17 +208,7 @@ class _AppNavItemState extends State<AppNavItem> {
               Expanded(child: label),
             ],
           )
-        : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              icon,
-              const SizedBox(height: AppSpacing.hairline),
-              if (widget.showLabel)
-                // Elástico no texto 2.0: o rótulo encolhe em vez de estourar a
-                // altura (que já cresce) da barra.
-                FittedBox(fit: BoxFit.scaleDown, child: label),
-            ],
-          );
+        : stackedVisuals;
 
     return Semantics(
       // Nó próprio: o leitor de tela anuncia "aba, 3 de 5, selecionada" em vez
@@ -217,6 +225,8 @@ class _AppNavItemState extends State<AppNavItem> {
       child: ExcludeSemantics(
         child: FocusableActionDetector(
           onShowFocusHighlight: _setFocused,
+          onShowHoverHighlight: _setHovered,
+          mouseCursor: SystemMouseCursors.click,
           actions: <Type, Action<Intent>>{
             ActivateIntent: CallbackAction<ActivateIntent>(
               onInvoke: (ActivateIntent intent) {
@@ -230,6 +240,11 @@ class _AppNavItemState extends State<AppNavItem> {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadii.md),
+                // Mouse no desktop: realce sutil no hover, sem competir com a
+                // pílula do destino ativo.
+                color: _hovered && !widget.selected
+                    ? context.colors.glassStrong.withValues(alpha: 0.45)
+                    : AppContentColors.transparent,
                 border: Border.all(
                   color: _focused
                       ? context.colors.accent
@@ -242,7 +257,16 @@ class _AppNavItemState extends State<AppNavItem> {
                   horizontal: AppSpacing.xs,
                   vertical: AppSpacing.xs,
                 ),
-                child: Center(child: visuals),
+                child: Center(
+                  child: widget.showLabel
+                      ? visuals
+                      // Sidebar recolhida: sem rótulo no pixel, o mouse ganha
+                      // o nome no tooltip (o leitor de tela já tem o Semantics).
+                      : Tooltip(
+                          message: widget.destination.label,
+                          child: visuals,
+                        ),
+                ),
               ),
             ),
           ),

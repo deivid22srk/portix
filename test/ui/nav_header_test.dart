@@ -306,9 +306,11 @@ void main() {
       await tester.tap(find.byTooltip('Recolher navegação'));
       await tester.pumpAndSettle();
 
-      // O rótulo some do visual, mas continua disponível para o leitor de tela.
+      // O rótulo some do visual, mas continua disponível para o leitor de tela
+      // e para o mouse (tooltip).
       expect(find.text('Início'), findsNothing);
       expect(_semanticsWithLabel('Início'), findsOneWidget);
+      expect(find.byTooltip('Início'), findsOneWidget);
     });
   });
 
