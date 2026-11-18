@@ -64,12 +64,8 @@ class CatalogFacets {
   static const CatalogFacets empty = CatalogFacets();
 
   factory CatalogFacets.fromMap(Map<String, dynamic> map) => CatalogFacets(
-    platforms: asMapList(map['platforms'])
-        .map(PlatformInfo.fromMap)
-        .toList(growable: false),
-    genres: asMapList(map['genres'])
-        .map(GenreInfo.fromMap)
-        .toList(growable: false),
+    platforms: mapList(map['platforms'], PlatformInfo.fromMap),
+    genres: mapList(map['genres'], GenreInfo.fromMap),
   );
 }
 
@@ -252,12 +248,13 @@ class HomeFeed {
   factory HomeFeed.fromMap(Map<String, dynamic> map) {
     List<Game> games(String key) =>
         asMapList(map[key]).map(Game.fromMap).toList(growable: false);
-    final List<PlatformInfo> platforms = asMapList(map['platforms'])
-        .map(PlatformInfo.fromMap)
-        .toList(growable: false);
-    final List<GenreInfo> genres = asMapList(map['genres'])
-        .map(GenreInfo.fromMap)
-        .toList(growable: false);
+    final Object? rawPlatforms = map['platforms'];
+    final List<PlatformInfo> platforms = mapList(
+      rawPlatforms,
+      PlatformInfo.fromMap,
+    );
+    final Object? rawGenres = map['genres'];
+    final List<GenreInfo> genres = mapList(rawGenres, GenreInfo.fromMap);
     final CatalogStats stats = CatalogStats.fromMap(asMap(map['stats']));
 
     final List<Map<String, dynamic>> rawSections = asMapList(map['sections']);

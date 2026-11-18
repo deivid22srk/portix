@@ -251,6 +251,95 @@ comment on function public.feed_seen_recent() is
 revoke all on function public.feed_seen_recent() from public;
 grant execute on function public.feed_seen_recent() to anon, authenticated;
 
+-- ------------------------------------- popularidade global (agregado puro)
+-- SECURITY DEFINER justificado: `downloads` tem SELECT só para `authenticated`
+-- (privilégio mínimo, 0005). Esta função devolve apenas a soma decaída POR JOGO
+-- — um agregado, nunca uma linha de usuário — então o feed anônimo continua
+-- funcionando sem abrir a tabela.
+create or replace function public.feed_popularity(
+  p_days int default 35,
+  p_half_life numeric default 7
+)
+returns table (game_id uuid, decayed numeric)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    d.game_id,
+    sum(
+      exp(
+        -extract(epoch from (current_timestamp - d.created_at))
+        / 86400.0
+        / greatest(coalesce(p_half_life, 7), 0.5)
+      )
+    )::numeric as decayed
+  from public.downloads d
+  where d.status = 'done'
+    and d.created_at
+        > current_timestamp - make_interval(days => greatest(coalesce(p_days, 35), 1))
+  group by d.game_id;
+$$;
+
+comment on function public.feed_popularity(int, numeric) is
+  'Popularidade recente por jogo (downloads concluídos com decaimento). Agregado puro, para que o feed funcione para anônimo sem dar SELECT em downloads.';
+
+-- ------------------------------------------- preferências do PRÓPRIO usuário
+-- SECURITY DEFINER justificado (mesmo motivo acima: favoritos, biblioteca e
+-- downloads são só de `authenticated`). Lê apenas `auth.uid()` — não aceita
+-- identidade como parâmetro — e devolve shares normalizados + marcadores, nunca
+-- as linhas cruas do histórico.
+create or replace function public.feed_user_preferences()
+returns table (dimension text, value text, share numeric)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with ug as (
+    select f.game_id from public.favorites f where f.user_id = auth.uid()
+    union
+    select l.game_id from public.library l where l.user_id = auth.uid()
+    union
+    select d.game_id from public.downloads d
+     where d.user_id = auth.uid() and d.status = 'done'
+  ),
+  gp as (
+    select g.genre as v, count(*)::numeric as c
+    from ug
+    join public.games g on g.id = ug.game_id
+    where coalesce(g.genre, '') <> ''
+    group by g.genre
+  ),
+  dp as (
+    select g.developer as v, count(*)::numeric as c
+    from ug
+    join public.games g on g.id = ug.game_id
+    where coalesce(g.developer, '') <> ''
+    group by g.developer
+  )
+  select
+    'has_history',
+    '',
+    case when exists (select 1 from ug) then 1 else 0 end
+  union all
+  select 'top_genre', t.v, 1
+  from (select v, c from gp order by c desc, v limit 1) t
+  union all
+  select 'genre', gp.v, gp.c / (select greatest(max(c), 1) from gp) from gp
+  union all
+  select 'developer', dp.v, dp.c / (select greatest(max(c), 1) from dp) from dp;
+$$;
+
+comment on function public.feed_user_preferences() is
+  'Afinidade do próprio usuário: shares de gênero/desenvolvedor normalizados em (0,1], mais has_history e o gênero dominante. Lê auth.uid() internamente.';
+
+revoke all on function public.feed_popularity(int, numeric) from public;
+revoke all on function public.feed_user_preferences() from public;
+grant execute on function public.feed_popularity(int, numeric) to anon, authenticated;
+grant execute on function public.feed_user_preferences() to anon, authenticated;
+
 -- ------------------------------------------------------------- candidatos
 -- Pontua o catálogo inteiro uma vez por sessão e devolve um array jsonb
 -- ordenado por score. Com 839 jogos a agregação em memória é mais barata e
@@ -288,50 +377,25 @@ c as (
 ),
 -- Popularidade recente: cada download concluído vale menos conforme envelhece
 -- (meia-vida de 7 dias). A janela curta mantém a leitura no índice parcial.
+-- Popularidade e afinidade vêm de funções SECURITY DEFINER que só devolvem
+-- agregados do próprio usuário (as tabelas de histórico são `authenticated`).
 recent_downloads as (
-  select
-    d.game_id,
-    sum(
-      exp(
-        -extract(epoch from (current_timestamp - d.created_at))
-        / 86400.0
-        / (select dl_half from c)
-      )
-    ) as decayed
-  from public.downloads d
-  where d.status = 'done'
-    and d.created_at
-        > current_timestamp - make_interval(days => (select pop_days from c))
-  group by d.game_id
+  select p.game_id, p.decayed
+  from public.feed_popularity(
+    (select pop_days from c),
+    (select dl_half from c)
+  ) p
 ),
--- Afinidade: gêneros e desenvolvedores dos jogos que o usuário já favoritou,
--- guardou na biblioteca ou baixou.
-user_games as (
-  select f.game_id from public.favorites f where f.user_id = auth.uid()
-  union
-  select l.game_id from public.library l where l.user_id = auth.uid()
-  union
-  select dd.game_id from public.downloads dd
-   where dd.user_id = auth.uid() and dd.status = 'done'
+prefs as (
+  select * from public.feed_user_preferences()
 ),
 genre_pref as (
-  select g.genre, count(*)::numeric as qty
-  from user_games ug
-  join public.games g on g.id = ug.game_id
-  where coalesce(g.genre, '') <> ''
-  group by g.genre
+  select pr.value as genre, pr.share as share
+  from prefs pr where pr.dimension = 'genre'
 ),
 dev_pref as (
-  select g.developer, count(*)::numeric as qty
-  from user_games ug
-  join public.games g on g.id = ug.game_id
-  where coalesce(g.developer, '') <> ''
-  group by g.developer
-),
-scale as (
-  select
-    greatest(coalesce((select max(qty) from genre_pref), 0), 1) as g_max,
-    greatest(coalesce((select max(qty) from dev_pref), 0), 1)   as d_max
+  select pr.value as developer, pr.share as share
+  from prefs pr where pr.dimension = 'developer'
 ),
 seen_hist as (
   select h.game_id, h.penalty from public.feed_seen_recent() h
@@ -366,8 +430,8 @@ base as (
       then least(c2.download_count::numeric / c2.visit_count, 1)
       else 0
     end as conversion,
-    coalesce(gp.qty, 0) / (select g_max from scale) as genre_share,
-    coalesce(dp.qty, 0) / (select d_max from scale) as dev_share,
+    coalesce(gp.share, 0) as genre_share,
+    coalesce(dp.share, 0) as dev_share,
     coalesce(sh.penalty, 0) as seen_penalty,
     exists (select 1 from seen_direct sd where sd.game_id = c2.id) as seen_direct
   from public.game_cards c2
@@ -580,15 +644,18 @@ declare
   v_cursor_id  uuid;
   r_genre      text;
 begin
-  -- Personalização só existe com histórico de uso.
-  v_personal := exists (
-    select 1 from public.favorites f where f.user_id = auth.uid()
-    union all
-    select 1 from public.library l where l.user_id = auth.uid()
-    union all
-    select 1 from public.downloads d
-     where d.user_id = auth.uid() and d.status = 'done'
-  );
+  -- Personalização só existe com histórico de uso. O agregado vem de função
+  -- SECURITY DEFINER: as tabelas de histórico têm SELECT só para `authenticated`
+  -- e a Início precisa funcionar também para anônimo.
+  select coalesce(
+    (
+      select pr.share
+      from public.feed_user_preferences() pr
+      where pr.dimension = 'has_history'
+    ),
+    0
+  ) = 1
+  into v_personal;
 
   v_pool := public.feed_candidates(v_seed, coalesce(p_seen, '{}'::uuid[]), 2000);
 
@@ -599,24 +666,10 @@ begin
 
   -- Microcopy da personalização: gênero dominante do histórico do usuário.
   if v_personal then
-    select jsonb_build_object('kind', 'genre', 'value', t.genre)
+    select jsonb_build_object('kind', 'genre', 'value', pr.value)
       into v_reason
-    from (
-      select g.genre, count(*) as qty
-      from (
-        select f.game_id from public.favorites f where f.user_id = auth.uid()
-        union all
-        select l.game_id from public.library l where l.user_id = auth.uid()
-        union all
-        select d.game_id from public.downloads d
-         where d.user_id = auth.uid() and d.status = 'done'
-      ) ug
-      join public.games g on g.id = ug.game_id
-      where coalesce(g.genre, '') <> ''
-      group by g.genre
-      order by qty desc, g.genre
-      limit 1
-    ) t;
+    from public.feed_user_preferences() pr
+    where pr.dimension = 'top_genre';
   end if;
 
   -- ---------------------------------------------------------------- destaque

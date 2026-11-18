@@ -55,11 +55,13 @@ Future<void> _pumpHome(
         locale: const Locale('pt', 'BR'),
         supportedLocales: const <Locale>[Locale('pt', 'BR'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        builder: (BuildContext context, Widget? child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(textScale)),
-          child: child!,
-        ),
+        builder: (BuildContext context, Widget? child) {
+          final MediaQueryData media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          );
+        },
         home: const Scaffold(body: HomePage()),
       ),
     ),

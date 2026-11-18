@@ -117,6 +117,11 @@ ficou realmente visível. A tabela **não tem SELECT** para o cliente.
 
 - `get_home_feed`, `feed_candidates`, `feed_diversify` e `feed_projection` → `immutable`, sem acesso a tabela +
   `search_path` fixo; leem sob RLS.
+- `feed_popularity(days, half_life)` e `feed_user_preferences()` → `security
+  definer` **justificados**: `downloads`, `favorites` e `library` têm SELECT só
+  para `authenticated` (privilégio mínimo, 0005) e a Início precisa funcionar
+  para **anônimo**. Devolvem apenas agregados — populares por jogo e shares de
+  afinidade do próprio `auth.uid()` — nunca linhas de usuário.
 - `feed_seen_recent()` → `security definer` **justificado**: a tabela de
   impressões não tem SELECT público; a função lê apenas `auth.uid()` e não
   aceita identidade como parâmetro, então não expõe histórico alheio.

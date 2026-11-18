@@ -243,12 +243,8 @@ class SupabaseCatalogRepository
       ),
     );
     final Map<String, dynamic> map = _map(response);
-    return NewsPayload(
-      items: asMapList(map['items'])
-          .map(NewsItem.fromMap)
-          .toList(growable: false),
-      total: asInt(map['total']),
-    );
+    final List<NewsItem> items = mapList(map['items'], NewsItem.fromMap);
+    return NewsPayload(items: items, total: asInt(map['total']));
   }
 
   @override
@@ -342,9 +338,7 @@ class SupabaseCatalogRepository
       ),
     );
     final Map<String, dynamic> map = _map(response);
-    return asMapList(map['items'])
-        .map(UserResult.fromMap)
-        .toList(growable: false);
+    return mapList(map['items'], UserResult.fromMap);
   }
 
   @override
