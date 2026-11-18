@@ -105,6 +105,11 @@ as $$
     'rating_prior_count',      5,
     'rating_prior_mean',       3.5,
     'explore_min_share',       0.25,
+    -- Tamanho da BANDA de relevância por seção: a seção é montada com os
+    -- melhores `band_factor x limit` itens por score e, dentro dessa banda, a
+    -- ordem vem do ruído da seed. É o que garante rotação real entre sessões
+    -- sem abrir mão da relevância (nunca sai da faixa de melhores).
+    'band_factor',             4.0,
     'max_per_developer',       2,
     'max_per_genre',           3,
     'max_familiar_share',      0.60
@@ -123,13 +128,15 @@ create or replace function public.feed_diversify(
   p_used uuid[] default '{}',
   p_max_developer int default 2,
   p_max_genre int default 3,
-  p_max_familiar_share numeric default 0.60
+  p_max_familiar_share numeric default 0.60,
+  p_band_factor numeric default 1.0
 )
 returns jsonb
 language plpgsql
 immutable
 as $$
 declare
+  v_pool         jsonb;
   v_out          jsonb := '[]'::jsonb;
   v_used         uuid[] := coalesce(p_used, '{}');
   v_dev          jsonb := '{}'::jsonb;
@@ -150,8 +157,26 @@ begin
   v_familiar_cap :=
     floor(v_limit * least(greatest(coalesce(p_max_familiar_share, 0), 0), 1));
 
+  -- Banda de relevância: pega os melhores `band_factor x limit` por score que
+  -- chegaram aqui e reordena pelo ruído da seed. O que o usuário vê continua
+  -- sendo o topo do ranking; o que muda entre sessões é QUEM do topo aparece.
+  if coalesce(p_band_factor, 1.0) > 1.0 then
+    select coalesce(
+      jsonb_agg(t.e order by (t.e->>'noise')::numeric desc, t.e->>'id'),
+      '[]'::jsonb
+    )
+    into v_pool
+    from (
+      select value as e
+      from jsonb_array_elements(coalesce(p_items, '[]'::jsonb))
+      limit greatest(ceil(v_limit * p_band_factor)::int, v_limit)
+    ) t;
+  else
+    v_pool := coalesce(p_items, '[]'::jsonb);
+  end if;
+
   for v_item in
-    select value from jsonb_array_elements(coalesce(p_items, '[]'::jsonb))
+    select value from jsonb_array_elements(v_pool)
   loop
     exit when jsonb_array_length(v_out) >= v_limit;
 
@@ -550,6 +575,7 @@ declare
   v_max_dev    int := (v_w['max_per_developer'])::int;
   v_max_genre  int := (v_w['max_per_genre'])::int;
   v_familiar   numeric := (v_w['max_familiar_share'])::numeric;
+  v_band       numeric := (v_w['band_factor'])::numeric;
   v_cursor_sc  numeric;
   v_cursor_id  uuid;
   r_genre      text;
@@ -600,7 +626,7 @@ begin
         jsonb_agg(t.e order by (t.e->>'score')::numeric desc, t.e->>'id'),
         '[]'::jsonb
       ),
-      least(6, v_limit), v_used, v_max_dev, v_max_genre, v_familiar
+      least(6, v_limit), v_used, v_max_dev, v_max_genre, v_familiar, v_band
     ))
     into v_items
     from jsonb_array_elements(v_pool) as t(e);
@@ -630,7 +656,7 @@ begin
         ),
         '[]'::jsonb
       ),
-      v_limit, v_used, v_max_dev, v_max_genre, v_familiar
+      v_limit, v_used, v_max_dev, v_max_genre, v_familiar, v_band
     ))
     into v_items
     from jsonb_array_elements(v_pool) as t(e)
@@ -660,7 +686,7 @@ begin
         ),
         '[]'::jsonb
       ),
-      v_limit, v_used, v_max_dev, v_max_genre, v_familiar
+      v_limit, v_used, v_max_dev, v_max_genre, v_familiar, v_band
     ))
     into v_items
     from jsonb_array_elements(v_pool) as t(e);
@@ -687,7 +713,7 @@ begin
         ),
         '[]'::jsonb
       ),
-      v_limit, v_used, v_max_dev, v_max_genre, v_familiar
+      v_limit, v_used, v_max_dev, v_max_genre, v_familiar, v_band
     ))
     into v_items
     from jsonb_array_elements(v_pool) as t(e)
@@ -717,7 +743,7 @@ begin
         ),
         '[]'::jsonb
       ),
-      v_limit, v_used, v_max_dev, v_max_genre, v_familiar
+      v_limit, v_used, v_max_dev, v_max_genre, v_familiar, v_band
     ))
     into v_items
     from jsonb_array_elements(v_pool) as t(e)
@@ -749,7 +775,10 @@ begin
         jsonb_agg(t.e order by (t.e->>'score')::numeric desc, t.e->>'id'),
         '[]'::jsonb
       ),
-      v_limit, v_used, v_max_dev, v_max_genre, v_familiar
+      -- Descubra NÃO usa banda: a paginação por cursor exige ordem estável por
+      -- (score, id) dentro da seed. A rotação aqui vem do próprio score (que já
+      -- carrega o ruído da sessão), não de embaralhar a faixa.
+      v_limit, v_used, v_max_dev, v_max_genre, v_familiar, 1.0
     ))
     into v_items
     from jsonb_array_elements(v_pool) as t(e)
@@ -796,7 +825,7 @@ begin
           jsonb_agg(t.e order by (t.e->>'score')::numeric desc, t.e->>'id'),
           '[]'::jsonb
         ),
-        least(8, v_limit), v_used, v_max_dev, v_max_genre, v_familiar
+        least(8, v_limit), v_used, v_max_dev, v_max_genre, v_familiar, v_band
       ))
       into v_items
       from jsonb_array_elements(v_pool) as t(e)

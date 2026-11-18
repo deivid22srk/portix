@@ -36,6 +36,11 @@ penalizado = max(base - w_rep * repetição, 0)
 score      = penalizado * (1 + explore * (2 * ruído - 1))
 ```
 
+Além do ruído, cada seção (menos `discover`) usa uma **banda de relevância**:
+toma os melhores `band_factor × limit` itens por score e os reordena pelo ruído
+da seed. O usuário continua vendo o topo do ranking; o que muda entre sessões é
+*quem do topo* aparece — sem isso, o jitter sozinho rotacionava pouco o top 10.
+
 O **ruído é multiplicativo** de propósito: ele reordena itens de mérito
 parecido, mas não deixa um jogo fraco pular na frente de um forte (isso é o que
 diferencia exploração controlada de aleatoriedade pura).
@@ -66,6 +71,7 @@ diferencia exploração controlada de aleatoriedade pura).
 | `seen_half_life_days` | 3 | meia-vida da impressão |
 | `rating_prior_count` / `_mean` | 5 / 3,5 | prior da média bayesiana |
 | `explore_min_share` | 0,25 | cota mínima de itens fora da zona de conforto |
+| `band_factor` | 4,0 | a seção é montada com os melhores `4 × limit` itens por score e reordenada pelo ruído da seed (relevância garantida pela faixa; rotação garantida pela seed) — `discover` fica em 1,0 porque a paginação por cursor exige ordem estável |
 | `max_per_developer` | 2 | teto por seção |
 | `max_per_genre` | 3 | teto por seção |
 | `max_familiar_share` | 0,60 | teto de itens "familiares" por seção |
