@@ -11,25 +11,26 @@ import '../../models/game.dart';
 import 'game_media.dart';
 import 'primitives.dart';
 
-/// Carrossel de destaques 16:10 com parallax leve, indicadores animados e
-/// controles de vidro. Autoplay pausável; pré-carrega a próxima capa.
+/// Carrossel de destaques 16:9 com parallax leve, indicadores animados e
+/// controles de vidro. Autoplay pausável; pré-carrega o próximo banner.
+///
+/// A arte vem de `game.bannerUrl` (banner horizontal real, mantido no
+/// Supabase para os jogos destacados); sem banner, cai para a capa do jogo.
+/// O card é inteiro clicável — não há botão de download sobre a arte: o
+/// destino (ficha do jogo) já está a um toque de distância.
 class HeroCarousel extends StatefulWidget {
   const HeroCarousel({
     super.key,
     required this.games,
     this.tagPrefix = 'carousel',
     this.showMeta = false,
-    this.showCta = false,
   });
 
   final List<Game> games;
   final String tagPrefix;
 
-  /// Mostra desenvolvedor e nota sobre a capa (usado na Início redesenhada).
+  /// Mostra desenvolvedor e nota sobre o banner (usado na Início redesenhada).
   final bool showMeta;
-
-  /// Mostra o CTA sobre o card ("Baixar" para grátis, senão "Ver").
-  final bool showCta;
 
   @override
   State<HeroCarousel> createState() => _HeroCarouselState();
@@ -49,11 +50,27 @@ class _HeroCarouselState extends State<HeroCarousel> {
   }
 
   @override
+  void didUpdateWidget(HeroCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // O feed pode chegar depois (cache → rede) ou ser girado pelo
+    // pull-to-refresh: clampa o índice para não apontar além da nova lista.
+    if (widget.games.isNotEmpty && _index >= widget.games.length) {
+      _index = widget.games.length - 1;
+      if (_controller.hasClients) {
+        _controller.jumpToPage(_index);
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
+
+  /// Arte horizontal do card: banner real quando existe, capa como fallback.
+  String? _imageOf(Game game) => game.bannerUrl ?? game.coverUrl;
 
   void _startAutoplay() {
     _timer?.cancel();
@@ -97,8 +114,11 @@ class _HeroCarouselState extends State<HeroCarousel> {
       return;
     }
     final int count = widget.games.length;
+    // `page` é a verdade durante as animações; `_index` só atualiza no fim —
+    // usar só ele encadeava animações em toques rápidos nos vizinhos.
+    final int current = _controller.page?.round() ?? _index;
     _controller.animateToPage(
-      ((_index + delta) % count + count) % count,
+      ((current + delta) % count + count) % count,
       duration: AppMotion.slow,
       curve: AppMotion.emphasized,
     );
@@ -108,7 +128,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
     if (!mounted || index < 0 || index >= widget.games.length) {
       return;
     }
-    final String? url = widget.games[index].coverUrl;
+    final String? url = _imageOf(widget.games[index]);
     if (url == null) {
       return;
     }
@@ -124,7 +144,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
       child: Column(
         children: <Widget>[
           AspectRatio(
-            aspectRatio: 16 / 10,
+            aspectRatio: 16 / 9,
             child: NotificationListener<ScrollNotification>(
               onNotification: (ScrollNotification notification) {
                 if (notification is ScrollStartNotification) {
@@ -165,7 +185,6 @@ class _HeroCarouselState extends State<HeroCarousel> {
                         game: game,
                         heroTag: '${widget.tagPrefix}-${game.id}',
                         showMeta: widget.showMeta,
-                        showCta: widget.showCta,
                         onTap: () => context.push<Object?>(
                           '/game/${game.slug}',
                           extra: '${widget.tagPrefix}-${game.id}',
@@ -183,6 +202,9 @@ class _HeroCarouselState extends State<HeroCarousel> {
               Expanded(
                 child: Row(
                   children: <Widget>[
+                    // Alvo de toque 32x40 (dot em si continua fino): pular
+                    // para uma página direto pelos indicadores é preciso
+                    // SEM zoom — e sem colidir com os botões de vidro.
                     for (int i = 0; i < widget.games.length; i += 1)
                       Pressable(
                         haptics: false,
@@ -195,19 +217,26 @@ class _HeroCarouselState extends State<HeroCarousel> {
                             );
                           }
                         },
-                        child: AnimatedContainer(
-                          duration: AppMotion.indicator,
-                          curve: AppMotion.emphasized,
-                          margin: const EdgeInsets.only(right: AppSpacing.xxs),
-                          width: i == _index ? 24 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(AppRadii.pill),
-                            color: i == _index
-                                ? context.colors.textPrimary
-                                : context.colors.textPrimary.withValues(
-                                    alpha: 0.4,
-                                  ),
+                        child: SizedBox(
+                          width: 32,
+                          height: 40,
+                          child: Center(
+                            child: AnimatedContainer(
+                              duration: AppMotion.indicator,
+                              curve: AppMotion.emphasized,
+                              width: i == _index ? 24 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.pill,
+                                ),
+                                color: i == _index
+                                    ? context.colors.textPrimary
+                                    : context.colors.textPrimary.withValues(
+                                        alpha: 0.4,
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -247,14 +276,12 @@ class _CarouselCard extends StatelessWidget {
     required this.heroTag,
     required this.onTap,
     this.showMeta = false,
-    this.showCta = false,
   });
 
   final Game game;
   final String heroTag;
   final VoidCallback onTap;
   final bool showMeta;
-  final bool showCta;
 
   @override
   Widget build(BuildContext context) {
@@ -269,9 +296,9 @@ class _CarouselCard extends StatelessWidget {
             Hero(
               tag: heroTag,
               child: GameCover(
-                imageUrl: game.coverUrl,
+                imageUrl: game.bannerUrl ?? game.coverUrl,
                 title: game.title,
-                memWidth: 1000,
+                memWidth: 1200,
                 borderRadius: 0,
               ),
             ),
@@ -279,11 +306,11 @@ class _CarouselCard extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: <Color>[
-                    AppContentColors.scrim.withValues(alpha: 0.20),
+                    AppContentColors.scrim.withValues(alpha: 0.24),
                     AppContentColors.transparent,
-                    AppContentColors.scrim.withValues(alpha: 0.80),
+                    AppContentColors.scrim.withValues(alpha: 0.78),
                   ],
-                  stops: <double>[0, 0.4, 1],
+                  stops: <double>[0, 0.45, 1],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -312,17 +339,14 @@ class _CarouselCard extends StatelessWidget {
                   ),
                 ),
               ),
-            Positioned.fill(
-              child: OverflowBox(
-                alignment: Alignment.bottomLeft,
-                maxHeight: double.infinity,
-                child: _CarouselCaption(
-                  game: game,
-                  showMeta: showMeta,
-                  showCta: showCta,
-                  onTap: onTap,
-                ),
-              ),
+            // Legenda limitada à caixa do card (Positioned, não OverflowBox):
+            // cresce para cima SÓ até o limite e nunca colide com o selo de
+            // plataforma — em fontes grandes o título quebra para 1 linha.
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 14,
+              child: _CarouselCaption(game: game, showMeta: showMeta),
             ),
           ],
         ),
@@ -331,124 +355,50 @@ class _CarouselCard extends StatelessWidget {
   }
 }
 
-/// Legenda do card do carrossel: desenvolvedor/nota (quando cabe), título e o
-/// CTA opcional. Vive num [OverflowBox] para nunca estourar o card em fontes
-/// grandes — o rodapé continua visível e o topo é recortado pelo Stack.
+/// Legenda do card do carrossel: desenvolvedor/nota (quando cabe) e título.
 class _CarouselCaption extends StatelessWidget {
-  const _CarouselCaption({
-    required this.game,
-    required this.showMeta,
-    required this.onTap,
-    this.showCta = false,
-  });
+  const _CarouselCaption({required this.game, required this.showMeta});
 
   final Game game;
   final bool showMeta;
-  final VoidCallback onTap;
-  final bool showCta;
 
   @override
   Widget build(BuildContext context) {
-    // Em fontes grandes o CTA e o título (1 linha) têm prioridade; metadados
-    // são omitidos para o card não perder a legibilidade.
+    // Em fontes grandes o título (1 linha) tem prioridade; metadados são
+    // omitidos para a legenda caber sem invadir o selo de plataforma.
     final bool roomy = MediaQuery.textScalerOf(context).scale(1) < 1.4;
     final String developer = game.developer ?? '';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        0,
-        AppSpacing.lg,
-        AppSpacing.lg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (showMeta && roomy && developer.isNotEmpty) ...<Widget>[
-            Text(
-              developer,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.texts.labelSmall?.copyWith(
-                color: AppContentColors.onMedia.withValues(alpha: 0.86),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-          ],
-          if (showMeta && roomy && game.hasRating) ...<Widget>[
-            RatingLine(rating: game.rating, compact: true),
-            const SizedBox(height: AppSpacing.xs),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (showMeta && roomy && developer.isNotEmpty) ...<Widget>[
           Text(
-            game.title,
-            maxLines: roomy ? 2 : 1,
+            developer,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.texts.headlineSmall?.copyWith(
-              color: AppContentColors.onMedia,
-              fontWeight: FontWeight.w700,
-              height: 1.06,
+            style: context.texts.labelSmall?.copyWith(
+              color: AppContentColors.onMedia.withValues(alpha: 0.86),
+              fontWeight: FontWeight.w600,
             ),
           ),
-          if (showCta) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
-            _HeroCta(
-              label: game.isFree
-                  ? context.l10n.download
-                  : context.l10n.viewGame,
-              onTap: onTap,
-            ),
-          ],
+          const SizedBox(height: AppSpacing.xxs),
         ],
-      ),
-    );
-  }
-}
-
-/// CTA do carrossel: pílula com scrim (invariante de conteúdo) sobre a capa.
-class _HeroCta extends StatelessWidget {
-  const _HeroCta({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      scale: 0.96,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minHeight: AppSpacing.secondaryButtonHeight,
-        ),
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-            color: AppContentColors.scrim.withValues(alpha: 0.55),
-            border: Border.all(color: context.colors.glassBorder),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                Icons.play_arrow_rounded,
-                size: 20,
-                color: AppContentColors.onMedia,
-              ),
-              const SizedBox(width: AppSpacing.xxs),
-              Text(
-                label,
-                style: context.texts.labelLarge?.copyWith(
-                  color: AppContentColors.onMedia,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+        if (showMeta && roomy && game.hasRating) ...<Widget>[
+          RatingLine(rating: game.rating, compact: true),
+          const SizedBox(height: AppSpacing.xxs),
+        ],
+        Text(
+          game.title,
+          maxLines: roomy ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: context.texts.headlineSmall?.copyWith(
+            color: AppContentColors.onMedia,
+            fontWeight: FontWeight.w700,
+            height: 1.06,
           ),
         ),
-      ),
+      ],
     );
   }
 }

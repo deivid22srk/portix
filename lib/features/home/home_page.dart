@@ -153,7 +153,6 @@ class HomePage extends ConsumerWidget {
               games: hero.items,
               tagPrefix: 'home',
               showMeta: true,
-              showCta: true,
             ),
           ),
         ),

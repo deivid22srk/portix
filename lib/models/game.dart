@@ -8,6 +8,7 @@ class Game {
     this.year,
     this.genre,
     this.coverUrl,
+    this.bannerUrl,
     this.developer,
     this.description = '',
     this.platforms = const <String>[],
@@ -30,6 +31,11 @@ class Game {
   final int? year;
   final String? genre;
   final String? coverUrl;
+
+  /// Banner horizontal 16:9 — arte de destaque do carrossel da Início.
+  /// Preenchido no Supabase só para os jogos que entram no carrossel; nulo
+  /// para o resto do catálogo (o carrossel cai para a [coverUrl]).
+  final String? bannerUrl;
   final String? developer;
   final String description;
   final List<String> platforms;
@@ -64,6 +70,7 @@ class Game {
       year: year == 0 ? null : year,
       genre: asText(map['genre']),
       coverUrl: asText(map['cover_url']),
+      bannerUrl: asText(map['banner_url']),
       developer: asText(map['developer']),
       description: asTextOr(map['description'], ''),
       platforms: asStringList(map['platforms']),

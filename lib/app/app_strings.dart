@@ -52,7 +52,6 @@ class L10n {
 
   // -------------------------------------------------------------- detalhes
   String get install => _t('Instalar', 'Install');
-  String get download => _t('Baixar', 'Download');
   String get continueAction => _t('Continuar', 'Continue');
   String get open => _t('Abrir', 'Open');
   String get installedLabel => _t('Instalado', 'Installed');
@@ -388,7 +387,6 @@ class L10n {
 
   String get badgeNew => _t('NOVO', 'NEW');
   String get badgeUpdated => _t('ATUALIZADO', 'UPDATED');
-  String get viewGame => _t('Ver', 'View');
 
   // Estados do feed (vazio / offline / limite).
   String get feedEmptyTitle => _t('Nada por aqui ainda', 'Nothing here yet');
