@@ -27,8 +27,8 @@ select
   g.id,
   'done',
   100,
-  current_timestamp - make_interval(days => 100 + (u.uidx % 400)),
-  current_timestamp - make_interval(days => 100 + (u.uidx % 400))
+  current_timestamp - make_interval(days => (100 + (u.uidx % 400))::int),
+  current_timestamp - make_interval(days => (100 + (u.uidx % 400))::int)
 from (
   select id, row_number() over (order by id) as uidx
   from auth.users
@@ -43,7 +43,7 @@ select
   u.id,
   g.id,
   'historico',
-  current_timestamp - make_interval(days => 40 + (u.uidx % 300))
+  current_timestamp - make_interval(days => (40 + (u.uidx % 300))::int)
 from (
   select id, row_number() over (order by id) as uidx
   from auth.users

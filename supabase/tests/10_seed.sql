@@ -165,10 +165,10 @@ select
   -- Recentes (0–13 dias) para a faixa alta do catálogo; antigos (0–89) para o
   -- resto. É o que faz a popularidade COM decaimento divergir do acumulado.
   current_timestamp - make_interval(
-    days => case when p.num > 700 then (p.h % 14) else (p.h % 90) end
+    days => (case when p.num > 700 then (p.h % 14) else (p.h % 90) end)::int
   ),
   current_timestamp - make_interval(
-    days => case when p.num > 700 then (p.h % 14) else (p.h % 90) end
+    days => (case when p.num > 700 then (p.h % 14) else (p.h % 90) end)::int
   )
 from pairs p
 where p.h % 2 = 0

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portix/core/cache_store.dart';
+import 'package:portix/core/session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Contrato de sessão do feed: semente estável DENTRO da sessão e diferente
