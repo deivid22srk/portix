@@ -199,48 +199,61 @@ class AccountTile extends ConsumerWidget {
         // Sidebar recolhida: só o avatar cabe — nada de texto espremido.
         final bool compact =
             constraints.maxWidth < AppSpacing.navSidebarCollapsedWidth;
-        return GlassContainer(
-          radius: AppRadii.lg,
-          padding: const EdgeInsets.all(AppSpacing.sm),
-          onTap: () => context.go('/menu/$kSettingsAccount'),
-          child: Row(
-            children: <Widget>[
-              ProfileAvatar(
-                name: name,
-                imageUrl: profile.coverUrl,
-                size: AppSpacing.xxl,
-                level: adminLevel,
+        return Semantics(
+          container: true,
+          // Abre as configurações de conta: papel de botão para o leitor de
+          // tela (o nome/e-mail interno já são lidos).
+          button: true,
+          child: GlassContainer(
+            radius: AppRadii.lg,
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            onTap: () => context.go('/menu/$kSettingsAccount'),
+            child: ConstrainedBox(
+              // Alvo mínimo de toque: com só o avatar (sem e-mail/@handle na
+              // conta) o cartão ficava com 40dp de altura.
+              constraints: const BoxConstraints(
+                minHeight: AppSpacing.circleButton,
               ),
-              // O nome aparece sempre que há espaço; e-mail/@handle só quando
-              // a conta tem um (convidado sem perfil não fica com linha vazia).
-              if (!compact)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: AppSpacing.sm),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.texts.labelLarge,
-                        ),
-                        if (secondary.isNotEmpty)
-                          Text(
-                            secondary,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.texts.labelSmall?.copyWith(
-                              color: context.colors.textTertiary,
-                            ),
-                          ),
-                      ],
-                    ),
+              child: Row(
+                children: <Widget>[
+                  ProfileAvatar(
+                    name: name,
+                    imageUrl: profile.coverUrl,
+                    size: AppSpacing.xxl,
+                    level: adminLevel,
                   ),
-                ),
-            ],
+                  // O nome aparece sempre que há espaço; e-mail/@handle só
+                  // quando a conta tem um (convidado não fica com linha vazia).
+                  if (!compact)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: AppSpacing.sm),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.texts.labelLarge,
+                            ),
+                            if (secondary.isNotEmpty)
+                              Text(
+                                secondary,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.texts.labelSmall?.copyWith(
+                                  color: context.colors.textTertiary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         );
       },

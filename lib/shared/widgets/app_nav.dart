@@ -72,7 +72,7 @@ class AppNav {
 
   /// Margem lateral da chrome. Em telefone estreito ela encolhe — é o primeiro
   /// recurso antes de sacrificar o alvo de toque: a 320dp, com a busca ao lado
-  /// da barra, 16dp de margem deixariam 42dp por destino.
+  /// e o respiro interno da barra, 16dp de margem deixariam 40dp por destino.
   static double edgeInset(double width) =>
       width < AppBreakpoints.narrow ? AppSpacing.sm : AppSpacing.screen;
 
