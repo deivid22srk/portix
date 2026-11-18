@@ -661,9 +661,6 @@ class L10n {
   String get statsDownloads => _t('Downloads', 'Downloads');
   String get statsRating => _t('Avaliação', 'Rating');
   String get statsRatingEmpty => _t('Sem notas', 'No ratings');
-  String get cachedDataHint =>
-      _t('Mostrando dados salvos (offline)', 'Showing saved data (offline)');
-
   // -------------------------------------------------------------- contagens
   String gameCount(int n) =>
       _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');

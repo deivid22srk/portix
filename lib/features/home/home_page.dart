@@ -97,15 +97,7 @@ class HomePage extends ConsumerWidget {
     bool hasMoreDiscover,
   ) {
     if (feed != null) {
-      return _feedSlivers(
-        context,
-        ref,
-        feed,
-        more,
-        tracker,
-        hasMoreDiscover,
-        revalidateFailed: async.hasError,
-      );
+      return _feedSlivers(context, ref, feed, more, tracker, hasMoreDiscover);
     }
     if (async.hasError) {
       return <Widget>[
@@ -127,24 +119,11 @@ class HomePage extends ConsumerWidget {
     HomeFeed feed,
     HomeDiscoverState more,
     FeedImpressionTracker tracker,
-    bool hasMoreDiscover, {
-    bool revalidateFailed = false,
-  }) {
+    bool hasMoreDiscover,
+  ) {
     final L10n l10n = context.l10n;
     final String sessionId = feed.seed;
     final List<Widget> slivers = <Widget>[];
-
-    // Fallback/offline: o feed pode estar desatualizado — avisa sem esconder.
-    if (feed.degraded || revalidateFailed) {
-      slivers.add(
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.only(top: AppSpacing.md),
-            child: FeedOfflineBanner(),
-          ),
-        ),
-      );
-    }
 
     if (feed.isEmpty) {
       slivers.add(
