@@ -52,7 +52,8 @@ String feedSectionTitle(L10n l10n, HomeFeedSection section) {
   return section.title ?? l10n.sectionByCategory;
 }
 
-/// Microcopy secundária: "Porque você curte <gênero>" nas seções personalizadas.
+/// Microcopy secundária: "Porque você curte o gênero" nas seções
+/// personalizadas.
 String? feedSectionSubtitle(L10n l10n, HomeFeedSection section) {
   final FeedSectionReason? reason = section.reason;
   if (section.key == 'for_you' && reason != null && reason.kind == 'genre') {

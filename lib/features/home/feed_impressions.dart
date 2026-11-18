@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/rendering.dart' show RenderBox;
 import 'package:material_ui/material_ui.dart';
 
 /// Sink de impressões: recebe um lote já pronto para envio.

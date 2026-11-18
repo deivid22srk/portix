@@ -141,6 +141,13 @@ ficou realmente visível. A tabela **não tem SELECT** para o cliente.
 - Evidência: `supabase/tests/40_explain.sql` (volume real) e
   `supabase/tests/45_explain_scale.sql` (2M de downloads + 250k impressões,
   exigindo índice no caminho quente e latência abaixo da meta).
+- **Achado medido no teste de escala**: com ~11k linhas relevantes em 2M, o
+  planejador escolhe *seq scan* — e faz certo: varrer ~12k páginas custa menos
+  que 11k buscas aleatórias no heap. O teste exige, então, uma destas duas
+  condições: o índice é usado **ou** o plano é rápido de fato (< 50 ms), e prova
+  à parte que o índice parcial é utilizável (plano com `enable_seqscan = off`).
+  Se o histórico crescer uma ordem de grandeza com janela ainda estreita, o
+  passo seguinte é a MV de popularidade decaída com refresh agendado.
 
 ## Como testar
 

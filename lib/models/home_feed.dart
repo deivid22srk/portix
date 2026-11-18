@@ -70,7 +70,7 @@ class CatalogFacets {
 }
 
 /// Motivo da personalização de uma seção (ex.: gênero dominante do histórico).
-/// Alimenta a microcopy "Porque você curte <gênero>".
+/// Alimenta a microcopy "porque você curte".
 class FeedSectionReason {
   const FeedSectionReason({required this.kind, required this.value});
 
