@@ -9,6 +9,51 @@ import '../models/public_profile.dart';
 import '../models/search.dart';
 import '../models/user_result.dart';
 
+// ---------------------------------------------------------------------------
+// Impressões do feed — política de privacidade, na camada de dados.
+//
+// O usuário pode desligar o registro de impressões; a ausência da preferência
+// significa "permitido" (opt-out explícito, nunca opt-in silencioso).
+// ---------------------------------------------------------------------------
+
+/// Chave local (sem o prefixo `cache.` do [CacheStore]) da preferência.
+const String kFeedImpressionsPrefKey = 'privacy.feed_impressions';
+
+/// Permitido quando a preferência está ausente ou vale `on`; qualquer outro
+/// valor (ex.: `off`) desliga o registro.
+bool feedImpressionsAllowed(String? value) => value == null || value == 'on';
+
+/// Capacidade do feed algorítmico (RPC `get_home_feed`, migration 0023).
+///
+/// Fica SEPARADA de [CatalogRepository] de propósito: implementações legadas
+/// (e fakes de teste) continuam válidas sem conhecer a nova RPC; o controller
+/// degrada para [CatalogRepository.fetchHome] quando o repositório não a
+/// implementa. Assim a assinatura de [CatalogRepository] não muda.
+abstract interface class HomeFeedAlgorithmRepository {
+  /// Primeira página do feed, com seções, facetas e estatísticas.
+  Future<HomeFeed> fetchHomeFeed({
+    required String seed,
+    List<String> seen,
+    Map<String, dynamic>? cursor,
+    List<String>? sections,
+  });
+
+  /// Próxima página da seção `discover` (paginação keyset por cursor).
+  Future<HomeFeed> loadMoreDiscover({
+    required String seed,
+    required Map<String, dynamic> cursor,
+    List<String> seen,
+    List<String>? sections,
+  });
+
+  /// Registra impressões (cards realmente visíveis). Melhor esforço: nunca
+  /// lança — a métrica não é caminho crítico.
+  Future<void> recordImpressions(
+    List<Map<String, dynamic>> items, {
+    String? sessionId,
+  });
+}
+
 abstract class CatalogRepository {
   HomeFeed? readCachedHome();
 

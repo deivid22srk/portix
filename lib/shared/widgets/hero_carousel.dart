@@ -18,10 +18,18 @@ class HeroCarousel extends StatefulWidget {
     super.key,
     required this.games,
     this.tagPrefix = 'carousel',
+    this.showMeta = false,
+    this.showCta = false,
   });
 
   final List<Game> games;
   final String tagPrefix;
+
+  /// Mostra desenvolvedor e nota sobre a capa (usado na Início redesenhada).
+  final bool showMeta;
+
+  /// Mostra o CTA sobre o card ("Baixar" para grátis, senão "Ver").
+  final bool showCta;
 
   @override
   State<HeroCarousel> createState() => _HeroCarouselState();
@@ -156,6 +164,8 @@ class _HeroCarouselState extends State<HeroCarousel> {
                       child: _CarouselCard(
                         game: game,
                         heroTag: '${widget.tagPrefix}-${game.id}',
+                        showMeta: widget.showMeta,
+                        showCta: widget.showCta,
                         onTap: () => context.push<Object?>(
                           '/game/${game.slug}',
                           extra: '${widget.tagPrefix}-${game.id}',
@@ -236,11 +246,15 @@ class _CarouselCard extends StatelessWidget {
     required this.game,
     required this.heroTag,
     required this.onTap,
+    this.showMeta = false,
+    this.showCta = false,
   });
 
   final Game game;
   final String heroTag;
   final VoidCallback onTap;
+  final bool showMeta;
+  final bool showCta;
 
   @override
   Widget build(BuildContext context) {
@@ -298,22 +312,141 @@ class _CarouselCard extends StatelessWidget {
                   ),
                 ),
               ),
-            Positioned(
-              left: 18,
-              right: 18,
-              bottom: 16,
-              child: Text(
-                game.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.texts.headlineSmall?.copyWith(
-                  color: AppContentColors.onMedia,
-                  fontWeight: FontWeight.w700,
-                  height: 1.06,
+            Positioned.fill(
+              child: OverflowBox(
+                alignment: Alignment.bottomLeft,
+                maxHeight: double.infinity,
+                child: _CarouselCaption(
+                  game: game,
+                  showMeta: showMeta,
+                  showCta: showCta,
+                  onTap: onTap,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Legenda do card do carrossel: desenvolvedor/nota (quando cabe), título e o
+/// CTA opcional. Vive num [OverflowBox] para nunca estourar o card em fontes
+/// grandes — o rodapé continua visível e o topo é recortado pelo Stack.
+class _CarouselCaption extends StatelessWidget {
+  const _CarouselCaption({
+    required this.game,
+    required this.showMeta,
+    required this.onTap,
+    this.showCta = false,
+  });
+
+  final Game game;
+  final bool showMeta;
+  final VoidCallback onTap;
+  final bool showCta;
+
+  @override
+  Widget build(BuildContext context) {
+    // Em fontes grandes o CTA e o título (1 linha) têm prioridade; metadados
+    // são omitidos para o card não perder a legibilidade.
+    final bool roomy = MediaQuery.textScalerOf(context).scale(1) < 1.4;
+    final String developer = game.developer ?? '';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (showMeta && roomy && developer.isNotEmpty) ...<Widget>[
+            Text(
+              developer,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.texts.labelSmall?.copyWith(
+                color: AppContentColors.onMedia.withValues(alpha: 0.86),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          if (showMeta && roomy && game.hasRating) ...<Widget>[
+            RatingLine(rating: game.rating, compact: true),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          Text(
+            game.title,
+            maxLines: roomy ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.texts.headlineSmall?.copyWith(
+              color: AppContentColors.onMedia,
+              fontWeight: FontWeight.w700,
+              height: 1.06,
+            ),
+          ),
+          if (showCta) ...<Widget>[
+            const SizedBox(height: AppSpacing.md),
+            _HeroCta(
+              label: game.isFree
+                  ? context.l10n.download
+                  : context.l10n.viewGame,
+              onTap: onTap,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// CTA do carrossel: pílula com scrim (invariante de conteúdo) sobre a capa.
+class _HeroCta extends StatelessWidget {
+  const _HeroCta({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      scale: 0.96,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: AppSpacing.secondaryButtonHeight,
+        ),
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.pill),
+            color: AppContentColors.scrim.withValues(alpha: 0.55),
+            border: Border.all(color: context.colors.glassBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                Icons.play_arrow_rounded,
+                size: 20,
+                color: AppContentColors.onMedia,
+              ),
+              const SizedBox(width: AppSpacing.xxs),
+              Text(
+                label,
+                style: context.texts.labelLarge?.copyWith(
+                  color: AppContentColors.onMedia,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

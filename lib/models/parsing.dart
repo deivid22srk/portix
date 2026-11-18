@@ -52,6 +52,15 @@ Map<String, dynamic> asMap(Object? value) {
   return <String, dynamic>{};
 }
 
+/// Mapeia uma lista de mapas do payload para uma lista imutável de [T].
+///
+/// Existe como função (e não como cadeia `asMapList(...).map(...).toList(...)`)
+/// porque o portão de formato roda com outra versão do formatador no CI: uma
+/// cadeia longa é quebrada em colunas diferentes entre as versões, e uma linha
+/// curta não deixa margem para divergência.
+List<T> mapList<T>(Object? raw, T Function(Map<String, dynamic>) from) =>
+    asMapList(raw).map(from).toList(growable: false);
+
 List<Map<String, dynamic>> asMapList(Object? value) {
   if (value is List) {
     return value

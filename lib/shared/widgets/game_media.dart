@@ -118,6 +118,7 @@ class GameCard extends StatelessWidget {
     this.onTap,
     this.showStats = true,
     this.aspectRatio = 3 / 4,
+    this.badge,
   });
 
   final Game game;
@@ -126,6 +127,9 @@ class GameCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool showStats;
   final double aspectRatio;
+
+  /// Selo opcional no canto superior direito (ex.: "NOVO"/"ATUALIZADO").
+  final Widget? badge;
 
   void _open(BuildContext context) {
     context.push<Object?>('/game/${game.slug}', extra: heroTag);
@@ -175,6 +179,8 @@ class GameCard extends StatelessWidget {
                       downloads: game.downloadCount,
                     ),
                   ),
+                if (badge != null)
+                  Positioned(top: 10, right: 10, child: badge!),
                 Positioned(
                   left: 14,
                   right: 14,

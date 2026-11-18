@@ -32,7 +32,6 @@ final supabaseBootstrapProvider = FutureProvider<void>((ref) async {
     );
     _supabaseInitialized = true;
   }
-  await _ensureAnonymousSession(Supabase.instance.client);
 });
 
 final supabaseClientProvider = Provider<SupabaseClient>(
@@ -45,16 +44,3 @@ final catalogRepositoryProvider = Provider<CatalogRepository>(
     ref.watch(cacheStoreProvider),
   ),
 );
-
-// Sessão anônima é o suficiente para favoritos/biblioteca por dispositivo.
-// Se o provedor de auth falhar, o catálogo continua navegável como visitante.
-Future<void> _ensureAnonymousSession(SupabaseClient client) async {
-  if (client.auth.currentSession != null) {
-    return;
-  }
-  try {
-    await client.auth.signInAnonymously();
-  } on Object {
-    return;
-  }
-}
