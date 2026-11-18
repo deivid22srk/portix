@@ -23,6 +23,14 @@ class CacheStore {
     return null;
   }
 
+  String? readString(String key) {
+    final String? raw = _prefs.getString('$_prefix$key');
+    return (raw == null || raw.isEmpty) ? null : raw;
+  }
+
+  Future<void> writeString(String key, String value) =>
+      _prefs.setString('$_prefix$key', value);
+
   Future<void> writeMap(String key, Map<String, dynamic> value) =>
       _prefs.setString('$_prefix$key', jsonEncode(value));
 
