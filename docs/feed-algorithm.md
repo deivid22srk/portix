@@ -47,7 +47,7 @@ diferencia exploração controlada de aleatoriedade pura).
 
 | Componente | Como é calculado |
 |---|---|
-| popularidade | `0,60 · d/(1+d)` downloads recentes **com decaimento** (meia-vida 7 dias) `+ 0,25 · log(1+download_count) + 0,15 · log(1+visit_count)`, tudo normalizado por `x/(1+x)` |
+| popularidade | `0,60 · d/(1+d)` onde `d = games.recent_pop × exp(−Δ/7d)` (denormalizado com decaimento preguiçoso) `+ 0,25 · log(1+download_count) + 0,15 · log(1+visit_count)`, normalizado por `x/(1+x)` |
 | frescor | `0,65 · exp(−idade_desde_release/21) + 0,35 · exp(−idade_desde_atividade/10)` |
 | qualidade | `0,70 · média_bayesiana/5 + 0,30 · conversão/(1+conversão)`, com média bayesiana `(Σnotas + C·m)/(n + C)`, `C = 5`, `m = 3,5` — evita "5,0 com 1 voto" |
 | afinidade | `0,55 · share_gênero + 0,45 · share_desenvolvedor`, sobre os jogos que o usuário favoritou, guardou na biblioteca ou baixou |
@@ -141,13 +141,15 @@ ficou realmente visível. A tabela **não tem SELECT** para o cliente.
 - Evidência: `supabase/tests/40_explain.sql` (volume real) e
   `supabase/tests/45_explain_scale.sql` (2M de downloads + 250k impressões,
   exigindo índice no caminho quente e latência abaixo da meta).
-- **Achado medido no teste de escala**: com ~11k linhas relevantes em 2M, o
-  planejador escolhe *seq scan* — e faz certo: varrer ~12k páginas custa menos
-  que 11k buscas aleatórias no heap. O teste exige, então, uma destas duas
-  condições: o índice é usado **ou** o plano é rápido de fato (< 50 ms), e prova
-  à parte que o índice parcial é utilizável (plano com `enable_seqscan = off`).
-  Se o histórico crescer uma ordem de grandeza com janela ainda estreita, o
-  passo seguinte é a MV de popularidade decaída com refresh agendado.
+- **Achado medido no teste de escala**: agregar `downloads` a cada abertura
+  custava **~2 s com 2M de linhas** (o planejador escolhe seq scan porque 11k
+  buscas aleatórias custam mais que varrer a tabela). A popularidade passou a ser
+  **denormalizada em `games` com decaimento preguiçoso** — mesma ideia do
+  `download_count` da 0018: `refresh_recent_popularity()` mantém
+  `games.recent_pop`/`recent_pop_at` (trigger em `downloads`, recomputo de UM
+  jogo via `downloads_game_recent_idx`) e a leitura aplica o decaimento restante
+  por `exp(-Δ/meia-vida)`. Resultado: o feed **nunca varre `downloads`** e a
+  latência não cresce com o histórico.
 
 ## Como testar
 

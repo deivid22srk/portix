@@ -74,8 +74,6 @@ create index if not exists games_download_idx
   on public.games (download_count desc);
 create index if not exists games_activity_idx
   on public.games (last_activity_on desc nulls last);
-create index if not exists downloads_recent_idx
-  on public.downloads (created_at desc) where status = 'done';
 create index if not exists downloads_game_recent_idx
   on public.downloads (game_id, created_at desc) where status = 'done';
 
@@ -251,39 +249,83 @@ comment on function public.feed_seen_recent() is
 revoke all on function public.feed_seen_recent() from public;
 grant execute on function public.feed_seen_recent() to anon, authenticated;
 
--- ------------------------------------- popularidade global (agregado puro)
--- SECURITY DEFINER justificado: `downloads` tem SELECT só para `authenticated`
--- (privilégio mínimo, 0005). Esta função devolve apenas a soma decaída POR JOGO
--- — um agregado, nunca uma linha de usuário — então o feed anônimo continua
--- funcionando sem abrir a tabela.
-create or replace function public.feed_popularity(
-  p_days int default 35,
-  p_half_life numeric default 7
-)
-returns table (game_id uuid, decayed numeric)
-language sql
-stable
+-- ------------------------------- popularidade recente (decaimento preguiçoso)
+-- Medido no teste de escala: agregar `downloads` a cada abertura custa ~2 s com
+-- 2M de linhas (o planejador escolhe seq scan porque 11k buscas aleatórias
+-- custam mais que varrer a tabela) — inaceitável para a meta de latência.
+-- Mesma solução que a 0018 usa para `download_count`: o valor vive em `games` e
+-- é mantido por trigger. A diferença é o DECAIMENTO: guardamos a soma já
+-- decaída no instante `recent_pop_at` e aplicamos o decaimento restante na
+-- LEITURA, então o valor nunca fica velho e o feed não toca em `downloads`.
+alter table public.games
+  add column if not exists recent_pop numeric not null default 0;
+alter table public.games
+  add column if not exists recent_pop_at timestamptz not null default current_timestamp;
+
+comment on column public.games.recent_pop is
+  'Soma dos downloads concluídos com peso de decaimento (meia-vida 7 dias) no instante de recent_pop_at. Nunca é lido sem aplicar o decaimento restante.';
+
+create or replace function public.refresh_recent_popularity()
+returns trigger
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  select
-    d.game_id,
-    sum(
-      exp(
-        -extract(epoch from (current_timestamp - d.created_at))
-        / 86400.0
-        / greatest(coalesce(p_half_life, 7), 0.5)
-      )
-    )::numeric as decayed
-  from public.downloads d
-  where d.status = 'done'
-    and d.created_at
-        > current_timestamp - make_interval(days => greatest(coalesce(p_days, 35), 1))
-  group by d.game_id;
+declare
+  -- A janela (35 dias) tem de bater com `popularity_window_days` em
+  -- feed_weights(): é ~5 meias-vidas, quando a contribuição de cada download já
+  -- é <2%.
+  target uuid := coalesce(new.game_id, old.game_id);
+begin
+  update public.games g
+     set recent_pop = coalesce(sub.value, 0),
+         recent_pop_at = current_timestamp
+    from (
+      select sum(
+               exp(
+                 -extract(epoch from (current_timestamp - d.created_at))
+                 / 86400.0
+                 / 7.0
+               )
+             ) as value
+      from public.downloads d
+      where d.game_id = target
+        and d.status = 'done'
+        and d.created_at > current_timestamp - interval '35 days'
+    ) sub
+   where g.id = target;
+  return null;
+end;
 $$;
 
-comment on function public.feed_popularity(int, numeric) is
-  'Popularidade recente por jogo (downloads concluídos com decaimento). Agregado puro, para que o feed funcione para anônimo sem dar SELECT em downloads.';
+comment on function public.refresh_recent_popularity() is
+  'Mantém games.recent_pop para UM jogo (o histórico fica em downloads). Usa downloads_game_recent_idx.';
+
+drop trigger if exists games_recent_pop on public.downloads;
+create trigger games_recent_pop
+after insert or update or delete on public.downloads
+for each row execute function public.refresh_recent_popularity();
+
+-- backfill do valor para o histórico existente
+update public.games g
+   set recent_pop = coalesce(sub.value, 0),
+       recent_pop_at = current_timestamp
+  from (
+    select
+      d.game_id,
+      sum(
+        exp(
+          -extract(epoch from (current_timestamp - d.created_at))
+          / 86400.0
+          / 7.0
+        )
+      ) as value
+    from public.downloads d
+    where d.status = 'done'
+      and d.created_at > current_timestamp - interval '35 days'
+    group by d.game_id
+  ) sub
+ where sub.game_id = g.id;
 
 -- ------------------------------------------- preferências do PRÓPRIO usuário
 -- SECURITY DEFINER justificado (mesmo motivo acima: favoritos, biblioteca e
@@ -335,9 +377,7 @@ $$;
 comment on function public.feed_user_preferences() is
   'Afinidade do próprio usuário: shares de gênero/desenvolvedor normalizados em (0,1], mais has_history e o gênero dominante. Lê auth.uid() internamente.';
 
-revoke all on function public.feed_popularity(int, numeric) from public;
 revoke all on function public.feed_user_preferences() from public;
-grant execute on function public.feed_popularity(int, numeric) to anon, authenticated;
 grant execute on function public.feed_user_preferences() to anon, authenticated;
 
 -- ------------------------------------------------------------- candidatos
@@ -377,14 +417,17 @@ c as (
 ),
 -- Popularidade recente: cada download concluído vale menos conforme envelhece
 -- (meia-vida de 7 dias). A janela curta mantém a leitura no índice parcial.
--- Popularidade e afinidade vêm de funções SECURITY DEFINER que só devolvem
--- agregados do próprio usuário (as tabelas de histórico são `authenticated`).
+-- Popularidade: valor mantido por trigger em `games` com o decaimento
+-- restante aplicado aqui (nenhuma varredura de `downloads` na leitura).
 recent_downloads as (
-  select p.game_id, p.decayed
-  from public.feed_popularity(
-    (select pop_days from c),
-    (select dl_half from c)
-  ) p
+  select
+    g2.id as game_id,
+    g2.recent_pop * exp(
+      -extract(epoch from (current_timestamp - g2.recent_pop_at))
+      / 86400.0
+      / (select dl_half from c)
+    ) as decayed
+  from public.games g2
 ),
 prefs as (
   select * from public.feed_user_preferences()

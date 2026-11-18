@@ -150,6 +150,7 @@ from generate_series(1, 60) as i;
 -- Trigger desligado: o backfill no fim refaz a contagem de uma vez só
 -- (11 mil updates por linha deixariam o seed lentíssimo).
 alter table public.downloads disable trigger downloads_refresh_count;
+alter table public.downloads disable trigger games_recent_pop;
 
 with pairs as (
   select
@@ -194,6 +195,7 @@ where p.h % 2 = 0
   and (p.num > 700 or p.h % 3 = 0);
 
 alter table public.downloads enable trigger downloads_refresh_count;
+alter table public.downloads enable trigger games_recent_pop;
 
 -- ----------------------------------------------------------- histórico do seed
 -- Veterano: afinidade clara em RPG/Plataforma/Ação.
@@ -288,6 +290,27 @@ update public.games g
      select count(*) from public.downloads d
      where d.game_id = g.id and d.status = 'done'
    );
+
+-- Popularidade recente com decaimento (mesma conta do trigger, feita uma vez).
+update public.games g
+   set recent_pop = coalesce(sub.value, 0),
+       recent_pop_at = current_timestamp
+  from (
+    select
+      d.game_id,
+      sum(
+        exp(
+          -extract(epoch from (current_timestamp - d.created_at))
+          / 86400.0
+          / 7.0
+        )
+      ) as value
+    from public.downloads d
+    where d.status = 'done'
+      and d.created_at > current_timestamp - interval '35 days'
+    group by d.game_id
+  ) sub
+ where sub.game_id = g.id;
 
 -- Ajusta a nota média a partir das avaliações semeadas (como o app faz).
 update public.games g

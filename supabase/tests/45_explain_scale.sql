@@ -19,7 +19,10 @@ select
   'bulk' || i || '@example.test'
 from generate_series(1, 2400) as i;
 
+-- Os 2M de downloads são ANTIGOS (100+ dias, fora da janela de 35): desligar os
+-- triggers evita 2M execuções de recomputo sem mudar nenhum valor.
 alter table public.downloads disable trigger downloads_refresh_count;
+alter table public.downloads disable trigger games_recent_pop;
 
 insert into public.downloads (user_id, game_id, status, progress, created_at, updated_at)
 select
@@ -68,14 +71,16 @@ select
 select set_config('app.current_uid', '11111111-1111-1111-1111-111111111111', false);
 
 \echo ''
-\echo '### PLANO: janela recente de popularidade (deve usar índice parcial)'
+\echo '### PLANO: recomputo de popularidade do trigger (deve usar índice por jogo)'
 do $$
 declare
   r      record;
   v_plan text := '';
-  v_ms   numeric := 0;
+  v_game uuid;
 begin
-  for r in execute $q$
+  select id into v_game from public.games order by slug limit 1;
+
+  for r in execute format($q$
     explain (analyze, buffers, format text)
     select
       d.game_id,
@@ -84,63 +89,28 @@ begin
           -extract(epoch from (current_timestamp - d.created_at))
           / 86400.0 / 7.0
         )
-      ) as decayed
+      ) as value
     from public.downloads d
-    where d.status = 'done'
+    where d.game_id = %L::uuid
+      and d.status = 'done'
       and d.created_at > current_timestamp - interval '35 days'
     group by d.game_id
-  $q$ loop
+  $q$, v_game) loop
     v_plan := v_plan || r."QUERY PLAN" || E'\n';
   end loop;
-
-  v_ms := coalesce(
-    (regexp_match(v_plan, 'Execution Time: ([0-9.]+) ms'))[1]::numeric,
-    0
-  );
 
   raise notice E'\n%', v_plan;
-  raise notice 'janela de popularidade: % ms (planejador livre)', round(v_ms, 2);
-
-  -- Honestidade técnica: com ~11k linhas relevantes em 2M, o seq scan pode ser
-  -- o plano MAIS BARATO (varrer ~12k páginas custa menos que 11k buscas
-  -- aleatórias no heap). O que precisa ser verdade é uma destas duas:
-  --   (a) o índice foi usado, ou
-  --   (b) o plano escolhido é rápido de fato.
   perform testkit.assert_true(
-    v_plan like '%downloads_recent_idx%' or v_ms < 50,
-    'janela de popularidade usa o índice OU o plano é rápido ('
-      || round(v_ms, 2) || ' ms)'
+    v_plan not like '%Seq Scan on downloads%',
+    'recomputo do trigger não varre downloads (usa índice por jogo)'
   );
-
-  -- E o índice tem de ser utilizável: com seq scan desabilitado, ele é o plano.
-  v_plan := '';
-  perform set_config('enable_seqscan', 'off', true);
-  for r in execute $q$
-    explain (analyze, format text)
-    select
-      d.game_id,
-      sum(
-        exp(
-          -extract(epoch from (current_timestamp - d.created_at))
-          / 86400.0 / 7.0
-        )
-      ) as decayed
-    from public.downloads d
-    where d.status = 'done'
-      and d.created_at > current_timestamp - interval '35 days'
-    group by d.game_id
-  $q$ loop
-    v_plan := v_plan || r."QUERY PLAN" || E'\n';
-  end loop;
-
   perform testkit.assert_true(
-    v_plan like '%downloads_recent_idx%',
-    'índice parcial de downloads é utilizável (plano sem seq scan)'
+    v_plan like '%downloads_game_recent_idx%',
+    'recomputo do trigger usa downloads_game_recent_idx'
   );
 end
 $$;
 
-\echo ''
 \echo '### PLANO: penalidade de repetição (deve usar índice de feed_impressions)'
 do $$
 declare
@@ -176,6 +146,7 @@ set role authenticated;
 
 \echo ''
 \echo '### LATÊNCIA DA RPC COM O HISTÓRICO INFLADO (10 chamadas, média)'
+\echo '(é o teste que importa: com a popularidade denormalizada, o feed não varre downloads)'
 do $$
 declare
   v_start timestamptz;

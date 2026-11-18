@@ -22,17 +22,14 @@ select
 select set_config('app.current_uid', '11111111-1111-1111-1111-111111111111', false);
 
 \echo ''
-\echo '### 1) popularidade recente com decaimento (janela de 35 dias)'
+\echo '### 1) popularidade do feed: valor denormalizado + decaimento na leitura'
 explain (analyze, buffers, format text)
 select
-  d.game_id,
-  sum(
-    exp(-extract(epoch from (current_timestamp - d.created_at)) / 86400.0 / 7.0)
+  g.id,
+  g.recent_pop * exp(
+    -extract(epoch from (current_timestamp - g.recent_pop_at)) / 86400.0 / 7.0
   ) as decayed
-from public.downloads d
-where d.status = 'done'
-  and d.created_at > current_timestamp - interval '35 days'
-group by d.game_id;
+from public.games g;
 
 \echo ''
 \echo '### 2) penalidade de repetição do próprio usuário (mesma consulta da função)'
