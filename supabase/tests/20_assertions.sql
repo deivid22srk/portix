@@ -78,10 +78,14 @@ begin
     '5 aberturas distintas expõem ≥25 itens (rotação de verdade)'
   );
 
-  -- Sobreposição do topo entre duas seeds fica longe de 100%.
-  select count(*)::numeric / greatest(array_length(v_a, 1), 1)
+  -- Sobreposição do TOP 10 entre duas seeds fica longe de 100% (é a métrica
+  -- que a missão usa para "feed sempre igual").
+  select count(*)::numeric / 10
     into v_overlap
-  from unnest(v_a) x where x = any (v_c);
+  from unnest(testkit.feed_ids_new(
+      public.get_home_feed('seed-fixa', 12, '{}'::uuid[], null, null), 10)) x
+  where x = any (testkit.feed_ids_new(
+      public.get_home_feed('seed-outra', 12, '{}'::uuid[], null, null), 10));
   perform testkit.assert_true(
     v_overlap < 0.7,
     'duas seeds diferentes sobrepõem menos de 70% do feed (obtido: '

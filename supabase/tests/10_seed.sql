@@ -229,9 +229,22 @@ from (
 ) t;
 
 -- ------------------------------------------------------------------ avaliações
--- O rate limit de reviews (0008) conta a janela de 10 minutos e enxerga as
--- próprias linhas do comando: fica desligado só durante a semeadura.
-alter table public.reviews disable trigger reviews_rate_limit;
+-- O rate limit de reviews conta a janela de 10 minutos e enxerga as próprias
+-- linhas do comando. O nome do trigger muda ao longo das migrations (0008 cria
+-- `reviews_rate_limit`, 0009 recria como `r_rate_limit`), então desligamos
+-- TODOS os triggers não internos de `reviews` apenas durante a semeadura.
+do $seed$
+declare
+  r record;
+begin
+  for r in
+    select tgname from pg_trigger
+    where tgrelid = 'public.reviews'::regclass and not tgisinternal
+  loop
+    execute format('alter table public.reviews disable trigger %I', r.tgname);
+  end loop;
+end
+$seed$;
 
 with pairs as (
   select
@@ -256,7 +269,18 @@ select
 from pairs p
 where p.k < 500;
 
-alter table public.reviews enable trigger reviews_rate_limit;
+do $seed$
+declare
+  r record;
+begin
+  for r in
+    select tgname from pg_trigger
+    where tgrelid = 'public.reviews'::regclass and not tgisinternal
+  loop
+    execute format('alter table public.reviews enable trigger %I', r.tgname);
+  end loop;
+end
+$seed$;
 
 -- --------------------------------------------------- contagem real de downloads
 update public.games g
