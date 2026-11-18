@@ -32,20 +32,20 @@ import 'package:portix/models/app_update.dart';
 
 const String _outDir = 'goldens_out/explore';
 
-Game _game(String id, String title, {String? genre, String? developer}) =>
-    Game(
-      id: id,
-      slug: id,
-      title: title,
-      genre: genre ?? 'Aventura',
-      developer: developer ?? 'PortStudio',
-      rating: 4.5,
-      ratingCount: 12,
-      visitCount: 900,
-      platforms: <String>['Android'],
-    );
+Game _game(String id, String title, {String? genre, String? developer}) => Game(
+  id: id,
+  slug: id,
+  title: title,
+  genre: genre ?? 'Aventura',
+  developer: developer ?? 'PortStudio',
+  rating: 4.5,
+  ratingCount: 12,
+  visitCount: 900,
+  platforms: <String>['Android'],
+);
 
-class _ExploreFakeRepo implements CatalogRepository, ExploreDiscoveryRepository {
+class _ExploreFakeRepo
+    implements CatalogRepository, ExploreDiscoveryRepository {
   @override
   Future<SearchPayload> search(SearchRequest request) async {
     if (request.query.toLowerCase().contains('vazio')) {
@@ -76,7 +76,9 @@ class _ExploreFakeRepo implements CatalogRepository, ExploreDiscoveryRepository 
       _game('s2', 'Frontier Legends II', developer: 'NovaSoft'),
     ],
     genres: <GenreInfo>[const GenreInfo(name: 'Aventura', gameCount: 32)],
-    developers: <DeveloperInfo>[const DeveloperInfo(name: 'PortStudio', gameCount: 14)],
+    developers: <DeveloperInfo>[
+      const DeveloperInfo(name: 'PortStudio', gameCount: 14),
+    ],
     platforms: const <PlatformInfo>[],
   );
 
@@ -95,8 +97,18 @@ class _ExploreFakeRepo implements CatalogRepository, ExploreDiscoveryRepository 
   @override
   Future<CatalogFacets> fetchFacets() async => const CatalogFacets(
     platforms: <PlatformInfo>[
-      PlatformInfo(slug: 'gb', name: 'Game Boy', kind: 'handheld', portCount: 120),
-      PlatformInfo(slug: 'psx', name: 'PlayStation', kind: 'console', portCount: 210),
+      PlatformInfo(
+        slug: 'gb',
+        name: 'Game Boy',
+        kind: 'handheld',
+        portCount: 120,
+      ),
+      PlatformInfo(
+        slug: 'psx',
+        name: 'PlayStation',
+        kind: 'console',
+        portCount: 210,
+      ),
     ],
     genres: <GenreInfo>[
       GenreInfo(name: 'Aventura', gameCount: 32),
@@ -196,10 +208,7 @@ final ExploreFeed _feed = ExploreFeed(
     _game('q1', 'Frontier Kingdom', developer: 'KingsForge'),
     _game('q2', 'Frontier Chronicles', developer: 'KingsForge'),
   ],
-  free: <Game>[
-    _game('f1', 'Frontier Libre'),
-    _game('f2', 'Frontier Free Run'),
-  ],
+  free: <Game>[_game('f1', 'Frontier Libre'), _game('f2', 'Frontier Free Run')],
   popularSearches: <Game>[
     _game('p1', 'Frontier Odyssey'),
     _game('p2', 'Frontier Legends'),

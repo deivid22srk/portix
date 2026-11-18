@@ -13,12 +13,6 @@
 
 create schema if not exists extensions;
 
--- No Supabase real, o schema `extensions` já é acessível aos papéis de
--- cliente (USAGE) — aqui reproduzimos isso para as RPCs SECURITY INVOKER que
--- chamam f_norm/similarity de dentro (busca v2, migration 0025).
-grant usage on schema extensions to anon, authenticated;
-
-
 do $$
 begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then
@@ -53,6 +47,11 @@ create table if not exists auth.identities (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- No Supabase real, o schema `extensions` já é acessível aos papéis de
+-- cliente (USAGE) — aqui reproduzimos isso para as RPCs SECURITY INVOKER que
+-- chamam f_norm/similarity de dentro (busca v2, migration 0025).
+grant usage on schema extensions to anon, authenticated;
 
 -- `auth.uid()` como no Supabase, mais um atalho `app.current_uid` para os
 -- testes simularem a sessão de um usuário sem montar um JWT.

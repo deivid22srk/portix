@@ -27,15 +27,14 @@ import 'package:portix/models/public_profile.dart';
 import 'package:portix/models/search.dart';
 import 'package:portix/models/user_result.dart';
 
-Game _game(String id, String title, {String? genre, String? developer}) =>
-    Game(
-      id: id,
-      slug: id,
-      title: title,
-      genre: genre,
-      developer: developer,
-      coverUrl: null,
-    );
+Game _game(String id, String title, {String? genre, String? developer}) => Game(
+  id: id,
+  slug: id,
+  title: title,
+  genre: genre,
+  developer: developer,
+  coverUrl: null,
+);
 
 class _FakeRepo implements CatalogRepository, ExploreDiscoveryRepository {
   _FakeRepo();
@@ -274,10 +273,7 @@ void main() {
       final _FakeRepo repo = _FakeRepo();
       final (_, GoRouter router) = await _pump(tester, repo);
 
-      await tester.enterText(
-        find.byType(TextField),
-        'mario',
-      );
+      await tester.enterText(find.byType(TextField), 'mario');
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
 
@@ -305,11 +301,7 @@ void main() {
     (WidgetTester tester) async {
       final _FakeRepo repo = _FakeRepo();
       repo.onSearch = (SearchRequest request) => Future<SearchPayload>.value(
-        SearchPayload(
-          items: const <Game>[],
-          total: 0,
-          suggestion: 'Frontier',
-        ),
+        SearchPayload(items: const <Game>[], total: 0, suggestion: 'Frontier'),
       );
       await _pump(tester, repo);
 
@@ -323,25 +315,24 @@ void main() {
     },
   );
 
-  testWidgets(
-    'offline: descoberta mostra cache com aviso de desatualização',
-    (WidgetTester tester) async {
-      final _FakeRepo repo = _FakeRepo();
-      repo.cachedExplore = ExploreFeed(
-        trending: <Game>[_game('c1', 'Cache Um')],
-        genres: <GenreInfo>[const GenreInfo(name: 'Aventura', gameCount: 3)],
-      );
-      repo.failExplore = true;
-      await _pump(tester, repo);
+  testWidgets('offline: descoberta mostra cache com aviso de desatualização', (
+    WidgetTester tester,
+  ) async {
+    final _FakeRepo repo = _FakeRepo();
+    repo.cachedExplore = ExploreFeed(
+      trending: <Game>[_game('c1', 'Cache Um')],
+      genres: <GenreInfo>[const GenreInfo(name: 'Aventura', gameCount: 3)],
+    );
+    repo.failExplore = true;
+    await _pump(tester, repo);
 
-      // Cache síncrono abre com conteúdo e o banner explica a desatualização.
-      expect(find.text('Cache Um'), findsOneWidget);
-      expect(
-        find.text('Mostrando dados salvos — podem estar desatualizados.'),
-        findsOneWidget,
-      );
-    },
-  );
+    // Cache síncrono abre com conteúdo e o banner explica a desatualização.
+    expect(find.text('Cache Um'), findsOneWidget);
+    expect(
+      find.text('Mostrando dados salvos — podem estar desatualizados.'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'busca offline sem cache: erro explicado com ação de tentar de novo',
@@ -359,32 +350,31 @@ void main() {
     },
   );
 
-  testWidgets(
-    'teclado: Enter busca, Esc limpa e volta ao modo descoberta',
-    (WidgetTester tester) async {
-      final _FakeRepo repo = _FakeRepo();
-      final (_, GoRouter router) = await _pump(tester, repo);
+  testWidgets('teclado: Enter busca, Esc limpa e volta ao modo descoberta', (
+    WidgetTester tester,
+  ) async {
+    final _FakeRepo repo = _FakeRepo();
+    final (_, GoRouter router) = await _pump(tester, repo);
 
-      final Finder field = find.byType(TextField);
-      await tester.tap(field); // foco real no campo (sendKeyEvent precisa)
-      await tester.pumpAndSettle();
-      await tester.enterText(field, 'mario');
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
-      expect(
-        router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
-        'mario',
-      );
+    final Finder field = find.byType(TextField);
+    await tester.tap(field); // foco real no campo (sendKeyEvent precisa)
+    await tester.pumpAndSettle();
+    await tester.enterText(field, 'mario');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
+      'mario',
+    );
 
-      // Esc limpa o campo e a rota volta ao modo descoberta.
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.pumpAndSettle();
-      expect(
-        router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
-        isNull,
-      );
-    },
-  );
+    // Esc limpa o campo e a rota volta ao modo descoberta.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
+      isNull,
+    );
+  });
 
   testWidgets(
     'deep link: /explore?q=…&genre=… aplica texto e filtro no abrir',
@@ -402,18 +392,17 @@ void main() {
     },
   );
 
-  testWidgets(
-    'sugestões: painel aparece ao digitar e Enter no texto busca',
-    (WidgetTester tester) async {
-      final _FakeRepo repo = _FakeRepo();
-      await _pump(tester, repo);
+  testWidgets('sugestões: painel aparece ao digitar e Enter no texto busca', (
+    WidgetTester tester,
+  ) async {
+    final _FakeRepo repo = _FakeRepo();
+    await _pump(tester, repo);
 
-      await tester.enterText(find.byType(TextField), 'mario');
-      await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'mario');
+    await tester.pumpAndSettle();
 
-      // Painel de sugestões com trecho destacado (jogo sugerido do fake).
-      expect(find.text('Super Mario World'), findsOneWidget);
-      expect(find.text('Plataforma'), findsOneWidget);
-    },
-  );
+    // Painel de sugestões com trecho destacado (jogo sugerido do fake).
+    expect(find.text('Super Mario World'), findsOneWidget);
+    expect(find.text('Plataforma'), findsOneWidget);
+  });
 }
