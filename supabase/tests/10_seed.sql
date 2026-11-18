@@ -29,6 +29,9 @@ delete from public.library;
 delete from public.feed_impressions;
 delete from public.games;
 delete from public.platforms;
+-- `generated always as identity` não reinicia no delete: sem isto os ids vêm
+-- 27..52 e o mapeamento `platform_id = (i % 26) + 1` viola a FK.
+alter table public.platforms alter column id restart with 1;
 
 -- ---------------------------------------------------------------- plataformas
 insert into public.platforms (slug, name, full_name, kind, sort_order)

@@ -78,6 +78,19 @@ void main() {
     },
   );
 
+  test('refresh consecutivos nunca repetem a semente', () async {
+    final FeedSession session = await _session();
+    final DateTime now = DateTime(2026, 1, 1, 12, 0);
+
+    final Set<String> seeds = <String>{session.seed(now: now)};
+    for (int i = 0; i < 4; i += 1) {
+      await session.rotate();
+      seeds.add(session.seed(now: now));
+    }
+
+    expect(seeds.length, 5, reason: 'cada refresh entrega outro feed');
+  });
+
   test(
     'a semente cabe no limite aceito pelo servidor (64 caracteres)',
     () async {
