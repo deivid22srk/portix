@@ -256,33 +256,39 @@ class HomePage extends ConsumerWidget {
     return merged;
   }
 
-  VoidCallback _seeAll(
-    BuildContext context,
-    WidgetRef ref,
-    HomeFeedSection section,
-  ) {
+  /// "Ver tudo" de uma seção: resolve os filtros da seção e navega para a
+  /// Explorar. MÉTODO VOID que executa — a versão anterior devolvia um
+  /// closure que o call site descartava (`onAction: () => _seeAll(...)`), e o
+  /// toque não navegava.
+  void _seeAll(BuildContext context, WidgetRef ref, HomeFeedSection section) {
     switch (section.key) {
       case 'new_releases':
       case 'recently_updated':
-        return () => _browse(context, ref, sort: 'recent');
+        _browse(context, ref, sort: 'recent');
+        return;
       case 'trending':
       case 'top_rated':
-        return () => _browse(context, ref, sort: 'trending');
+        _browse(context, ref, sort: 'trending');
+        return;
       case 'free':
-        return () => _browse(context, ref, freeOnly: true);
+        _browse(context, ref, freeOnly: true);
+        return;
       case 'classics':
-        return () => _browse(context, ref, sort: 'year');
+        _browse(context, ref, sort: 'year');
+        return;
     }
     if (section.isCategory) {
       final String genre =
           section.title ?? section.key.substring('category:'.length);
-      return () => _browse(context, ref, genre: genre);
+      _browse(context, ref, genre: genre);
+      return;
     }
     final FeedSectionReason? reason = section.reason;
     if (section.key == 'for_you' && reason != null && reason.kind == 'genre') {
-      return () => _browse(context, ref, genre: reason.value);
+      _browse(context, ref, genre: reason.value);
+      return;
     }
-    return () => _browse(context, ref);
+    _browse(context, ref);
   }
 
   void _browse(

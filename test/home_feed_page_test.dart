@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:portix/app/theme.dart';
 import 'package:portix/core/auth.dart';
 import 'package:portix/core/env.dart';
 import 'package:portix/core/providers.dart';
 import 'package:portix/features/home/home_page.dart';
+import 'package:portix/features/search/search_controller.dart';
 import 'package:portix/models/game.dart';
 import 'package:portix/models/home_feed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -145,5 +147,68 @@ void main() {
 
     expect(find.text('Em alta'), findsOneWidget);
     expect(find.text('Alfa'), findsOneWidget);
+  });
+
+  testWidgets('"Ver tudo" navega para a Explorar com o filtro da seção', (
+    WidgetTester tester,
+  ) async {
+    // Regressão: onAction recebia `() => _seeAll(...)` mas _seeAll DEVOLVIA um
+    // closure — o toque rodava _seeAll e descartava o retorno, sem navegar.
+    final FakeFeedRepository repository = FakeFeedRepository(
+      onFetch: (_) async => HomeFeed(
+        seed: 's',
+        sections: <HomeFeedSection>[
+          HomeFeedSection(
+            key: 'trending',
+            kind: 'row',
+            items: <Game>[const Game(id: 'a', slug: 'a', title: 'Alfa')],
+          ),
+        ],
+      ),
+    );
+    final ProviderContainer container = await _container(repository);
+    final GoRouter router = GoRouter(
+      initialLocation: '/home',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/home',
+          builder: (_, __) => const Scaffold(body: HomePage()),
+        ),
+        GoRoute(
+          path: '/explore',
+          builder: (_, __) => const Scaffold(body: SizedBox.shrink()),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    tester.view.physicalSize = const Size(411, 891);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: AppTheme.dark(),
+          locale: const Locale('pt', 'BR'),
+          supportedLocales: const <Locale>[Locale('pt', 'BR'), Locale('en')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/home');
+
+    await tester.tap(find.text('Ver tudo'));
+    await tester.pumpAndSettle();
+
+    // Navegou para a Explorar e levou o filtro da seção (Em alta → trending).
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/explore');
+    expect(container.read(searchControllerProvider).filters.sort, 'trending');
   });
 }
