@@ -242,6 +242,10 @@ with pairs as (
     select id, row_number() over (order by id) as uidx from auth.users
   ) u
 )
+-- O rate limit de reviews (0008) conta a janela de 10 minutos e veria as
+-- próprias linhas do comando: desligado só durante a semeadura.
+alter table public.reviews disable trigger reviews_rate_limit;
+
 insert into public.reviews (game_id, user_id, rating, body, created_at)
 select
   p.game_id,
@@ -251,6 +255,8 @@ select
   current_timestamp - make_interval(days => (p.k % 200)::int)
 from pairs p
 where p.k < 500;
+
+alter table public.reviews enable trigger reviews_rate_limit;
 
 -- --------------------------------------------------- contagem real de downloads
 update public.games g
