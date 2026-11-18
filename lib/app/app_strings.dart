@@ -453,6 +453,14 @@ class L10n {
   );
   String get exploreDiscoverTitle => _t('Descubra', 'Discover');
   String get seeCategory => _t('Ver categoria', 'View category');
+  String get searchTitle => _t('Buscar', 'Search');
+  String get clearSearch => _t('Limpar busca', 'Clear search');
+  String get genreEmptyTitle =>
+      _t('Nenhum jogo nesta categoria ainda', 'No games in this category yet');
+  String get genreEmptyBody => _t(
+    'O catálogo está sempre crescendo — volte mais tarde para novidades.',
+    'The catalog keeps growing — check back later for new additions.',
+  );
   String get loadingSuggestions =>
       _t('Buscando sugestões…', 'Fetching suggestions…');
   String get resultsAnnounce =>

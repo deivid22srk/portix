@@ -15,6 +15,7 @@ import 'package:portix/models/collections.dart';
 import 'package:portix/models/compat_report.dart';
 import 'package:portix/models/game.dart';
 import 'package:portix/models/game_detail.dart';
+import 'package:portix/models/explore.dart';
 import 'package:portix/models/home_feed.dart';
 import 'package:portix/models/news.dart';
 import 'package:portix/models/profile.dart';
@@ -23,7 +24,8 @@ import 'package:portix/models/search.dart';
 import 'package:portix/models/user_result.dart';
 
 /// Registro das queries efetivamente enviadas ao repositório (já trimadas).
-class _FakeCatalogRepository implements CatalogRepository {
+class _FakeCatalogRepository
+    implements CatalogRepository, ExploreDiscoveryRepository {
   final List<String> queries = <String>[];
 
   @override
@@ -32,6 +34,20 @@ class _FakeCatalogRepository implements CatalogRepository {
     const Game game = Game(id: '1', slug: 'super-mario', title: 'Super Mario');
     return SearchPayload(items: const <Game>[game], total: 1);
   }
+
+  @override
+  Future<SuggestPayload> suggest(String query) async => SuggestPayload(
+    games: <Game>[
+      const Game(id: 's1', slug: 'smw', title: 'Super Mario World'),
+    ],
+    genres: const <GenreInfo>[GenreInfo(name: 'Plataforma', gameCount: 9)],
+  );
+
+  @override
+  Future<ExploreFeed> fetchExploreFeed() async => const ExploreFeed();
+
+  @override
+  ExploreFeed? readCachedExploreFeed() => null;
 
   @override
   Future<CatalogFacets> fetchFacets() async => const CatalogFacets();
@@ -152,6 +168,24 @@ String _fieldText(WidgetTester tester) =>
     tester.widget<TextField>(find.byType(TextField)).controller!.text;
 
 void main() {
+  testWidgets('sugestões instantâneas aparecem ao digitar no campo completo', (
+    WidgetTester tester,
+  ) async {
+    final _FakeCatalogRepository repo = _FakeCatalogRepository();
+    final SharedPreferences prefs = await _mockPrefs();
+    await _pumpSearchPage(tester, repo, prefs);
+
+    // O SearchField (agora dono da busca) dispara o suggest com debounce
+    // de 180 ms além do debounce da busca em si.
+    await tester.enterText(find.byType(TextField), 'mario');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Super Mario World'), findsOneWidget);
+    expect(find.text('Plataforma'), findsOneWidget);
+    expect(repo.queries, contains('mario'));
+  });
+
   testWidgets(
     'regressão: espaço digitado no campo de busca não é apagado pela resposta',
     (WidgetTester tester) async {

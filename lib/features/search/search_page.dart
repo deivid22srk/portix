@@ -19,6 +19,7 @@ import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/profile_avatar.dart';
 import '../../shared/widgets/reveal.dart';
+import '../../shared/widgets/search_widgets.dart';
 import '../../shared/widgets/states.dart';
 import '../home/home_controller.dart';
 import '../profile/profile_controller.dart';
@@ -32,8 +33,6 @@ class SearchPage extends ConsumerStatefulWidget {
 }
 
 class _SearchPageState extends ConsumerState<SearchPage> {
-  final TextEditingController _text = TextEditingController();
-  final FocusNode _focus = FocusNode();
   final ScrollController _scroll = ScrollController();
 
   int _mode = 0;
@@ -48,9 +47,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       if (!mounted) {
         return;
       }
-      _text.text = ref.read(searchControllerProvider).query;
       ref.read(searchControllerProvider.notifier).ensureLoaded();
-      _focus.requestFocus();
     });
   }
 
@@ -59,8 +56,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _usersTimer?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
-    _focus.dispose();
-    _text.dispose();
     super.dispose();
   }
 
@@ -82,11 +77,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 
   void _runQuery(String term) {
-    _focus.unfocus();
-    _text.value = TextEditingValue(
-      text: term,
-      selection: TextSelection.collapsed(offset: term.length),
-    );
+    // O campo (SearchField) recebe o texto pelo ECO do estado — a fonte da
+    // verdade é o controller, nunca uma cópia local.
     ref.read(searchControllerProvider.notifier).submitQuery(term);
   }
 
@@ -143,12 +135,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       SearchState? previous,
       SearchState next,
     ) {
-      if (next.query != _text.text) {
-        _text.value = TextEditingValue(
-          text: next.query,
-          selection: TextSelection.collapsed(offset: next.query.length),
-        );
-      }
+      // Aba "Usuários" acompanha a query com debounce próprio. O ECO do texto
+      // no campo vive no SearchField (dono do campo).
       if (next.query != _usersQuery) {
         _usersTimer?.cancel();
         _usersTimer = Timer(const Duration(milliseconds: 320), () {
@@ -168,63 +156,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               children: <Widget>[
                 AppHeaderSearchBar(
                   onBack: _close,
-                  field: GlassContainer(
-                    radius: AppRadii.pill,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        Icon(
-                          Icons.search_rounded,
-                          size: 20,
-                          color: context.colors.textTertiary,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: TextField(
-                            controller: _text,
-                            focusNode: _focus,
-                            onChanged: (String value) => ref
-                                .read(searchControllerProvider.notifier)
-                                .setQuery(value),
-                            onSubmitted: _runQuery,
-                            textInputAction: TextInputAction.search,
-                            style: context.texts.bodyLarge?.copyWith(
-                              color: context.colors.textPrimary,
-                            ),
-                            cursorColor: context.colors.accent,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              border: InputBorder.none,
-                              hintText: l10n.searchHint,
-                              hintStyle: context.texts.bodyMedium?.copyWith(
-                                color: context.colors.textTertiary,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (state.query.isNotEmpty)
-                          Pressable(
-                            onTap: () {
-                              _text.clear();
-                              ref
-                                  .read(searchControllerProvider.notifier)
-                                  .setQuery('');
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(AppSpacing.xxs),
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 18,
-                                color: context.colors.textTertiary,
-                              ),
-                            ),
-                          ),
-                      ],
+                  field: Semantics(
+                    header: true,
+                    child: Text(
+                      l10n.searchTitle,
+                      style: context.texts.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   actions: <AppHeaderAction>[
@@ -243,6 +181,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       parent: BouncingScrollPhysics(),
                     ),
                     slivers: <Widget>[
+                      // O campo COMPLETO (sugestões instantâneas, Esc, x com
+                      // alvo 48dp) mora aqui, no corpo — era da Explorar,
+                      // onde não deveria existir; a busca é dona dele agora.
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            AppSpacing.screen,
+                            AppSpacing.md,
+                            AppSpacing.screen,
+                            0,
+                          ),
+                          child: SearchField(autofocus: true),
+                        ),
+                      ),
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(

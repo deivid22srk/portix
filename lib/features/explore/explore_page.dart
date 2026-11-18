@@ -144,6 +144,19 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   /// Estado → rota (deep link): texto, filtros, ordenação e modo de exibição.
   /// Sincroniza sem recriar a página (mesma rota, só a query string muda).
   void _syncRoute(SearchState state) {
+    // REGRESSÃO (bug: busca manda para explorar): esta página vive numa aba do
+    // IndexedStack e continua MONTADA quando o usuário empurra /search ou
+    // qualquer outra rota de topo. Sem este guard, uma busca digitada na
+    // tela de busca mudava o estado compartilhado e o listener daqui fazia
+    // context.go('/explore?…'), DERRUBANDO a tela de busca. Só sincroniza
+    // quando /explore é a rota do TOPO da pilha (a configuração atual do
+    // router é sincronia: o último match é o topo real, push incluído).
+    final String topPath = GoRouter.of(
+      context,
+    ).routerDelegate.currentConfiguration.last.matchedLocation;
+    if (topPath != '/explore') {
+      return;
+    }
     final Map<String, String> current = GoRouterState.of(
       context,
     ).uri.queryParameters;
@@ -269,19 +282,21 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   badgeCount: state.filters.activeCount,
                   onTap: () => _openFilters(state.filters, facets),
                 ),
+                // Resultados de uma busca anterior (deep link ou busca na
+                // tela de busca): o x devolve a descoberta sem campo aqui.
+                if (state.query.trim().isNotEmpty)
+                  AppHeaderAction(
+                    icon: Icons.close_rounded,
+                    tooltip: l10n.clearSearch,
+                    onTap: () => ref
+                        .read(searchControllerProvider.notifier)
+                        .clearQuery(),
+                  ),
               ],
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.screen + extra,
-                  AppSpacing.md,
-                  AppSpacing.screen + extra,
-                  0,
-                ),
-                child: SearchField(),
-              ),
-            ),
+            // SEM campo de busca aqui: a busca vive na tela de busca (FAB da
+            // navegação). A Explorar é descoberta — categorias, carrosséis e
+            // filtros rápidos. A rota ainda aceita /explore?q=… por deep link.
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
             // Filtros rápidos (funcionalidade da tela original preservada):
             // Tudo / Grátis / plataformas mais relevantes, num toque.
@@ -812,16 +827,13 @@ class _CategoryGrid extends ConsumerWidget {
                 index: index,
                 child: CategoryCard(
                   genre: genres[index],
-                  onTap: () {
-                    final SearchFilters filters = ref
-                        .read(searchControllerProvider)
-                        .filters;
-                    ref
-                        .read(searchControllerProvider.notifier)
-                        .applyFilters(
-                          filters.copyWith(genre: genres[index].name),
-                        );
-                  },
+                  // Toca categoria → TELA da categoria (lista os jogos do
+                  // gênero). Antes: aplicava um filtro no estado compartilhado
+                  // que nem aparecia (a troca para resultados dependia de
+                  // texto) — "nada acontecia" para o usuário.
+                  onTap: () => context.push<Object?>(
+                    '/genre/${Uri.encodeComponent(genres[index].name)}',
+                  ),
                 ),
               ),
               childCount: genres.length,

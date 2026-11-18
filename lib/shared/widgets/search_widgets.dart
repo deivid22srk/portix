@@ -220,6 +220,8 @@ class _SearchFieldState extends ConsumerState<SearchField> {
       _panelVisible = false;
       _highlight = -1;
     });
+    // Teclado sai de cena ao submeter: os resultados pedem espaço de tela.
+    _focus.unfocus();
     if (_highlight >= 0 && _highlight < items.length) {
       _pick(items[_highlight]);
       return;
@@ -256,6 +258,22 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     final L10n l10n = context.l10n;
     final String text = ref.watch(searchTextProvider);
     final SuggestState suggest = ref.watch(suggestControllerProvider);
+    // ECO do estado (a mesma regra da tela de busca): buscas vindas de OUTRAS
+    // interações — chip do histórico, sugestão selecionada, "Limpar" na
+    // Explorar — precisam aparecer no campo. A fonte da verdade continua
+    // sendo o TEXTO BRUTO (state.query é a bruta, nunca trimada), então o
+    // eco nunca apaga o que o usuário está digitando.
+    ref.listen<SearchState>(searchControllerProvider, (
+      SearchState? previous,
+      SearchState next,
+    ) {
+      if (next.query != _text.text) {
+        _text.value = TextEditingValue(
+          text: next.query,
+          selection: TextSelection.collapsed(offset: next.query.length),
+        );
+      }
+    });
     final bool panelOpen =
         _panelVisible && text.trim().length >= kSearchMinChars;
     final List<SuggestionItem> items = panelOpen

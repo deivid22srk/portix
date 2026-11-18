@@ -254,7 +254,6 @@ Future<void> _pumpExplore(
   String name,
   _ExploreFakeRepo repo, {
   String query = '',
-  bool submit = false,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -263,8 +262,13 @@ Future<void> _pumpExplore(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
+  // Busca por deep link (/explore?q=…): a Explorar não tem mais campo de
+  // busca — resultados chegam pela rota, como na produção.
   final GoRouter router = GoRouter(
-    initialLocation: '/explore',
+    initialLocation: Uri(
+      path: '/explore',
+      queryParameters: query.isEmpty ? null : <String, String>{'q': query},
+    ).toString(),
     routes: <RouteBase>[
       GoRoute(
         path: '/explore',
@@ -299,20 +303,6 @@ Future<void> _pumpExplore(
   );
   await tester.pump();
   await tester.pumpAndSettle();
-
-  if (query.isNotEmpty) {
-    final Finder field = find.byType(TextField);
-    if (submit) {
-      await tester.tap(field);
-      await tester.pump();
-      await tester.enterText(field, query);
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
-    } else {
-      await tester.enterText(field, query);
-      await tester.pumpAndSettle();
-    }
-  }
 
   await expectLater(
     find.byType(MaterialApp),
@@ -383,20 +373,6 @@ void main() {
     );
   });
 
-  testWidgets('sugestões mobile 375 escuro', (WidgetTester tester) async {
-    if (!_goldensEnabled) {
-      return;
-    }
-    await _pumpExplore(
-      tester,
-      const Size(375, 812),
-      auroraDark,
-      'sugestoes_375_escuro',
-      _ExploreFakeRepo(),
-      query: 'front',
-    );
-  });
-
   testWidgets('resultados mobile 375 escuro', (WidgetTester tester) async {
     if (!_goldensEnabled) {
       return;
@@ -408,7 +384,6 @@ void main() {
       'resultados_375_escuro',
       _ExploreFakeRepo(),
       query: 'frontier',
-      submit: true,
     );
   });
 
@@ -423,7 +398,6 @@ void main() {
       'resultados_768_midnight',
       _ExploreFakeRepo(),
       query: 'frontier',
-      submit: true,
     );
   });
 
@@ -438,7 +412,6 @@ void main() {
       'resultados_1440_claro',
       _ExploreFakeRepo(),
       query: 'frontier',
-      submit: true,
     );
   });
 
@@ -453,7 +426,6 @@ void main() {
       'vazio_375_escuro',
       _ExploreFakeRepo(),
       query: 'vazio',
-      submit: true,
     );
   });
 
@@ -468,7 +440,6 @@ void main() {
       'erro_375_escuro',
       _BrokenSearchRepo(),
       query: 'frontier',
-      submit: true,
     );
   });
 
@@ -535,7 +506,6 @@ void main() {
       'resultados_768_citrico',
       _ExploreFakeRepo(),
       query: 'frontier',
-      submit: true,
     );
   });
 }

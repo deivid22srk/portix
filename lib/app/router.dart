@@ -8,6 +8,7 @@ import '../features/device_specs/device_specs_search_screen.dart';
 import '../features/details/game_detail_page.dart';
 import '../features/details/game_reports_page.dart';
 import '../features/explore/explore_page.dart';
+import '../features/explore/genre_page.dart';
 import '../features/home/home_page.dart';
 import '../features/hub/hub_page.dart';
 import '../features/menu/menu_page.dart';
@@ -92,6 +93,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/search',
         pageBuilder: (BuildContext context, GoRouterState state) =>
             _expandPage(state, const SearchPage()),
+      ),
+      // Tela de categoria (gênero): aberta pelos cards de "Categorias" da
+      // Explorar. Rota de topo (sem a barra de navegação), com volta para
+      // onde o usuário estava.
+      GoRoute(
+        path: '/genre/:name',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          GenrePage(genre: state.pathParameters['name'] ?? ''),
+        ),
       ),
       GoRoute(
         path: '/auth',

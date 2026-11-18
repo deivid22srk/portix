@@ -1,8 +1,9 @@
-// Testes de widget da tela Explorar redesenhada: descoberta (seções,
-// categorias, histórico), modo busca (contador, chips, grade/lista), estados
-// (vazio com sugestão, offline com cache), teclado (Enter/Esc/setas) e
-// reflexão do estado na rota (deep link).
-import 'package:flutter/services.dart';
+// Testes de widget da tela Explorar (descoberta): seções, categorias com
+// NAVEGAÇÃO para a tela do gênero, ausência de campo de busca, estados de
+// resultados por deep link, histórico, acessibilidade e a REGRESSÃO do laço
+// rota↔estado (a busca na tela de busca não pode ser derrubada pela Explorar).
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,7 @@ import 'package:portix/core/env.dart';
 import 'package:portix/core/providers.dart';
 import 'package:portix/data/catalog_repository.dart';
 import 'package:portix/features/explore/explore_page.dart';
+import 'package:portix/features/search/search_controller.dart';
 import 'package:portix/shared/widgets/app_header.dart';
 import 'package:portix/models/app_update.dart';
 import 'package:portix/models/collections.dart';
@@ -206,6 +208,16 @@ Future<(ProviderContainer, GoRouter)> _pump(
         builder: (BuildContext context, GoRouterState state) =>
             Scaffold(body: Text('detalhe-${state.pathParameters['slug']}')),
       ),
+      GoRoute(
+        path: '/genre/:name',
+        builder: (BuildContext context, GoRouterState state) =>
+            Scaffold(body: Text('genero-${state.pathParameters['name']}')),
+      ),
+      GoRoute(
+        path: '/search',
+        builder: (BuildContext context, GoRouterState state) =>
+            const Scaffold(body: Text('tela de busca')),
+      ),
     ],
   );
 
@@ -240,16 +252,15 @@ Future<(ProviderContainer, GoRouter)> _pump(
 
 void main() {
   testWidgets(
-    'modo descoberta: categorias, carrosséis e termos em alta sem carrossel vazio',
+    'modo descoberta: SEM campo de busca, com categorias e carrosséis',
     (WidgetTester tester) async {
       final _FakeRepo repo = _FakeRepo();
       final (_, GoRouter router) = await _pump(tester, repo);
 
-      // Campo de busca com hint novo (na dobra).
-      expect(
-        find.text('Buscar jogos, categorias ou desenvolvedores'),
-        findsOneWidget,
-      );
+      // A Explorar é descoberta: nenhum campo de busca aqui — a busca é a
+      // tela própria (FAB da navegação).
+      expect(find.byType(TextField), findsNothing);
+
       // Seções da descoberta visíveis na dobra.
       expect(find.text('Categorias'), findsOneWidget);
       expect(find.text('Aventura'), findsWidgets);
@@ -271,15 +282,35 @@ void main() {
     },
   );
 
+  testWidgets('categoría navegável: toque abre a TELA do gênero com os jogos', (
+    WidgetTester tester,
+  ) async {
+    final _FakeRepo repo = _FakeRepo();
+    final (_, GoRouter router) = await _pump(tester, repo);
+
+    // Antes do fix o toque só aplicava um filtro invisível: nada mudava.
+    await tester.ensureVisible(find.text('Aventura').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aventura').first);
+    await tester.pumpAndSettle();
+
+    // O caminho do TOPO (push incluído) — uri.path devolve a rota base.
+    expect(
+      router.routerDelegate.currentConfiguration.last.matchedLocation,
+      '/genre/Aventura',
+    );
+    expect(find.text('genero-Aventura'), findsOneWidget);
+  });
+
   testWidgets(
-    'modo busca: contador de resultados, chips de filtros e alternância lista',
+    'resultados por deep link: contador, chips de filtros e alternância lista',
     (WidgetTester tester) async {
       final _FakeRepo repo = _FakeRepo();
-      final (_, GoRouter router) = await _pump(tester, repo);
-
-      await tester.enterText(find.byType(TextField), 'mario');
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
+      final (_, GoRouter router) = await _pump(
+        tester,
+        repo,
+        initialQuery: <String, String>{'q': 'mario'},
+      );
 
       // Contador anunciado + resultados na grade.
       expect(find.text('3 resultados'), findsOneWidget);
@@ -290,15 +321,46 @@ void main() {
         'mario',
       );
 
-      // Alternância grade → lista.
+      // Alternância grade → lista (sem refetch).
+      final int before = repo.queries.length;
       await tester.tap(find.byIcon(Icons.view_list_rounded));
+      await tester.pump(const Duration(milliseconds: 200)); // timers do tap
       await tester.pumpAndSettle();
       expect(
         router.routerDelegate.currentConfiguration.uri.queryParameters['view'],
         'list',
       );
+      expect(repo.queries.length, before);
     },
   );
+
+  testWidgets('x do header limpa a busca e volta à descoberta (rota sem q)', (
+    WidgetTester tester,
+  ) async {
+    final _FakeRepo repo = _FakeRepo();
+    final (_, GoRouter router) = await _pump(
+      tester,
+      repo,
+      initialQuery: <String, String>{'q': 'mario'},
+    );
+
+    // Resultados visíveis; o x do header é a ÚLTIMA ação do header (tune + x)
+    // — outros close_rounded podem existir na árvore (cards, chips).
+    expect(find.text('Result Alpha'), findsOneWidget);
+    final Finder headerX = find.byType(AppHeaderActionButton).last;
+    await tester.ensureVisible(headerX);
+    await tester.pumpAndSettle();
+    await tester.tap(headerX);
+    await tester.pump(const Duration(milliseconds: 200)); // timers do tap
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
+      isNull,
+    );
+    expect(find.text('Categorias'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
 
   testWidgets(
     'sem resultados: "Você quis dizer…?", limpar filtros e categorias',
@@ -307,11 +369,7 @@ void main() {
       repo.onSearch = (SearchRequest request) => Future<SearchPayload>.value(
         SearchPayload(items: const <Game>[], total: 0, suggestion: 'Frontier'),
       );
-      await _pump(tester, repo);
-
-      await tester.enterText(find.byType(TextField), 'frontir');
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
+      await _pump(tester, repo, initialQuery: <String, String>{'q': 'frontir'});
 
       expect(find.text('Nada encontrado'), findsOneWidget);
       // Sugestão "Você quis dizer…" como chip tocável.
@@ -343,42 +401,49 @@ void main() {
     (WidgetTester tester) async {
       final _FakeRepo repo = _FakeRepo();
       repo.failSearch = true;
-      await _pump(tester, repo);
-
-      await tester.enterText(find.byType(TextField), 'mario');
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
+      await _pump(tester, repo, initialQuery: <String, String>{'q': 'mario'});
 
       expect(find.text('Sem conexão'), findsOneWidget);
       expect(find.text('Tentar de novo'), findsOneWidget);
     },
   );
 
-  testWidgets('teclado: Enter busca, Esc limpa e volta ao modo descoberta', (
-    WidgetTester tester,
-  ) async {
-    final _FakeRepo repo = _FakeRepo();
-    final (_, GoRouter router) = await _pump(tester, repo);
+  testWidgets(
+    'REGRESSÃO do laço: buscar na tela de busca NÃO manda para explorar',
+    (WidgetTester tester) async {
+      final _FakeRepo repo = _FakeRepo();
+      final (ProviderContainer container, GoRouter router) = await _pump(
+        tester,
+        repo,
+      );
 
-    final Finder field = find.byType(TextField);
-    await tester.tap(field); // foco real no campo (sendKeyEvent precisa)
-    await tester.pumpAndSettle();
-    await tester.enterText(field, 'mario');
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-    expect(
-      router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
-      'mario',
-    );
+      // Abre a tela de busca POR CIMA da casca (rota de topo, como no app).
+      router.routerDelegate.addListener(() {
+        debugPrint(
+          'ROTA → ${router.routerDelegate.currentConfiguration.last.matchedLocation}',
+        );
+      });
+      unawaited(router.push('/search'));
+      await tester.pumpAndSettle();
+      expect(find.text('tela de busca'), findsOneWidget);
 
-    // Esc limpa o campo e a rota volta ao modo descoberta.
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pumpAndSettle();
-    expect(
-      router.routerDelegate.currentConfiguration.uri.queryParameters['q'],
-      isNull,
-    );
-  });
+      // A tela de busca dispara a busca no controller compartilhado (o que
+      // acontece de verdade quando o usuário digita lá). A Explorar está
+      // montada embaixo (aba viva) — NÃO pode derrubar esta tela.
+      unawaited(
+        container.read(searchControllerProvider.notifier).submitQuery('mario'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.last.matchedLocation,
+        '/search',
+        reason: 'a busca foi derrubada pela sincronização de rota da Explorar',
+      );
+      expect(find.text('tela de busca'), findsOneWidget);
+      expect(repo.queries, contains('mario'));
+    },
+  );
 
   testWidgets(
     'deep link: /explore?q=…&genre=… aplica texto e filtro no abrir',
@@ -396,37 +461,22 @@ void main() {
     },
   );
 
-  testWidgets('sugestões: painel aparece ao digitar e Enter no texto busca', (
-    WidgetTester tester,
-  ) async {
-    final _FakeRepo repo = _FakeRepo();
-    await _pump(tester, repo);
-
-    await tester.enterText(find.byType(TextField), 'mario');
-    await tester.pumpAndSettle();
-
-    // Painel de sugestões com trecho destacado (jogo sugerido do fake).
-    expect(find.text('Super Mario World'), findsOneWidget);
-    expect(find.text('Plataforma'), findsOneWidget);
-  });
-
   testWidgets(
-    'submit dispara EXATAMENTE as buscas esperadas (sem laço rota↔estado)',
+    'submit dispara EXATAMENTE as buscas esperadas (sem refetch do toggle)',
     (WidgetTester tester) async {
       final _FakeRepo repo = _FakeRepo();
-      await _pump(tester, repo);
+      await _pump(
+        tester,
+        repo,
+        initialQuery: <String, String>{'q': 'frontier'},
+      );
 
-      await tester.enterText(find.byType(TextField), 'frontier');
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
-      // Toggle grade/lista NÃO refaz a busca (antes: +2 fetches por toggle).
+      // Toggle grade/lista NÃO refaz a busca.
       await tester.tap(find.byIcon(Icons.view_list_rounded));
+      await tester.pump(const Duration(milliseconds: 200)); // timers do tap
       await tester.pumpAndSettle();
 
-      expect(repo.queries, <String>[
-        '',
-        'frontier',
-      ], reason: 'descoberta (1) + submit (1); zero refetch do toggle');
+      expect(repo.queries, <String>['', 'frontier']);
     },
   );
 
@@ -446,19 +496,7 @@ void main() {
     );
     expect(dense.height, greaterThanOrEqualTo(44));
 
-    // Digita: o x do campo aparece com alvo de 48dp.
-    await tester.enterText(find.byType(TextField), 'ma');
-    await tester.pump();
-    final Finder fieldX = find.byIcon(Icons.close_rounded).last;
-    final Size xSize = tester.getSize(fieldX);
-    expect(
-      xSize.height,
-      greaterThanOrEqualTo(44),
-      reason: 'x do campo com alvo 48dp',
-    );
-    expect(xSize.width, greaterThanOrEqualTo(44));
-
-    // Chip do histórico: o x de remover também tem 48dp.
+    // Chip do histórico: o x de remover tem 48dp.
     final Finder chipX = find.byIcon(Icons.close_rounded).first;
     final Size chipXSize = tester.getSize(chipX);
     expect(
@@ -466,6 +504,7 @@ void main() {
       greaterThanOrEqualTo(44),
       reason: 'x de remover do histórico com alvo 48dp',
     );
+    expect(chipXSize.width, greaterThanOrEqualTo(44));
   });
 
   testWidgets(
