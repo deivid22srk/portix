@@ -1,4 +1,3 @@
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:portix/app/theme.dart';
@@ -47,6 +46,16 @@ const List<AppNavDestination> _destinations = <AppNavDestination>[
   ),
 ];
 
+/// `Semantics` cujo rótulo é [label] — o contrato declarado pelo destino.
+Finder _semanticsWithLabel(String label) => find.byWidgetPredicate(
+  (Widget widget) => widget is Semantics && widget.properties.label == label,
+);
+
+/// Quantos destinos se declaram selecionados (deve ser exatamente 1).
+Finder get _selectedSemantics => find.byWidgetPredicate(
+  (Widget widget) => widget is Semantics && widget.properties.selected == true,
+);
+
 Future<void> _pump(
   WidgetTester tester,
   Widget child, {
@@ -56,8 +65,6 @@ Future<void> _pump(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  // find.bySemanticsLabel/getSemantics exigem a árvore semântica ligada.
-  addTearDown(tester.ensureSemantics().dispose);
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.dark(),
@@ -139,10 +146,11 @@ void main() {
       expect(find.byIcon(Icons.sports_esports_rounded), findsOneWidget);
       expect(find.byIcon(Icons.home_outlined), findsOneWidget);
 
-      final SemanticsNode node = tester.getSemantics(
-        find.bySemanticsLabel('Explorar'),
-      );
-      expect(node.flagsCollection.isSelected, isTrue);
+      // Exatamente um destino se declara selecionado, e o rótulo acessível do
+      // ativo é 'Explorar' (o leitor de tela anuncia a seleção).
+      expect(_selectedSemantics, findsOneWidget);
+      final Semantics active = tester.widget<Semantics>(_selectedSemantics);
+      expect(active.properties.label, 'Explorar');
     });
 
     testWidgets('tocar aciona o índice do destino', (
@@ -197,7 +205,8 @@ void main() {
       );
 
       expect(find.text('99+'), findsOneWidget);
-      expect(find.bySemanticsLabel('Hub, 120 em andamento'), findsOneWidget);
+      // O contador vai no rótulo acessível, não só no pixel.
+      expect(_semanticsWithLabel('Hub, 120 em andamento'), findsOneWidget);
     });
 
     testWidgets('alvo de toque de cada destino tem ao menos 44dp', (
@@ -299,7 +308,7 @@ void main() {
 
       // O rótulo some do visual, mas continua disponível para o leitor de tela.
       expect(find.text('Início'), findsNothing);
-      expect(find.bySemanticsLabel('Início'), findsOneWidget);
+      expect(_semanticsWithLabel('Início'), findsOneWidget);
     });
   });
 
