@@ -17,6 +17,19 @@
 -- entre execuções.
 -- ============================================================================
 
+-- ------------------------------------------------------- catálogo limpo
+-- As migrations 0016/0021 semeiam alguns jogos de exemplo. O teste precisa de um
+-- volume EXATO e reprodutível, então o seed assume o catálogo do zero (as FKs
+-- são `on delete cascade`).
+delete from public.ports;
+delete from public.downloads;
+delete from public.reviews;
+delete from public.favorites;
+delete from public.library;
+delete from public.feed_impressions;
+delete from public.games;
+delete from public.platforms;
+
 -- ---------------------------------------------------------------- plataformas
 insert into public.platforms (slug, name, full_name, kind, sort_order)
 select
@@ -151,7 +164,10 @@ with pairs as (
     where email like 'user%@example.test'
   ) u
   cross join (
-    select id, (split_part(slug, '-', 2))::int as num from public.games
+    select
+      id,
+      coalesce((substring(slug from '([0-9]+)$'))::int, 0) as num
+    from public.games
   ) g
 )
 insert into public.downloads (
@@ -215,7 +231,10 @@ with pairs as (
     g.id as game_id,
     u.id as user_id,
     ((g.num * 31 + u.uidx * 17) % 50000) as k
-  from (select id, (split_part(slug, '-', 2))::int as num from public.games) g
+  from (
+    select id, coalesce((substring(slug from '([0-9]+)$'))::int, 0) as num
+    from public.games
+  ) g
   cross join (
     select id, row_number() over (order by id) as uidx from auth.users
   ) u
