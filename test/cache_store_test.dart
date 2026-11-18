@@ -32,6 +32,17 @@ void main() {
     expect(store.readString('feed.seed_nonce'), isNull);
   });
 
+  test('as chaves ficam isoladas sob o prefixo do cache', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final CacheStore store = CacheStore(prefs);
+
+    await store.writeString('feed.anon_id', 'abc-123');
+
+    expect(prefs.getString('cache.feed.anon_id'), 'abc-123');
+    expect(prefs.getString('feed.anon_id'), isNull);
+  });
+
   test('clearAll remove as chaves do cache', () async {
     final CacheStore store = await _store();
     await store.writeString('feed.anon_id', 'abc-123');
