@@ -363,6 +363,12 @@ class SupabaseCatalogRepository
 
   @override
   Future<Collections> fetchCollections() async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      // Visitante: não existe coleção no servidor. A sessão anônima automática
+      // foi removida de propósito — conta só quando o usuário cria uma.
+      return Collections.empty;
+    }
     final Object? response = await _guard<Object?>(
       () => _client.rpc('my_collections'),
     );
@@ -375,6 +381,10 @@ class SupabaseCatalogRepository
 
   @override
   Future<bool> toggleFavorite(String gameId) async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
     final Object? response = await _guard<Object?>(
       () => _client.rpc(
         'toggle_favorite',
@@ -386,6 +396,10 @@ class SupabaseCatalogRepository
 
   @override
   Future<bool> toggleLibrary(String gameId) async {
+    final User? user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
     final Object? response = await _guard<Object?>(
       () => _client.rpc(
         'toggle_library',

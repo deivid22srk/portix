@@ -4,8 +4,9 @@
 #
 # Aplica TODAS as migrations (o mesmo SQL que vai para produção, em ordem),
 # semeia um catálogo com o volume real (839 jogos), roda as assertivas, a
-# simulação de 20 aberturas (antes × depois), o EXPLAIN ANALYZE e o teste de
-# escala. Falha o build em qualquer erro.
+# simulação de 20 aberturas (antes × depois), o EXPLAIN ANALYZE, o teste de
+# escala e as assertivas da limpeza de contas anônimas. Falha o build em
+# qualquer erro.
 #
 # Uso:  PGURL=postgresql://postgres:postgres@localhost:5432/postgres \
 #         bash tools/feed/run_sql_tests.sh
@@ -36,6 +37,7 @@ run_sql "$ROOT/supabase/tests/20_assertions.sql"
 run_sql "$ROOT/supabase/tests/30_simulation.sql"
 run_sql "$ROOT/supabase/tests/40_explain.sql"
 run_sql "$ROOT/supabase/tests/45_explain_scale.sql"
+run_sql "$ROOT/supabase/tests/50_purge_accounts.sql"
 
 echo
 echo "FEED_SQL: migrations aplicadas, assertivas, simulação e EXPLAIN verdes."

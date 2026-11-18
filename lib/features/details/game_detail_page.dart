@@ -369,7 +369,25 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     );
   }
 
+  /// Ações de coleção exigem conta: a sessão anônima automática foi removida,
+  /// então o visitante recebe o convite para entrar em vez de um erro genérico.
+  bool _requireAccount() {
+    if (ref.read(accountProvider).isSignedIn) {
+      return true;
+    }
+    final L10n l10n = context.l10n;
+    _showSnack(
+      l10n.loginRequired,
+      actionLabel: l10n.signIn,
+      onAction: () => context.push<Object?>('/auth'),
+    );
+    return false;
+  }
+
   Future<void> _toggleFavorite(GameDetail detail) async {
+    if (!_requireAccount()) {
+      return;
+    }
     final bool ok = await ref
         .read(collectionsProvider.notifier)
         .toggleFavorite(detail.game);
@@ -382,6 +400,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   Future<void> _toggleLibrary(GameDetail detail) async {
+    if (!_requireAccount()) {
+      return;
+    }
     final bool wasInLibrary =
         ref.read(collectionsProvider).value?.isInLibrary(detail.game.id) ??
         false;
