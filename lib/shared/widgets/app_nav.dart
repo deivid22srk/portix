@@ -69,6 +69,20 @@ class AppNav {
     }
     return AppNavMode.bottom;
   }
+
+  /// Margem lateral da chrome. Em telefone estreito ela encolhe — é o primeiro
+  /// recurso antes de sacrificar o alvo de toque: a 320dp, com a busca ao lado
+  /// da barra, 16dp de margem deixariam 42dp por destino.
+  static double edgeInset(double width) =>
+      width < AppBreakpoints.narrow ? AppSpacing.sm : AppSpacing.screen;
+
+  /// Largura útil de cada destino da barra inferior, já descontando a margem,
+  /// o respiro e a busca ao lado (invariante: nunca abaixo de 44dp).
+  static double bottomBarSlot(double width) {
+    final double gutters = 2 * edgeInset(width) + AppSpacing.sm;
+    final double actionWidth = AppSpacing.searchFab;
+    return (width - gutters - actionWidth) / maxDestinations;
+  }
 }
 
 /// Contador de badge da navegação, com limite visual.
@@ -116,6 +130,7 @@ class AppNavItem extends StatefulWidget {
     required this.onTap,
     this.layout = AppNavItemLayout.stacked,
     this.showLabel = true,
+    this.isTab = true,
   });
 
   final AppNavDestination destination;
@@ -126,6 +141,11 @@ class AppNavItem extends StatefulWidget {
   /// No modo recolhido o rótulo some do visual, mas continua no rótulo
   /// acessível (leitor de tela e alvo de toque rotulado).
   final bool showLabel;
+
+  /// `false` para ações que moram na mesma faixa (ex.: busca): elas não são
+  /// abas, então não entram no grupo mutuamente exclusivo nem anunciam
+  /// "não selecionado".
+  final bool isTab;
 
   @override
   State<AppNavItem> createState() => _AppNavItemState();
@@ -214,8 +234,8 @@ class _AppNavItemState extends State<AppNavItem> {
       // Nó próprio: o leitor de tela anuncia "aba, 3 de 5, selecionada" em vez
       // de fundir o destino com os vizinhos.
       container: true,
-      selected: widget.selected,
-      inMutuallyExclusiveGroup: true,
+      selected: widget.isTab ? widget.selected : null,
+      inMutuallyExclusiveGroup: widget.isTab,
       button: true,
       label: accessibleLabel,
       // A ação fica no nó externo: o visual interno é excluído da árvore
@@ -306,12 +326,15 @@ class AppNavPill extends StatelessWidget {
 
 /// Barra inferior de vidro (telefone): indicador deslizante + 5 destinos.
 class AppNavBottomBar extends StatelessWidget {
-  const AppNavBottomBar({
+  // Não é `const`: o teto de 5 destinos é verificado por `assert` sobre
+  // `length`, que não é avaliável em expressão constante — assim o contrato
+  // vale em runtime e ninguém tropeça numa invocação `const` que não compila.
+  AppNavBottomBar({
     super.key,
     required this.destinations,
     required this.currentIndex,
     required this.onSelect,
-  });
+  }) : assert(destinations.length <= AppNav.maxDestinations);
 
   final List<AppNavDestination> destinations;
   final int currentIndex;
@@ -395,14 +418,15 @@ class AppNavBottomBar extends StatelessWidget {
 
 /// Rail vertical (tablet): marca no topo, destinos com rótulo, busca no pé.
 class AppNavRail extends StatelessWidget {
-  const AppNavRail({
+  // Não é `const` (mesmo motivo de [AppNavBottomBar]).
+  AppNavRail({
     super.key,
     required this.destinations,
     required this.currentIndex,
     required this.onSelect,
     this.onSearch,
     this.searchLabel,
-  });
+  }) : assert(destinations.length <= AppNav.maxDestinations);
 
   final List<AppNavDestination> destinations;
   final int currentIndex;
@@ -421,9 +445,11 @@ class AppNavRail extends StatelessWidget {
         color: context.colors.glass,
         border: Border(right: BorderSide(color: context.colors.glassBorder)),
       ),
+      // right: false — a borda direita encosta no conteúdo, não na tela.
+      // O inset inferior fica: em paisagem/3 botões a busca e a conta não
+      // podem cair sob a barra do sistema.
       child: SafeArea(
         right: false,
-        bottom: false,
         child: Column(
           children: <Widget>[
             const SizedBox(height: AppSpacing.lg),
@@ -473,6 +499,7 @@ class AppNavRail extends StatelessWidget {
                         label: search,
                       ),
                       selected: false,
+                      isTab: false,
                       onTap: onSearch!,
                     ),
                   ),
@@ -489,7 +516,8 @@ class AppNavRail extends StatelessWidget {
 /// Sidebar recolhível (desktop): marca, destinos com rótulo, busca e a conta
 /// no pé (o widget de conta vem da casca, que conhece os providers).
 class AppNavSidebar extends StatefulWidget {
-  const AppNavSidebar({
+  // Não é `const` (mesmo motivo de [AppNavBottomBar]).
+  AppNavSidebar({
     super.key,
     required this.destinations,
     required this.currentIndex,
@@ -498,7 +526,7 @@ class AppNavSidebar extends StatefulWidget {
     this.searchLabel,
     this.footer,
     this.initiallyCollapsed = false,
-  });
+  }) : assert(destinations.length <= AppNav.maxDestinations);
 
   final List<AppNavDestination> destinations;
   final int currentIndex;
@@ -535,9 +563,9 @@ class _AppNavSidebarState extends State<AppNavSidebar> {
         color: context.colors.glass,
         border: Border(right: BorderSide(color: context.colors.glassBorder)),
       ),
+      // Mesmo critério do rail: o inset inferior protege o cartão de conta.
       child: SafeArea(
         right: false,
-        bottom: false,
         child: Column(
           children: <Widget>[
             Padding(
@@ -619,6 +647,7 @@ class _AppNavSidebarState extends State<AppNavSidebar> {
                         label: search,
                       ),
                       selected: false,
+                      isTab: false,
                       layout: _collapsed
                           ? AppNavItemLayout.stacked
                           : AppNavItemLayout.inline,

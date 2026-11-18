@@ -36,7 +36,11 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final L10n l10n = context.l10n;
-    final AppNavMode mode = AppNav.modeFor(MediaQuery.sizeOf(context).width);
+    final double width = MediaQuery.sizeOf(context).width;
+    final AppNavMode mode = AppNav.modeFor(width);
+    // Telefone estreito: a margem lateral encolhe antes do alvo de toque —
+    // a 320dp cada destino ainda fica com 45dp (ver AppNav.bottomBarSlot).
+    final double edge = AppNav.edgeInset(width);
     // Teclado aberto: a barra inferior sai de cena em vez de subir e cobrir o
     // campo em foco.
     final bool keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -117,9 +121,9 @@ class MainShell extends ConsumerWidget {
             ? null
             : Padding(
                 padding: EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
+                  edge,
                   0,
-                  AppSpacing.screen,
+                  edge,
                   context.systemBottomInset + AppSpacing.md,
                 ),
                 child: Row(

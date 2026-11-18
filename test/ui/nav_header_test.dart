@@ -105,6 +105,31 @@ void main() {
       expect(AppNav.maxDestinations, 5);
       expect(_destinations.length, lessThanOrEqualTo(AppNav.maxDestinations));
     });
+
+    test('sexto destino é barrado na construção do componente', () {
+      expect(
+        () => AppNavBottomBar(
+          destinations: List<AppNavDestination>.filled(6, _destinations.first),
+          currentIndex: 0,
+          onSelect: (_) {},
+        ),
+        throwsAssertionError,
+      );
+    });
+
+    test('nenhuma largura de telefone deixa destino abaixo de 44dp', () {
+      // 320dp é o piso real (tela pequena com display grande): sem encolher a
+      // margem, a barra + a busca deixariam 42dp por destino.
+      for (final double width in <double>[320, 340, 360, 375, 411, 600, 767]) {
+        expect(
+          AppNav.bottomBarSlot(width),
+          greaterThanOrEqualTo(44),
+          reason: 'largura $width',
+        );
+      }
+      expect(AppNav.edgeInset(320), AppSpacing.sm);
+      expect(AppNav.edgeInset(AppBreakpoints.narrow), AppSpacing.screen);
+    });
   });
 
   group('AppNavBottomBar (telefone)', () {
@@ -233,6 +258,50 @@ void main() {
       }
     });
 
+    testWidgets('320dp: margem encolhe e o alvo continua em 44dp', (
+      WidgetTester tester,
+    ) async {
+      const double width = 320;
+      await _pump(
+        tester,
+        Align(
+          alignment: Alignment.bottomCenter,
+          // Mesma composição da casca: margem adaptativa + barra + busca.
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppNav.edgeInset(width)),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: AppNavBottomBar(
+                    destinations: _destinations,
+                    currentIndex: 0,
+                    onSelect: (_) {},
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(
+                  width: AppSpacing.searchFab,
+                  height: AppSpacing.searchFab,
+                ),
+              ],
+            ),
+          ),
+        ),
+        size: const Size(width, 720),
+      );
+
+      expect(tester.takeException(), isNull);
+      final Finder items = find.byType(AppNavItem);
+      expect(items, findsNWidgets(_destinations.length));
+      for (int index = 0; index < _destinations.length; index += 1) {
+        expect(
+          tester.getSize(items.at(index)).width,
+          greaterThanOrEqualTo(44),
+          reason: 'destino $index',
+        );
+      }
+    });
+
     testWidgets('fonte do sistema 2.0 não estoura a barra', (
       WidgetTester tester,
     ) async {
@@ -283,6 +352,35 @@ void main() {
       await tester.tap(find.text('Notícias'));
       await tester.pump();
       expect(selected, 2);
+    });
+
+    testWidgets('busca é ação, não aba: fora do grupo mutuamente exclusivo', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        SizedBox(
+          height: 800,
+          child: AppNavRail(
+            destinations: _destinations,
+            currentIndex: 0,
+            onSelect: (_) {},
+            onSearch: () {},
+            searchLabel: 'Buscar',
+          ),
+        ),
+      );
+
+      final Semantics search = tester.widget<Semantics>(
+        _semanticsWithLabel('Buscar'),
+      );
+      // Não anuncia "não selecionado": busca não é um destino de aba.
+      expect(search.properties.selected, isNull);
+      expect(search.properties.inMutuallyExclusiveGroup, isNot(true));
+      expect(search.properties.button, isTrue);
+
+      // Os destinos, sim, seguem no grupo de abas — com um único selecionado.
+      expect(_selectedSemantics, findsOneWidget);
     });
 
     testWidgets('sidebar recolhe mantendo o rótulo acessível', (

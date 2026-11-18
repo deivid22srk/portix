@@ -30,26 +30,35 @@ class UserAvatarAction extends ConsumerWidget {
         ? l10n.player
         : profile.displayName;
 
-    return Tooltip(
-      message: l10n.accountSection,
-      child: Pressable(
-        onTap: () => context.go('/menu/conta'),
-        scale: 0.94,
-        child: SizedBox(
-          width: AppSpacing.circleButton,
-          height: AppSpacing.circleButton,
-          child: Center(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: context.colors.glassBorder),
-              ),
-              child: ClipOval(
-                child: ProfileAvatar(
-                  name: name,
-                  imageUrl: profile.coverUrl,
-                  size: AppSpacing.xxl + AppSpacing.xs,
-                  level: adminLevel,
+    return Semantics(
+      // Ação de cabeçalho: o leitor de tela anuncia o papel de botão e o
+      // destino (o Tooltip sozinho não dá papel nem rótulo).
+      button: true,
+      label: l10n.accountSection,
+      onTap: () => context.go('/menu/conta'),
+      child: ExcludeSemantics(
+        child: Tooltip(
+          message: l10n.accountSection,
+          child: Pressable(
+            onTap: () => context.go('/menu/conta'),
+            scale: 0.94,
+            child: SizedBox(
+              width: AppSpacing.circleButton,
+              height: AppSpacing.circleButton,
+              child: Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.colors.glassBorder),
+                  ),
+                  child: ClipOval(
+                    child: ProfileAvatar(
+                      name: name,
+                      imageUrl: profile.coverUrl,
+                      size: AppSpacing.xxl + AppSpacing.xs,
+                      level: adminLevel,
+                    ),
+                  ),
                 ),
               ),
             ),

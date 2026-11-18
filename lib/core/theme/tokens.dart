@@ -132,6 +132,10 @@ class AppMotion {
 class AppBreakpoints {
   const AppBreakpoints._();
 
+  /// Telefones estreitos: abaixo disto a chrome lateral encolhe a margem
+  /// (16 → 8) para nenhum alvo de toque cair abaixo de 44dp.
+  static const double narrow = 360;
+
   /// Tablet / paisagem baixa.
   static const double tablet = 600;
 
