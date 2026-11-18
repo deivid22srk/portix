@@ -48,7 +48,7 @@ diferencia exploração controlada de aleatoriedade pura).
 | Componente | Como é calculado |
 |---|---|
 | popularidade | `0,60 · d/(1+d)` onde `d = games.recent_pop × exp(−Δ/7d)` (denormalizado com decaimento preguiçoso) `+ 0,25 · log(1+download_count) + 0,15 · log(1+visit_count)`, normalizado por `x/(1+x)` |
-| frescor | `0,65 · exp(−idade_desde_release/21) + 0,35 · exp(−idade_desde_atividade/10)` |
+| frescor | `0,65 · exp(−idade_desde_release/21) + 0,35 · exp(−idade_desde_atividade/10)`, com idade limitada a ≥ 0 (data futura = recém-lançado; sem isso um lançamento anunciado explodia o score) |
 | qualidade | `0,70 · média_bayesiana/5 + 0,30 · conversão/(1+conversão)`, com média bayesiana `(Σnotas + C·m)/(n + C)`, `C = 5`, `m = 3,5` — evita "5,0 com 1 voto" |
 | afinidade | `0,55 · share_gênero + 0,45 · share_desenvolvedor`, sobre os jogos que o usuário favoritou, guardou na biblioteca ou baixou |
 | repetição | `0,75` se está em `p_seen` (histórico local enviado pelo cliente); senão `exp(−idade/3)` sobre as impressões do próprio `auth.uid()` (janela 30 dias) |

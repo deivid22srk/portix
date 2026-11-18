@@ -150,6 +150,31 @@ begin
 end
 $$;
 
+\echo '=== 4b. score limitado (data futura não explode o ranking) ==='
+do $$
+declare
+  v_max numeric;
+  v_min numeric;
+begin
+  select
+    max((e->>'score')::numeric),
+    min((e->>'score')::numeric)
+  into v_max, v_min
+  from jsonb_array_elements(
+    public.feed_candidates('limite', '{}'::uuid[])
+  ) e;
+
+  perform testkit.assert_true(
+    v_max <= 10,
+    'nenhum score acima de 10 (obtido ' || round(v_max, 2) || ')'
+  );
+  perform testkit.assert_true(
+    v_min >= 0,
+    'nenhum score negativo (obtido ' || round(v_min, 2) || ')'
+  );
+end
+$$;
+
 \echo '=== 5. cold start (anônimo) ==='
 set role anon;
 do $$

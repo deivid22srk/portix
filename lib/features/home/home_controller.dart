@@ -132,10 +132,11 @@ class HomeDiscoverNotifier extends Notifier<HomeDiscoverState> {
     state = current.copyWith(loading: true, clearError: true);
     try {
       final String seed = ref.read(feedSessionProvider).seed();
-      final List<String> seen = <String>{
+      final Set<String> seenIds = <String>{
         ...section.items.map((Game game) => game.id),
         ...current.extra.map((Game game) => game.id),
-      }.toList(growable: false);
+      };
+      final List<String> seen = seenIds.toList(growable: false);
       final HomeFeed page = await algo.loadMoreDiscover(
         seed: seed,
         cursor: cursor,

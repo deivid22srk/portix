@@ -283,9 +283,10 @@ begin
     from (
       select sum(
                exp(
-                 -extract(epoch from (current_timestamp - d.created_at))
-                 / 86400.0
-                 / 7.0
+                 -greatest(
+                   extract(epoch from (current_timestamp - d.created_at)),
+                   0
+                 ) / 86400.0 / 7.0
                )
              ) as value
       from public.downloads d
@@ -423,9 +424,10 @@ recent_downloads as (
   select
     g2.id as game_id,
     g2.recent_pop * exp(
-      -extract(epoch from (current_timestamp - g2.recent_pop_at))
-      / 86400.0
-      / (select dl_half from c)
+      -greatest(
+        extract(epoch from (current_timestamp - g2.recent_pop_at)),
+        0
+      ) / 86400.0 / (select dl_half from c)
     ) as decayed
   from public.games g2
 ),
@@ -502,16 +504,23 @@ parts as (
       )
     ) as pop_score,
     (
+      -- `greatest(idade, 0)`: data no futuro (pré-venda ou dado sujo) vale como
+      -- "agora" e não faz o exp() explodir — sem isso um jogo anunciado para
+      -- 2029 dominava o feed inteiro com score astronômico.
       0.65 * case when b.released_on is not null then
         exp(
-          -extract(epoch from (current_timestamp - b.released_on::timestamptz))
-          / 86400.0 / (select rel_half from c)
+          -greatest(
+            extract(epoch from (current_timestamp - b.released_on::timestamptz)),
+            0
+          ) / 86400.0 / (select rel_half from c)
         )
       else 0 end
       + 0.35 * case when b.last_activity_on is not null then
         exp(
-          -extract(epoch from (current_timestamp - b.last_activity_on::timestamptz))
-          / 86400.0 / (select act_half from c)
+          -greatest(
+            extract(epoch from (current_timestamp - b.last_activity_on::timestamptz)),
+            0
+          ) / 86400.0 / (select act_half from c)
         )
       else 0 end
     ) as fresh_score,

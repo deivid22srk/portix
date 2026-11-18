@@ -77,12 +77,6 @@ jobs:
       - name: Dependências
         run: flutter pub get
 
-      - name: DEBUG formato (temporário)
-        run: |
-          f=lib/features/home/feed_impressions.dart
-          dart format --output=show "$f" > /tmp/fmt.dart
-          diff -u "$f" /tmp/fmt.dart || true
-
       - name: Portões de UI
         run: tool/ui_gates.sh --skip-analyze
 

@@ -159,10 +159,13 @@ class HomePage extends ConsumerWidget {
 
     // 2) Chips de categoria (gêneros + plataformas).
     final List<GenreInfo> genres = feed.genres.take(12).toList(growable: false);
-    final List<PlatformInfo> platforms = feed.platforms
-        .where((PlatformInfo platform) => !platform.isSecondary)
-        .take(8)
-        .toList(growable: false);
+    final List<PlatformInfo> platforms = <PlatformInfo>[];
+    for (final PlatformInfo platform in feed.platforms) {
+      if (platform.isSecondary || platforms.length >= 8) {
+        continue;
+      }
+      platforms.add(platform);
+    }
     if (genres.isNotEmpty || platforms.isNotEmpty) {
       slivers.add(
         SliverToBoxAdapter(

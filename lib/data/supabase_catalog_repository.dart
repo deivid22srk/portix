@@ -271,10 +271,15 @@ class SupabaseCatalogRepository
       ),
     );
     if (response is List) {
-      return response
-          .whereType<Map>()
-          .map((Map item) => CompatReport.fromMap(asMap(item)))
-          .toList(growable: false);
+      // Laço explícito em vez de cadeia: cadeias longas são quebradas de forma
+      // diferente entre as versões do formatador (local 3.14.1 x CI 3.14.0).
+      final List<CompatReport> reports = <CompatReport>[];
+      for (final Object? item in response) {
+        if (item is Map) {
+          reports.add(CompatReport.fromMap(asMap(item)));
+        }
+      }
+      return reports;
     }
     return const <CompatReport>[];
   }
