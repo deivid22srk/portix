@@ -404,6 +404,68 @@ class L10n {
 
   // --------------------------------------------------------------- explore+
   String get exploreTitle => _t('Explorar', 'Explore');
+  String get exploreSubtitle => _t(
+    'Busque ports, navegue por categorias e descubra o catálogo.',
+    'Search ports, browse categories and discover the catalog.',
+  );
+  String get searchFieldHint => _t(
+    'Buscar jogos, categorias ou desenvolvedores',
+    'Search games, categories or developers',
+  );
+  String get suggestionsLabel => _t('Sugestões', 'Suggestions');
+  String get suggestGames => _t('Jogos', 'Games');
+  String get suggestGenres => _t('Categorias', 'Categories');
+  String get suggestDevelopers => _t('Desenvolvedores', 'Developers');
+  String get suggestPlatforms => _t('Plataformas', 'Platforms');
+  String get noSuggestions => _t(
+    'Sem sugestões para esse texto. Toque em buscar para ver os resultados.',
+    'No suggestions for this text. Tap search to see the results.',
+  );
+  String get didYouMean => _t('Você quis dizer…?', 'Did you mean…?');
+  String get clearFilters => _t('Limpar filtros', 'Clear filters');
+  String get gridLabel => _t('Grade', 'Grid');
+  String get listLabel => _t('Lista', 'List');
+  String get categoriesTitle => _t('Categorias', 'Categories');
+  String get categoriesSubtitle =>
+      _t('Navegue por gênero do catálogo', 'Browse the catalog by genre');
+  String get trendingSearches => _t('Em alta nas buscas', 'Trending searches');
+  String get removeSearch => _t('Remover da lista', 'Remove from list');
+  String get sortRelevance => _t('Relevância', 'Relevance');
+  String get sortRating => _t('Melhor avaliados', 'Top rated');
+  String get sortDownloads => _t('Mais baixados', 'Most downloaded');
+  String get filterMinRating => _t('Avaliação mínima', 'Minimum rating');
+  String get staleNotice => _t(
+    'Mostrando dados salvos — podem estar desatualizados.',
+    'Showing saved data — it may be out of date.',
+  );
+  String get emptySearchTitle => _t('Nada encontrado', 'Nothing found');
+  String get emptySearchBody => _t(
+    'Não achamos nada para essa busca. Tente outro termo, limpe os filtros ou navegue pelas categorias.',
+    'We found nothing for that search. Try another term, clear the filters or browse the categories.',
+  );
+  String get searchOfflineTitle =>
+      _t('Busca indisponível offline', 'Search unavailable offline');
+  String get searchOfflineBody => _t(
+    'Sem conexão com o catálogo agora. Suas buscas recentes continuam disponíveis.',
+    'No connection to the catalog right now. Your recent searches stay available.',
+  );
+  String get exploreDiscoverTitle => _t('Descubra', 'Discover');
+  String get seeCategory => _t('Ver categoria', 'View category');
+  String get loadingSuggestions =>
+      _t('Buscando sugestões…', 'Fetching suggestions…');
+  String get resultsAnnounce =>
+      _t('resultados disponíveis', 'results available');
+
+  /// Anúncio do live region: "128 resultados disponíveis".
+  String resultsLiveRegion(int n) => _t(
+    '$n ${n == 1 ? 'resultado' : 'resultados'} $resultsAnnounce',
+    '$n ${n == 1 ? 'result' : 'results'} $resultsAnnounce',
+  );
+
+  /// Contador de filtros aplicados no botão: "Filtros (2)".
+  String filtersBadge(int n) => _t('Filtros ($n)', 'Filters ($n)');
+
+  String get suggestionSelected => _t('Sugestão', 'Suggestion');
 
   // ---------------------------------------------------------------- notícias
   String get newsTitle => _t('Notícias', 'News');

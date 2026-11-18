@@ -12,22 +12,54 @@ String filterSortLabel(L10n l10n, String sort) {
   switch (sort) {
     case 'recent':
       return l10n.sortRecent;
+    case 'rating':
+      return l10n.sortRating;
+    case 'relevance':
+      return l10n.sortRelevance;
     case 'az':
       return l10n.sortAz;
     case 'year':
       return l10n.sortYear;
     case 'trending':
     default:
-      return l10n.sortTrending;
+      // Popularidade = downloads/visitas (métrica real do catálogo).
+      return l10n.sortDownloads;
   }
 }
 
-/// Abre o bottom sheet de filtros (vidro) e devolve o resultado aplicado.
+/// Notas avaliáveis no filtro de avaliação mínima (existe `rating_avg` real).
+const List<double> kRatingFilterOptions = <double>[3, 4, 4.5];
+
+/// Rótulo do chip de nota mínima: "3+", "4+", "4.5+".
+String ratingFilterLabel(double rating) {
+  final bool whole = rating == rating.truncateToDouble();
+  return '${rating.toStringAsFixed(whole ? 0 : 1)}+';
+}
+
+/// Abre o painel de filtros (vidro) e devolve o resultado aplicado.
+/// Mobile: bottom sheet. Telas largas (≥768px): painel flutuante centralizado.
 Future<SearchFilters?> showFilterSheet(
   BuildContext context, {
   required SearchFilters initial,
   required CatalogFacets facets,
 }) {
+  final double width = MediaQuery.sizeOf(context).width;
+  final bool wide = width >= AppBreakpoints.settingsDetail;
+  if (wide) {
+    return showDialog<SearchFilters>(
+      context: context,
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
+      builder: (BuildContext dialogContext) => Dialog(
+        backgroundColor: AppContentColors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: AppBreakpoints.settingsDetail + 96,
+          ),
+          child: _FilterSheet(initial: initial, facets: facets, floating: true),
+        ),
+      ),
+    );
+  }
   return showModalBottomSheet<SearchFilters>(
     context: context,
     isScrollControlled: true,
@@ -40,10 +72,17 @@ Future<SearchFilters?> showFilterSheet(
 }
 
 class _FilterSheet extends StatefulWidget {
-  _FilterSheet({required this.initial, required this.facets});
+  _FilterSheet({
+    required this.initial,
+    required this.facets,
+    this.floating = false,
+  });
 
   final SearchFilters initial;
   final CatalogFacets facets;
+
+  /// Painel flutuante (telas largas): raio completo em vez de sheet de topo.
+  final bool floating;
 
   @override
   State<_FilterSheet> createState() => _FilterSheetState();
@@ -66,8 +105,12 @@ class _FilterSheetState extends State<_FilterSheet> {
       child: Container(
         decoration: BoxDecoration(
           color: context.colors.bgElevated,
-          borderRadius: BorderRadius.vertical(top: AppRadii.sheet),
-          border: Border(top: BorderSide(color: context.colors.glassBorder)),
+          borderRadius: widget.floating
+              ? BorderRadius.circular(AppRadii.lg)
+              : const BorderRadius.vertical(top: AppRadii.sheet),
+          border: widget.floating
+              ? Border.all(color: context.colors.glassBorder)
+              : Border(top: BorderSide(color: context.colors.glassBorder)),
         ),
         child: SafeArea(
           top: false,
@@ -182,12 +225,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                           spacing: AppSpacing.sm,
                           runSpacing: AppSpacing.sm,
                           children: <Widget>[
-                            for (final String sort in <String>[
-                              'trending',
-                              'recent',
-                              'az',
-                              'year',
-                            ])
+                            for (final String sort in kSearchSorts)
                               AppPill(
                                 label: filterSortLabel(l10n, sort),
                                 dense: true,
@@ -196,6 +234,35 @@ class _FilterSheetState extends State<_FilterSheet> {
                                   () =>
                                       _filters = _filters.copyWith(sort: sort),
                                 ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _SheetLabel(l10n.filterMinRating),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.sm,
+                          children: <Widget>[
+                            AppPill(
+                              label: l10n.all,
+                              dense: true,
+                              selected: _filters.minRating == null,
+                              onTap: () => setState(
+                                () => _filters = _filters.copyWith(
+                                  clearMinRating: true,
+                                ),
+                              ),
+                            ),
+                            for (final double rating in kRatingFilterOptions)
+                              AppPill(
+                                label: ratingFilterLabel(rating),
+                                dense: true,
+                                selected: _filters.minRating == rating,
+                                onTap: () => setState(() {
+                                  _filters = _filters.minRating == rating
+                                      ? _filters.copyWith(clearMinRating: true)
+                                      : _filters.copyWith(minRating: rating);
+                                }),
                               ),
                           ],
                         ),

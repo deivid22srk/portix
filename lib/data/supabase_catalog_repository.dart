@@ -8,6 +8,7 @@ import '../core/session.dart';
 import '../models/app_update.dart';
 import '../models/collections.dart';
 import '../models/compat_report.dart';
+import '../models/explore.dart';
 import '../models/game.dart';
 import '../models/game_detail.dart';
 import '../models/home_feed.dart';
@@ -20,11 +21,18 @@ import '../models/user_result.dart';
 import 'catalog_repository.dart';
 
 class SupabaseCatalogRepository
-    implements CatalogRepository, HomeFeedAlgorithmRepository {
+    implements
+        CatalogRepository,
+        HomeFeedAlgorithmRepository,
+        ExploreDiscoveryRepository {
   SupabaseCatalogRepository(this._client, this._cache);
 
   final SupabaseClient _client;
   final CacheStore _cache;
+
+  /// Último feed bom da Explorar (RPC `explore_feed`) para stale-while-
+  /// revalidate e offline — a tela nunca fica vazia sem explicação.
+  static const String _exploreCacheKey = 'explore_feed_v1';
 
   /// Último payload bom da RPC NOVA (`get_home_feed`) — o cache preferido.
   ///
@@ -196,6 +204,48 @@ class SupabaseCatalogRepository
 
   @override
   Future<SearchPayload> search(SearchRequest request) async {
+    try {
+      final Object? response = await _guard<Object?>(
+        () => _client.rpc(
+          'search_games_v2',
+          params: <String, dynamic>{
+            'p_query': request.query.isEmpty ? null : request.query,
+            'p_platform': request.filters.platform,
+            'p_genre': request.filters.genre,
+            'p_free_only': request.filters.freeOnly,
+            'p_needs_rom': request.filters.needsRom,
+            'p_min_rating': request.filters.minRating,
+            'p_sort': request.filters.sort,
+            'p_limit': request.limit,
+            'p_cursor': request.cursor,
+          },
+        ),
+      );
+      final Map<String, dynamic> map = _map(response);
+      return SearchPayload(
+        items: asMapList(
+          map['items'],
+        ).map(Game.fromMap).toList(growable: false),
+        total: asInt(map['total']),
+        // "cursor": null do PostgREST chega como valor ausente/JSON null —
+        // ambos viram Dart null aqui (fim da lista).
+        cursor: map['cursor'] is Map ? asMap(map['cursor']) : null,
+        suggestion: asText(map['suggestion']),
+      );
+    } on AppFailure catch (error) {
+      // Fallback conservador: função v2 ainda não aplicada no banco (o
+      // PostgREST responde 404/PGRST202). A busca legada (ilike) cobre até a
+      // migration chegar — a tela nunca morre por causa do deploy do SQL.
+      if (error.code != 'PGRST202') {
+        rethrow;
+      }
+      return _searchLegacy(request);
+    }
+  }
+
+  /// Busca legada (`search_games`, offset): só o caminho de fallback enquanto
+  /// a migration 0025 não estiver aplicada.
+  Future<SearchPayload> _searchLegacy(SearchRequest request) async {
     final Object? response = await _guard<Object?>(
       () => _client.rpc(
         'search_games',
@@ -216,6 +266,54 @@ class SupabaseCatalogRepository
       items: asMapList(map['items']).map(Game.fromMap).toList(growable: false),
       total: asInt(map['total']),
     );
+  }
+
+  /// Sugestões instantâneas — melhor esforço: qualquer falha vira payload
+  /// vazio, nunca uma exceção que quebre a digitação.
+  @override
+  Future<SuggestPayload> suggest(String query) async {
+    try {
+      final Object? response = await _guard<Object?>(
+        () => _client.rpc(
+          'search_suggest',
+          params: <String, dynamic>{
+            'p_query': query.trim().isEmpty ? null : query.trim(),
+            'p_limit': 8,
+          },
+        ),
+      );
+      final Map<String, dynamic> map = _map(response);
+      return SuggestPayload.fromMap(map);
+    } on Object {
+      return const SuggestPayload();
+    }
+  }
+
+  @override
+  ExploreFeed? readCachedExploreFeed() {
+    final Map<String, dynamic>? raw = _cache.readMap(_exploreCacheKey);
+    if (raw == null) {
+      return null;
+    }
+    try {
+      return ExploreFeed.fromMap(raw);
+    } on Object {
+      return null;
+    }
+  }
+
+  @override
+  Future<ExploreFeed> fetchExploreFeed() async {
+    final Object? response = await _guard<Object?>(
+      () =>
+          _client.rpc('explore_feed', params: <String, dynamic>{'p_limit': 12}),
+    );
+    final Map<String, dynamic> map = _map(response);
+    if (map.isEmpty || !map.containsKey('trending')) {
+      throw const AppFailure(FailureKind.server);
+    }
+    await _cache.writeMap(_exploreCacheKey, map);
+    return ExploreFeed.fromMap(map);
   }
 
   @override
@@ -505,7 +603,13 @@ class SupabaseCatalogRepository
       if (_isRateLimited(error)) {
         throw AppFailure(FailureKind.rateLimited, detail: error.message);
       }
-      throw AppFailure(FailureKind.server, detail: error.message);
+      // Preserva o código PostgREST (ex.: PGRST202 = função ausente) para os
+      // fallbacks da camada de dados.
+      throw AppFailure(
+        FailureKind.server,
+        detail: error.message,
+        code: error.code,
+      );
     } on AuthException catch (error) {
       throw AppFailure(FailureKind.auth, detail: error.message);
     } on TimeoutException {

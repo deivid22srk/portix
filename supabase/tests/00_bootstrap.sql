@@ -13,6 +13,12 @@
 
 create schema if not exists extensions;
 
+-- No Supabase real, o schema `extensions` já é acessível aos papéis de
+-- cliente (USAGE) — aqui reproduzimos isso para as RPCs SECURITY INVOKER que
+-- chamam f_norm/similarity de dentro (busca v2, migration 0025).
+grant usage on schema extensions to anon, authenticated;
+
+
 do $$
 begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then

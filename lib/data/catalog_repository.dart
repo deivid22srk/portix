@@ -1,6 +1,7 @@
 import '../models/app_update.dart';
 import '../models/collections.dart';
 import '../models/compat_report.dart';
+import '../models/explore.dart';
 import '../models/game_detail.dart';
 import '../models/home_feed.dart';
 import '../models/news.dart';
@@ -52,6 +53,23 @@ abstract interface class HomeFeedAlgorithmRepository {
     List<Map<String, dynamic>> items, {
     String? sessionId,
   });
+}
+
+/// Capacidade de descoberta e sugestões da tela Explorar (RPCs da migration
+/// 0025). Fica SEPARADA de [CatalogRepository] de propósito — o mesmo padrão
+/// de [HomeFeedAlgorithmRepository]: implementações legadas e fakes de teste
+/// continuam válidos sem conhecer as RPCs novas.
+abstract interface class ExploreDiscoveryRepository {
+  /// Feed agregado da Explorar (uma chamada: seções + categorias + termos).
+  Future<ExploreFeed> fetchExploreFeed();
+
+  /// Último feed bom em cache local (stale-while-revalidate / offline).
+  ExploreFeed? readCachedExploreFeed();
+
+  /// Sugestões instantâneas para o texto digitado. NUNCA lança: a camada
+  /// devolve payload vazio em qualquer falha — sugestão não pode quebrar
+  /// a digitação.
+  Future<SuggestPayload> suggest(String query);
 }
 
 abstract class CatalogRepository {

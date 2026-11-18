@@ -37,10 +37,14 @@ enum FailureKind {
 }
 
 class AppFailure implements Exception {
-  const AppFailure(this.kind, {this.detail});
+  const AppFailure(this.kind, {this.detail, this.code});
 
   final FailureKind kind;
   final String? detail;
+
+  /// Código estável da origem (PostgREST: `PGRST202` = função ausente, 429 =
+  /// limite de requisições). Permite fallbacks precisos na camada de dados.
+  final String? code;
 
   @override
   String toString() =>

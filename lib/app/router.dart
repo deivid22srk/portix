@@ -171,8 +171,10 @@ StatefulShellBranch _branch(List<RouteBase> routes) =>
 
 Widget _home(BuildContext context, GoRouterState state) => const HomePage();
 
-Widget _explore(BuildContext context, GoRouterState state) =>
-    const ExplorePage();
+Widget _explore(BuildContext context, GoRouterState state) => ExplorePage(
+  // Deep link: /explore?q=…&genre=…&platform=…&free=1&rom=1&min=4&sort=…&view=list
+  initialQuery: state.uri.queryParameters,
+);
 
 Widget _news(BuildContext context, GoRouterState state) => const NewsPage();
 
