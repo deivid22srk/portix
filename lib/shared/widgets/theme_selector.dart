@@ -87,6 +87,24 @@ class ThemeSelector extends ConsumerWidget {
       hint: '',
       colors: floresta,
     ),
+    ThemeOption(
+      id: kThemeVice,
+      name: l10n.themeVice,
+      hint: l10n.themeViceHint,
+      colors: vice,
+    ),
+    ThemeOption(
+      id: kThemeCitrus,
+      name: l10n.themeCitrus,
+      hint: '',
+      colors: citrico,
+    ),
+    ThemeOption(
+      id: kThemeGold,
+      name: l10n.themeGold,
+      hint: '',
+      colors: dourado,
+    ),
   ];
 
   @override

@@ -53,6 +53,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
     kThemeMidnight,
     kThemeOcean,
     kThemeForest,
+    kThemeVice,
+    kThemeCitrus,
+    kThemeGold,
   };
 
   @override

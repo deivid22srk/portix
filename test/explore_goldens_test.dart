@@ -497,4 +497,45 @@ void main() {
       _ExploreFakeRepo(),
     );
   });
+
+  testWidgets('vice descoberta 375', (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
+    await _pumpExplore(
+      tester,
+      const Size(375, 812),
+      vice,
+      'descoberta_375_vice',
+      _ExploreFakeRepo(),
+    );
+  });
+
+  testWidgets('dourado descoberta 375', (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
+    await _pumpExplore(
+      tester,
+      const Size(375, 812),
+      dourado,
+      'descoberta_375_dourado',
+      _ExploreFakeRepo(),
+    );
+  });
+
+  testWidgets('citrico resultados 768', (WidgetTester tester) async {
+    if (!_goldensEnabled) {
+      return;
+    }
+    await _pumpExplore(
+      tester,
+      const Size(768, 1024),
+      citrico,
+      'resultados_768_citrico',
+      _ExploreFakeRepo(),
+      query: 'frontier',
+      submit: true,
+    );
+  });
 }

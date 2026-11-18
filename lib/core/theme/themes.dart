@@ -4,8 +4,9 @@ import 'package:material_ui/material_ui.dart';
 // PORTIX — sistema de temas
 // Um tema = uma `AppColorsTheme` (ThemeExtension): todos os tokens semânticos
 // do app. Nenhuma tela declara cor solta — resolve por `context.colors`.
-// Paletas: Aurora (escuro padrão e claro), Midnight (AMOLED), Oceano e
-// Floresta. Contraste AA (4,5:1) verificado por test/ui/theme_contrast_test.
+// Paletas: Aurora (escuro padrão e claro), Midnight (AMOLED), Oceano,
+// Floresta, Vice (GTA VI), Cítrico (claro) e Dourado. Contraste AA (4,5:1)
+// verificado por test/ui/theme_contrast_test.
 // ============================================================================
 
 @immutable
@@ -262,7 +263,8 @@ class AppColorsTheme extends ThemeExtension<AppColorsTheme> {
 }
 
 // ----------------------------------------------------------------------------
-// Paletas ("Sistema/Claro/Escuro" + Midnight, Oceano, Floresta).
+// Paletas ("Sistema/Claro/Escuro" + Midnight, Oceano, Floresta, Vice,
+// Cítrico, Dourado).
 // ----------------------------------------------------------------------------
 const AppColorsTheme auroraDark = AppColorsTheme(
   bg: Color(0xFF07090E),
@@ -377,6 +379,79 @@ const AppColorsTheme floresta = AppColorsTheme(
   brightness: Brightness.dark,
 );
 
+/// Vice: noite de Vice City segundo o GTA VI — ameixa quase preta com neon
+/// magenta e coral do logo oficial (gradiente #F143A2 → #FF726A sobre a noite
+/// #1C0A12/#2A2058 da arte de lançamento).
+const AppColorsTheme vice = AppColorsTheme(
+  bg: Color(0xFF180A16),
+  bgElevated: Color(0xFF221329),
+  glass: Color(0x0FFBD3EF),
+  glassStrong: Color(0x24FBD3EF),
+  glassBorder: Color(0x2EFBD3EF),
+  glassFloating: Color(0x661D0E22),
+  textPrimary: Color(0xFFFFF1F8),
+  textSecondary: Color(0x9EFBD9EE),
+  textTertiary: Color(0x92F6DBEC),
+  accent: Color(0xFFF143A2),
+  accentAlt: Color(0xFFFF726A),
+  onAccent: Color(0xFF2A0A24),
+  favorite: Color(0xFFA6ACF5),
+  success: Color(0xFF4AE3BC),
+  warning: Color(0xFFFFC94D),
+  danger: Color(0xFFFF6B7E),
+  shadow: Color(0x59100A18),
+  shadowStrong: Color(0x8C100A18),
+  brightness: Brightness.dark,
+);
+
+/// Cítrico: segunda opção clara — creme quente com laranja profundo e
+/// lima oliva, para quem quer claro fora do azul do Aurora.
+const AppColorsTheme citrico = AppColorsTheme(
+  bg: Color(0xFFFFF8EA),
+  bgElevated: Color(0xFFFFFFFF),
+  glass: Color(0x0F3D2B0E),
+  glassStrong: Color(0x1F3D2B0E),
+  glassBorder: Color(0x2E3D2B0E),
+  glassFloating: Color(0xB3FFFDF2),
+  textPrimary: Color(0xFF231A08),
+  textSecondary: Color(0x9E2A1E06),
+  textTertiary: Color(0xB0322B0C),
+  accent: Color(0xFFC2410C),
+  accentAlt: Color(0xFF4D7C0F),
+  onAccent: Color(0xFFFFFFFF),
+  favorite: Color(0xFFBE185D),
+  success: Color(0xFF15803D),
+  warning: Color(0xFFA16207),
+  danger: Color(0xFFB91C1C),
+  shadow: Color(0x1E3D2B0E),
+  shadowStrong: Color(0x293D2B0E),
+  brightness: Brightness.light,
+);
+
+/// Dourado: obsidiana com ouro — fundo quase preto quente e destaque dourado
+/// duplo para um visual premium de launcher.
+const AppColorsTheme dourado = AppColorsTheme(
+  bg: Color(0xFF0B0A05),
+  bgElevated: Color(0xFF161307),
+  glass: Color(0x0FFFF3D0),
+  glassStrong: Color(0x1AFFF3D0),
+  glassBorder: Color(0x1FFFF3D0),
+  glassFloating: Color(0x66131107),
+  textPrimary: Color(0xFFFBF6E6),
+  textSecondary: Color(0x9EF5E9C8),
+  textTertiary: Color(0x8CEBDFBA),
+  accent: Color(0xFFE6AE3F),
+  accentAlt: Color(0xFFC8952B),
+  onAccent: Color(0xFF1F1403),
+  favorite: Color(0xFFF9A8D4),
+  success: Color(0xFF86EFAC),
+  warning: Color(0xFFFDE047),
+  danger: Color(0xFFFCA5A5),
+  shadow: Color(0x59060400),
+  shadowStrong: Color(0x8C060400),
+  brightness: Brightness.dark,
+);
+
 /// Ids do seletor de tema (persistidos em settings.themeId).
 const String kThemeSystem = 'system';
 const String kThemeLight = 'light';
@@ -384,6 +459,9 @@ const String kThemeDark = 'dark';
 const String kThemeMidnight = 'midnight';
 const String kThemeOcean = 'oceano';
 const String kThemeForest = 'floresta';
+const String kThemeVice = 'vice';
+const String kThemeCitrus = 'citrico';
+const String kThemeGold = 'dourado';
 
 /// Par de paletas que o MaterialApp usa para um id escolhido.
 class AppThemePair {
@@ -400,6 +478,9 @@ AppThemePair appThemePairFor(String id) => switch (id) {
   kThemeMidnight => const AppThemePair(light: midnight, dark: midnight),
   kThemeOcean => const AppThemePair(light: oceano, dark: oceano),
   kThemeForest => const AppThemePair(light: floresta, dark: floresta),
+  kThemeVice => const AppThemePair(light: vice, dark: vice),
+  kThemeCitrus => const AppThemePair(light: citrico, dark: citrico),
+  kThemeGold => const AppThemePair(light: dourado, dark: dourado),
   _ => const AppThemePair(light: auroraDark, dark: auroraDark),
 };
 

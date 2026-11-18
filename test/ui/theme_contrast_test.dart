@@ -45,6 +45,9 @@ const List<AppColorsTheme> _palettes = <AppColorsTheme>[
   midnight,
   oceano,
   floresta,
+  vice,
+  citrico,
+  dourado,
 ];
 
 void main() {

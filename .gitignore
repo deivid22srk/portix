@@ -47,3 +47,4 @@ Thumbs.db
 
 # Lockfile gerado pelo pub get; CI resolve dependências sozinho.
 /pubspec.lock
+test/goldens_out/

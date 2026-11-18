@@ -303,6 +303,10 @@ class L10n {
       _t('AMOLED: preto puro', 'AMOLED: pure black');
   String get themeOcean => _t('Oceano', 'Ocean');
   String get themeForest => _t('Floresta', 'Forest');
+  String get themeVice => _t('Vice', 'Vice');
+  String get themeViceHint => _t('Inspirado no GTA VI', 'GTA VI inspired');
+  String get themeCitrus => _t('Cítrico', 'Citrus');
+  String get themeGold => _t('Dourado', 'Gold');
   String get themeSelected => _t('Selecionado', 'Selected');
   String get themePreviewLabel => _t('Prévia do tema', 'Theme preview');
   String themeOptionSemantic(String name) =>

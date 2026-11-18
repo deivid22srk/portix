@@ -79,6 +79,23 @@ void main() {
       },
     );
 
+    test('tema Vice (GTA VI) persiste e sobrevive ao reinício', () async {
+      final ProviderContainer container = await _container();
+      addTearDown(container.dispose);
+
+      container.read(settingsProvider.notifier).setThemeId(kThemeVice);
+
+      final SharedPreferences prefs = container.read(sharedPreferencesProvider);
+      expect(prefs.getString('settings.themeId'), kThemeVice);
+
+      final ProviderContainer restarted = await _container(
+        prefs: <String, Object>{'settings.themeId': kThemeVice},
+      );
+      addTearDown(restarted.dispose);
+      expect(restarted.read(settingsProvider).themeId, kThemeVice);
+      expect(appThemePairFor(kThemeVice).dark, vice);
+    });
+
     test('id inválido cai no tema padrão (escuro Aurora)', () async {
       final ProviderContainer container = await _container(
         prefs: <String, Object>{'settings.themeId': 'hack'},
@@ -139,6 +156,28 @@ void main() {
       expect(Theme.of(after).extension<AppColorsTheme>()!.bg, oceano.bg);
     });
 
+    testWidgets('toque em Vice troca o ThemeData imediatamente', (
+      WidgetTester tester,
+    ) async {
+      final ProviderContainer container = await _container();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const _ThemeHost(),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Vice'));
+      await tester.pumpAndSettle();
+
+      expect(container.read(settingsProvider).themeId, kThemeVice);
+      final BuildContext after = tester.element(find.byType(Scaffold));
+      expect(Theme.of(after).extension<AppColorsTheme>()!.bg, vice.bg);
+    });
+
     testWidgets(
       'card selecionado expõe Semantics selected e todos os temas têm botão',
       (WidgetTester tester) async {
@@ -153,7 +192,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 6 opções: Sistema, Claro, Escuro, Midnight, Oceano, Floresta.
+        // 9 opções: Sistema, Claro, Escuro, Midnight, Oceano, Floresta,
+        // Vice, Cítrico e Dourado.
         final List<String> names = <String>[
           'Sistema',
           'Claro',
@@ -161,6 +201,9 @@ void main() {
           'Midnight',
           'Oceano',
           'Floresta',
+          'Vice',
+          'Cítrico',
+          'Dourado',
         ];
         for (final String name in names) {
           expect(find.text(name), findsOneWidget, reason: 'tema $name visível');
