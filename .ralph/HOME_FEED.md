@@ -131,3 +131,63 @@ segredo versionado (o único match é o próprio gate em `tool/ui_gates.sh:97`).
    ligado. Registrado como suposição.
 7. **Simulação no CI com seed sintético de 839 jogos** espelhando o volume real
    (o banco de produção não é acessível a partir deste ambiente, e não deve ser).
+
+---
+
+## Diário de execução — o que o harness do CI pegaria sozinho
+
+Como não há Postgres nem Flutter nesta máquina, o job novo `feed-sql` (Postgres
+16 efêmero) e o `flutter analyze` do CI foram o compilador de verdade. Bugs
+reais encontrados por eles, em ordem:
+
+1. `round(double precision, integer) does not exist` — `ln(bigint)` devolve
+   `double precision` no Postgres; o bloco de popularidade passou a converter
+   para `numeric`.
+2. `make_interval(days => bigint)` — `%` sobre `row_number()` devolve `bigint`.
+3. Slugs fora do padrão `game-NNNN` (jogos semeados pelas migrations 0016/0021)
+   quebravam o `split_part(...)::int`; extração passou a ser por regex, e o seed
+   limpa o catálogo antes de semear (volume determinístico).
+4. `ports_platform_id_fkey` — `generated always as identity` não reinicia no
+   delete: os ids vinham 27..52.
+5. `RATE_LIMIT_REVIEWS` — o nome do trigger muda entre migrations (0008 →
+   `reviews_rate_limit`, 0009 → `r_rate_limit`); o seed desliga via `pg_trigger`.
+6. `function round(double precision, integer)` de novo, agora no CTE final.
+7. **`permission denied for table favorites` (o mais importante)** — `favorites`,
+   `library` e `downloads` têm SELECT só para `authenticated` (privilégio mínimo,
+   0005), então a RPC `security invoker` quebrava para **anônimo**, que é a maior
+   parte dos usuários. Corrigido com helpers `security definer` que devolvem
+   apenas agregados (`feed_popularity`, `feed_user_preferences`).
+8. **Top 10 repetindo 90% entre seeds** — com jitter sozinho o topo não rotava.
+   Entrou a **banda de relevância** (`band_factor = 4.0`): a seção é montada com
+   os melhores `4 × limit` por score e reordenada pelo ruído da seed.
+9. Formato do cliente: o portão roda Dart 3.14.0 e o local 3.14.1 quebra
+   **cadeias** em colunas diferentes. Padrão eliminado com o helper `mapList`
+   (e `MediaQueryData` local em vez de `MediaQuery.of(context).copyWith(...)`).
+
+## CRÍTICO — iteração 0 (linha de base, antes de qualquer mudança)
+
+Evidência: `0018_download_counts.sql:63-116` (ordenção fixa), ausência de
+`anon_id`/impressões no cliente, `cache.home_feed` repintado a cada abertura.
+
+| Critério | Peso | Nota |
+|---|---|---|
+| Algoritmo: variedade e relevância | 20% | 2,0 |
+| Beleza visual e hierarquia | 15% | 7,0 |
+| Eficiência (queries, latência, render, paginação) | 15% | 6,0 |
+| Arquitetura de dados Supabase | 10% | 6,5 |
+| Consistência, design system e temas | 10% | 8,0 |
+| Usabilidade e descoberta de conteúdo | 10% | 5,0 |
+| Estados e feedback | 5% | 6,0 |
+| Acessibilidade | 5% | 7,0 |
+| Responsividade | 5% | 7,0 |
+| Microinterações e microcopy | 5% | 6,5 |
+| **Média ponderada** | | **5,4** |
+
+🔴 Ordenação determinística global por contador acumulado: o topo é o mesmo para
+todo mundo, sempre (repetição de 100% no top 10 entre aberturas).
+🔴 Sem paginação (uma chamada, `limit` único): a descoberta termina no fim da
+mesma lista.
+🟡 Sem histórico de exibição: impossível penalizar repetição.
+🟡 Sem personalização: usuário com histórico recebe o mesmo feed do anônimo.
+🟡 `top_rated` ordena por `rating_avg` sem índice.
+🟢 Sem impressões: nenhuma telemetria de exposição para calibrar o ranking.

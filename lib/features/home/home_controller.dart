@@ -17,6 +17,16 @@ final feedSessionProvider = Provider<FeedSession>(
   (ref) => FeedSession(ref.watch(cacheStoreProvider)),
 );
 
+/// Extrai a capacidade do feed algorítmico, ou `null` quando o repositório só
+/// implementa o contrato legado (fakes de teste, builds antigos).
+///
+/// O cast é necessário: `CatalogRepository` e `HomeFeedAlgorithmRepository`
+/// são tipos não relacionados, então Dart NÃO promove um para o outro via `is`.
+HomeFeedAlgorithmRepository? _algorithmOf(CatalogRepository repository) =>
+    repository is HomeFeedAlgorithmRepository
+    ? repository as HomeFeedAlgorithmRepository
+    : null;
+
 final homeFeedProvider = AsyncNotifierProvider<HomeFeedNotifier, HomeFeed>(
   HomeFeedNotifier.new,
 );
@@ -26,8 +36,9 @@ final feedImpressionsProvider = Provider<FeedImpressionTracker>((ref) {
   final FeedImpressionTracker tracker = FeedImpressionTracker(
     send: (List<Map<String, dynamic>> items) async {
       final CatalogRepository repository = ref.read(catalogRepositoryProvider);
-      if (repository is HomeFeedAlgorithmRepository) {
-        await repository.recordImpressions(items);
+      final HomeFeedAlgorithmRepository? algo = _algorithmOf(repository);
+      if (algo != null) {
+        await algo.recordImpressions(items);
       }
     },
   );
@@ -112,11 +123,8 @@ class HomeDiscoverNotifier extends Notifier<HomeDiscoverState> {
     final HomeFeedSection? section = feed?.sectionByKey('discover');
     final Map<String, dynamic>? cursor = current.cursor ?? section?.cursor;
     final CatalogRepository repository = ref.read(catalogRepositoryProvider);
-    if (feed == null || section == null || cursor == null) {
-      state = current.copyWith(ended: true);
-      return;
-    }
-    if (repository is! HomeFeedAlgorithmRepository) {
+    final HomeFeedAlgorithmRepository? algo = _algorithmOf(repository);
+    if (feed == null || section == null || cursor == null || algo == null) {
       state = current.copyWith(ended: true);
       return;
     }
@@ -128,7 +136,7 @@ class HomeDiscoverNotifier extends Notifier<HomeDiscoverState> {
         ...section.items.map((Game game) => game.id),
         ...current.extra.map((Game game) => game.id),
       }.toList(growable: false);
-      final HomeFeed page = await repository.loadMoreDiscover(
+      final HomeFeed page = await algo.loadMoreDiscover(
         seed: seed,
         cursor: cursor,
         seen: seen,
@@ -207,10 +215,9 @@ class HomeFeedNotifier extends AsyncNotifier<HomeFeed> {
   Future<void> loadMore() => ref.read(homeDiscoverProvider.notifier).loadMore();
 
   Future<HomeFeed> _load(CatalogRepository repository) {
-    if (repository is HomeFeedAlgorithmRepository) {
-      return repository.fetchHomeFeed(
-        seed: ref.read(feedSessionProvider).seed(),
-      );
+    final HomeFeedAlgorithmRepository? algo = _algorithmOf(repository);
+    if (algo != null) {
+      return algo.fetchHomeFeed(seed: ref.read(feedSessionProvider).seed());
     }
     // Repositórios legados (e fakes de teste) seguem pelo RPC antigo.
     return repository.fetchHome();

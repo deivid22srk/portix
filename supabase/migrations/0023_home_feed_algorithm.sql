@@ -1019,3 +1019,30 @@ revoke all on function public.purge_feed_impressions(int) from public, anon, aut
 
 -- O cliente não lê a tabela: mantém o privilégio mínimo.
 revoke all on sequence public.feed_impressions_id_seq from anon, authenticated;
+
+-- ------------------------------------------------------------ privilégio mínimo
+-- `grant execute ... to public` é o padrão do Postgres para funções novas.
+-- Revogamos e concedemos apenas a `anon`/`authenticated` (o que o app usa), com
+-- as funções SECURITY DEFINER de manutenção fora do alcance do cliente.
+revoke all on function public.feed_weights() from public;
+revoke all on function public.feed_card(jsonb) from public;
+revoke all on function public.feed_projection(jsonb) from public;
+revoke all on function public.feed_diversify(
+  jsonb, integer, uuid[], integer, integer, numeric, numeric
+) from public;
+revoke all on function public.feed_candidates(text, uuid[], integer) from public;
+revoke all on function public.get_home_feed(
+  text, integer, uuid[], jsonb, text[]
+) from public;
+
+grant execute on function public.feed_weights() to anon, authenticated;
+grant execute on function public.feed_card(jsonb) to anon, authenticated;
+grant execute on function public.feed_projection(jsonb) to anon, authenticated;
+grant execute on function public.feed_diversify(
+  jsonb, integer, uuid[], integer, integer, numeric, numeric
+) to anon, authenticated;
+grant execute on function public.feed_candidates(text, uuid[], integer)
+  to anon, authenticated;
+grant execute on function public.get_home_feed(
+  text, integer, uuid[], jsonb, text[]
+) to anon, authenticated;

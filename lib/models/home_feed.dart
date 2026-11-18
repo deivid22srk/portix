@@ -136,7 +136,7 @@ class HomeFeedSection {
     title: asText(map['title']),
     reason: FeedSectionReason.maybeFrom(map['reason']),
     cursor: map['cursor'] is Map ? asMap(map['cursor']) : null,
-    items: asMapList(map['items']).map(Game.fromMap).toList(growable: false),
+    items: mapList(map['items'], Game.fromMap),
   );
 }
 
@@ -246,23 +246,17 @@ class HomeFeed {
   );
 
   factory HomeFeed.fromMap(Map<String, dynamic> map) {
-    List<Game> games(String key) =>
-        asMapList(map[key]).map(Game.fromMap).toList(growable: false);
-    final Object? rawPlatforms = map['platforms'];
+    List<Game> games(String key) => mapList(map[key], Game.fromMap);
     final List<PlatformInfo> platforms = mapList(
-      rawPlatforms,
+      map['platforms'],
       PlatformInfo.fromMap,
     );
-    final Object? rawGenres = map['genres'];
-    final List<GenreInfo> genres = mapList(rawGenres, GenreInfo.fromMap);
+    final List<GenreInfo> genres = mapList(map['genres'], GenreInfo.fromMap);
     final CatalogStats stats = CatalogStats.fromMap(asMap(map['stats']));
 
-    final List<Map<String, dynamic>> rawSections = asMapList(map['sections']);
     if (map.containsKey('sections')) {
       return HomeFeed(
-        sections: rawSections
-            .map(HomeFeedSection.fromMap)
-            .toList(growable: false),
+        sections: mapList(map['sections'], HomeFeedSection.fromMap),
         personalized: map['personalized'] == true,
         seed: asTextOr(map['seed'], ''),
         degraded: map['degraded'] == true,

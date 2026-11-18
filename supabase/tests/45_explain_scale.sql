@@ -63,7 +63,8 @@ select
   pg_size_pretty(pg_relation_size('public.downloads'))        as downloads_tam,
   pg_size_pretty(pg_relation_size('public.feed_impressions')) as impressoes_tam;
 
-set role authenticated;
+-- Os planos são inspecionados pelo dono (feed_impressions não tem SELECT para o
+-- cliente, de propósito). A latência da RPC, no fim, roda como `authenticated`.
 select set_config('app.current_uid', '11111111-1111-1111-1111-111111111111', false);
 
 \echo ''
@@ -134,6 +135,8 @@ begin
   );
 end
 $$;
+
+set role authenticated;
 
 \echo ''
 \echo '### LATÊNCIA DA RPC COM O HISTÓRICO INFLADO (10 chamadas, média)'

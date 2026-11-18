@@ -16,7 +16,9 @@ select
   (select count(*) from public.feed_impressions) as impressoes,
   (select count(*) from public.reviews)          as reviews;
 
-set role authenticated;
+-- `feed_impressions` NÃO tem SELECT para o cliente (privacidade): os planos são
+-- inspecionados pelo dono das tabelas. A RPC é medida adiante como
+-- `authenticated`, que é o caminho real do app.
 select set_config('app.current_uid', '11111111-1111-1111-1111-111111111111', false);
 
 \echo ''
@@ -44,6 +46,8 @@ from public.feed_impressions i
 where i.user_id = auth.uid()
   and i.seen_at > current_timestamp - interval '30 days'
 group by i.game_id;
+
+set role authenticated;
 
 \echo ''
 \echo '### 3) agregação de afinidade (favoritos/biblioteca/downloads do usuário)'

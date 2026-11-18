@@ -33,7 +33,7 @@ Future<ProviderContainer> _container(FakeFeedRepository repository) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final ProviderContainer container = ProviderContainer(
-    overrides: <Override>[
+    overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       catalogRepositoryProvider.overrideWithValue(repository),
     ],
