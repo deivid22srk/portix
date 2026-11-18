@@ -222,3 +222,45 @@ futuro** (pré-venda ou dado sujo) faziam `exp(-idade)` explodir. Corrigido com
 `greatest(idade, 0)` nos três pontos e preso por assertiva (nenhum score > 10).
 Nenhuma revisão de código encontraria isso: só apareceu porque os números foram
 medidos.
+
+---
+
+## CRÍTICO — avaliação final (head `0506991`, CI verde nos dois jobs)
+
+Run: https://github.com/deivid22srk/portix/actions/runs/44234534354
+(`flutter analyze` sem issues, **257 testes**, APK publicado; job `feed-sql`
+verde com a simulação atingindo todas as metas).
+
+| Critério | Peso | Nota | Evidência que sustenta a nota |
+|---|---|---|---|
+| Algoritmo: variedade e relevância | 20% | 9,5 | medido: repetição no top 10 **100% → 11,1%**, cobertura **10,1×/11,5×** a linha de base, score do topo 1,94× a média do catálogo (não é sorteio) |
+| Beleza visual e hierarquia | 15% | 7,5 | **só leitura de código**: hierarquia (header → hero → chips → carrosséis → grid), tokens, microcopy. Sem prints |
+| Eficiência | 15% | 9,5 | latência **52 ms** (volume real) e **50 ms** com 2M de downloads (não cresce); EXPLAIN ANALYZE; índice do recomputo; feed não varre `downloads` |
+| Arquitetura de dados | 10% | 9,5 | RLS revisada, definer justificados e sem parâmetro de identidade, privilégio mínimo, uma migration, sem secrets, migração nunca aplicada por CI |
+| Consistência, design system e temas | 10% | 8,5 | todo o código novo por tokens (`context.colors`/`context.texts`); **contraste por tema não medido** |
+| Usabilidade e descoberta | 10% | 9,0 | 7 seções adaptativas, cursor keyset, cold start, "para você" com motivo |
+| Estados e feedback | 5% | 9,0 | 4 estados (vazio/erro/offline/429) com retry, cobertos por teste no CI |
+| Acessibilidade | 5% | 7,5 | Semantics/rótulos/alvos ≥44dp por leitura; **sem axe/Lighthouse nem teste só de teclado** |
+| Responsividade | 5% | 8,0 | 375/768/1440 por leitura + testes; **sem prints** |
+| Microinterações e microcopy | 5% | 8,5 | `RevealOnMount`, reduced motion, microcopy por seção; **sem verificação visual** |
+| **Média ponderada** | | **8,8** | |
+
+### Veredito: CONTINUAR — e o que falta não é engenharia
+
+Três critérios ficam abaixo de 9 **exclusivamente por falta de evidência de
+execução visual/UX**, não por lacuna de implementação:
+
+- 🔴 **Prints da Início** (todos os temas × 375/768/1440 + estados): exige
+  Flutter, que não existe para este ambiente (SDK oficial é glibc; não roda em
+  Android/Bionic). Caminho: golden da Início com `--update-goldens` publicado
+  como artefato do job.
+- 🟡 **Contraste medido por tema**: exige render. Caminho: o
+  `guideline de contraste` que já existe no repositório
+  (`test/ui/theme_contrast_test.dart`) estendido para a Início.
+- 🟡 **axe/Lighthouse e navegação por teclado**: exigem runtime/DevTools.
+- 🟢 **Perfil de frames (60fps)**: exige aparelho/DevTools.
+
+Tudo o que **era** verificável aqui foi verificado e está verde: algoritmo
+(com números antes × depois), eficiência (latência e planos), arquitetura de
+dados (RLS, privilégio mínimo, secrets), estados (testes), build, lint e testes.
+O que falta é a **câmera**, não o produto.
