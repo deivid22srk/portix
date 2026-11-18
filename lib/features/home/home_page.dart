@@ -9,9 +9,11 @@ import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
 import '../../models/home_feed.dart';
 import '../../shared/widgets/game_media.dart';
-import '../../shared/widgets/glass_header.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/hero_carousel.dart';
 import '../../shared/widgets/primitives.dart';
+import '../../shared/widgets/user_avatar_action.dart';
+import '../shell/tab_scroll_registry.dart';
 import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
 import '../search/search_controller.dart';
@@ -28,36 +30,34 @@ class HomePage extends ConsumerWidget {
 
     return SafeArea(
       bottom: false,
-      child: GlassHeader(
-        title: l10n.navHome,
-        child: RefreshIndicator(
-          color: context.colors.accent,
-          backgroundColor: context.colors.glassStrong,
-          onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            slivers: <Widget>[
-              const _HomeHeader(),
-              if (feed == null && async.isLoading)
-                const SliverToBoxAdapter(child: HomeSkeleton()),
-              if (feed == null && async.hasError)
-                // Viewport inteiro (SliverFillRemaining): o estado de erro
-                // centra e cresce com texto ampliado (2.0) sem overflow —
-                // um SizedBox fixo de 380px estourava em fontes grandes.
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: ErrorStateView(
-                    message: context.failureText(async.error),
-                    retryLabel: l10n.tryAgain,
-                    onRetry: () =>
-                        ref.read(homeFeedProvider.notifier).refresh(),
-                  ),
-                ),
-              if (feed != null) ..._feedSlivers(context, ref, feed),
-            ],
+      child: RefreshIndicator(
+        color: context.colors.accent,
+        backgroundColor: context.colors.glassStrong,
+        onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
+        child: CustomScrollView(
+          // Controlador da aba: re-toque no destino ativo volta ao topo.
+          controller: TabScrollScope.controllerOf(context, AppTab.home),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
           ),
+          slivers: <Widget>[
+            const _HomeHeader(),
+            if (feed == null && async.isLoading)
+              const SliverToBoxAdapter(child: HomeSkeleton()),
+            if (feed == null && async.hasError)
+              // Viewport inteiro (SliverFillRemaining): o estado de erro
+              // centra e cresce com texto ampliado (2.0) sem overflow —
+              // um SizedBox fixo de 380px estourava em fontes grandes.
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: ErrorStateView(
+                  message: context.failureText(async.error),
+                  retryLabel: l10n.tryAgain,
+                  onRetry: () => ref.read(homeFeedProvider.notifier).refresh(),
+                ),
+              ),
+            if (feed != null) ..._feedSlivers(context, ref, feed),
+          ],
         ),
       ),
     );
@@ -396,10 +396,10 @@ class _HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    return GlassSliverAppBar(
+    return AppHeaderSliver(
       title: l10n.navHome,
       subtitle: l10n.tagline,
-      expandedHeight: 150,
+      trailing: const UserAvatarAction(),
     );
   }
 }

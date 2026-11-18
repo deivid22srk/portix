@@ -61,6 +61,33 @@ class AppSpacing {
   static const double circleButton = 48;
   static const double searchFab = 68;
 
+  /// Altura base da barra de navegação inferior (cresce com a fonte do
+  /// sistema, nunca encolhe: o rótulo nunca é espremido).
+  static const double navBarHeight = 68;
+
+  /// Largura do rail vertical (ícone + rótulo empilhados).
+  static const double navRailWidth = 96;
+
+  /// Altura de um destino no rail/sidebar (alvo de toque ≥48).
+  static const double navItemHeight = 56;
+
+  /// Largura da sidebar expandida (ícone + rótulo em linha).
+  static const double navSidebarWidth = 264;
+
+  /// Largura da sidebar recolhida (só ícones).
+  static const double navSidebarCollapsedWidth = 88;
+
+  /// Ícone dos destinos de navegação.
+  static const double navIconSize = 22;
+
+  /// Sigma do desfoque de vidro (mesmo valor em toda a chrome).
+  static const double glassBlur = 20;
+
+  /// Reserva do fim das listas sob a barra inferior: a barra (68) + a folga
+  /// acima dela e da snackbar. Vale só no modo `bottom`; nos modos laterais a
+  /// casca publica uma reserva menor via [AppChromeScope].
+  static const double navContentReserve = 140;
+
   /// Capa compacta na linha de download (proporção ~3:4 de pôster).
   static const double tileCoverWidth = 58;
   static const double tileCoverHeight = 78;
@@ -92,6 +119,11 @@ class AppMotion {
 
   static const Curve emphasized = Curves.easeInOutCubicEmphasized;
   static const Curve out = Curves.easeOutCubic;
+
+  /// Duração efetiva de um movimento: zero quando o sistema pede menos
+  /// animação (WCAG 2.3.3 / prefers-reduced-motion).
+  static Duration of(BuildContext context, Duration duration) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : duration;
 }
 
 /// Breakpoints responsivos (mobile-first). Grades de capas ganham colunas
@@ -99,6 +131,10 @@ class AppMotion {
 /// teto de largura para não esticar capas 3:4 em monitores.
 class AppBreakpoints {
   const AppBreakpoints._();
+
+  /// Telefones estreitos: abaixo disto a chrome lateral encolhe a margem
+  /// (16 → 8) para nenhum alvo de toque cair abaixo de 44dp.
+  static const double narrow = 360;
 
   /// Tablet / paisagem baixa.
   static const double tablet = 600;
@@ -115,6 +151,12 @@ class AppBreakpoints {
   /// Largura a partir da qual as configurações viram master-detail
   /// (lista à esquerda, conteúdo à direita).
   static const double settingsDetail = 768;
+
+  /// A partir daqui a navegação principal vira rail vertical.
+  static const double navRail = 768;
+
+  /// A partir daqui a navegação principal vira sidebar recolhível.
+  static const double navSidebar = 1200;
 
   /// Colunas da grade de capas 3:4 conforme a largura disponível.
   static int coverColumns(double width) {

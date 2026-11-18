@@ -8,11 +8,13 @@ import '../../core/env.dart';
 import '../../core/formatters.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/news.dart';
-import '../../shared/widgets/glass_header.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/news_media.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/states.dart';
+import '../../shared/widgets/user_avatar_action.dart';
 import '../news/news_controller.dart';
+import '../shell/tab_scroll_registry.dart';
 
 class NewsPage extends ConsumerStatefulWidget {
   const NewsPage({super.key});
@@ -22,7 +24,11 @@ class NewsPage extends ConsumerStatefulWidget {
 }
 
 class _NewsPageState extends ConsumerState<NewsPage> {
-  final ScrollController _scroll = ScrollController();
+  // Controlador da aba (ver tab_scroll_registry): preserva a posição e permite
+  // o re-toque voltar ao topo.
+  late final ScrollController _scroll = ref
+      .read(tabScrollRegistryProvider)
+      .controllerFor(AppTab.news);
 
   @override
   void initState() {
@@ -38,7 +44,6 @@ class _NewsPageState extends ConsumerState<NewsPage> {
   @override
   void dispose() {
     _scroll.removeListener(_onScroll);
-    _scroll.dispose();
     super.dispose();
   }
 
@@ -58,93 +63,88 @@ class _NewsPageState extends ConsumerState<NewsPage> {
 
     return SafeArea(
       bottom: false,
-      child: GlassHeader(
-        title: l10n.newsTitle,
-        child: RefreshIndicator(
-          color: context.colors.accent,
-          backgroundColor: context.colors.glassStrong,
-          onRefresh: () => ref.read(newsControllerProvider.notifier).refresh(),
-          child: CustomScrollView(
-            controller: _scroll,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+      child: RefreshIndicator(
+        color: context.colors.accent,
+        backgroundColor: context.colors.glassStrong,
+        onRefresh: () => ref.read(newsControllerProvider.notifier).refresh(),
+        child: CustomScrollView(
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          slivers: <Widget>[
+            AppHeaderSliver(
+              title: l10n.newsTitle,
+              subtitle: l10n.newsSubtitle,
+              trailing: const UserAvatarAction(),
             ),
-            slivers: <Widget>[
-              GlassSliverAppBar(
-                title: l10n.newsTitle,
-                subtitle: l10n.newsSubtitle,
-                expandedHeight: 140,
+            if (state.isInitialLoading)
+              const SliverToBoxAdapter(child: _NewsSkeleton()),
+            if (state.status == NewsStatus.error && state.items.isEmpty)
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 380,
+                  child: ErrorStateView(
+                    message: context.failureText(state.error),
+                    retryLabel: l10n.tryAgain,
+                    onRetry: () =>
+                        ref.read(newsControllerProvider.notifier).refresh(),
+                  ),
+                ),
               ),
-              if (state.isInitialLoading)
-                const SliverToBoxAdapter(child: _NewsSkeleton()),
-              if (state.status == NewsStatus.error && state.items.isEmpty)
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 380,
-                    child: ErrorStateView(
-                      message: context.failureText(state.error),
-                      retryLabel: l10n.tryAgain,
-                      onRetry: () =>
-                          ref.read(newsControllerProvider.notifier).refresh(),
-                    ),
+            if (state.status == NewsStatus.empty)
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 380,
+                  child: EmptyState(
+                    icon: Icons.article_outlined,
+                    title: l10n.newsEmpty,
+                    body: l10n.newsEmptyBody,
                   ),
                 ),
-              if (state.status == NewsStatus.empty)
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 380,
-                    child: EmptyState(
-                      icon: Icons.article_outlined,
-                      title: l10n.newsEmpty,
-                      body: l10n.newsEmptyBody,
-                    ),
-                  ),
+              ),
+            if (state.items.isNotEmpty)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  AppSpacing.md,
+                  AppSpacing.screen,
+                  context.bottomChromePadding,
                 ),
-              if (state.items.isNotEmpty)
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.screen,
-                    AppSpacing.md,
-                    AppSpacing.screen,
-                    context.bottomChromePadding,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((
-                      BuildContext context,
-                      int index,
-                    ) {
-                      final NewsItem item = state.items[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                        child: _NewsCard(
-                          // O primeiro card é o destaque do feed: capa maior.
-                          item: item,
-                          featured: index == 0,
-                        ),
-                      );
-                    }, childCount: state.items.length),
-                  ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((
+                    BuildContext context,
+                    int index,
+                  ) {
+                    final NewsItem item = state.items[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                      child: _NewsCard(
+                        // O primeiro card é o destaque do feed: capa maior.
+                        item: item,
+                        featured: index == 0,
+                      ),
+                    );
+                  }, childCount: state.items.length),
                 ),
-              if (state.isLoadingMore)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: context.bottomChromePadding,
-                    ),
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: context.colors.accent,
-                        ),
+              ),
+            if (state.isLoadingMore)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: context.bottomChromePadding),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: context.colors.accent,
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../core/theme/themes.dart';
+import '../core/theme/chrome.dart';
+import '../core/theme/tokens.dart';
 
 // ============================================================================
 // Tema do PORTIX — ThemeData montado a partir de uma `AppColorsTheme`
@@ -129,6 +130,10 @@ extension AppThemeContext on BuildContext {
 extension SystemInsets on BuildContext {
   double get systemBottomInset => MediaQuery.viewPaddingOf(this).bottom;
 
-  /// Espaço extra para o conteúdo não ficar sob a barra de navegação flutuante.
-  double get bottomChromePadding => systemBottomInset + 140;
+  /// Espaço extra para o conteúdo não ficar sob a navegação. A casca publica o
+  /// valor exato via [AppChromeScope] (barra inferior ou navegação lateral);
+  /// fora da casca vale a reserva da barra flutuante.
+  double get bottomChromePadding =>
+      AppChromeScope.maybeOf(this)?.bottomPadding ??
+      systemBottomInset + AppSpacing.navContentReserve;
 }

@@ -537,6 +537,10 @@ class L10n {
   // GlassCircleButton sem tooltip: o ícone é invisível para leitores de tela.
   String get tooltipBack => _t('Voltar', 'Back');
   String get tooltipSearch => _t('Buscar', 'Search');
+  String get moreActions => _t('Mais ações', 'More actions');
+  String get navExpand => _t('Expandir navegação', 'Expand navigation');
+  String get navCollapse => _t('Recolher navegação', 'Collapse navigation');
+  String navBadgeCount(int n) => _t('$n em andamento', '$n in progress');
   String get tooltipPrevious => _t('Anterior', 'Previous');
   String get tooltipNext => _t('Próximo', 'Next');
   String get tooltipPauseCarousel => _t('Pausar destaques', 'Pause highlights');

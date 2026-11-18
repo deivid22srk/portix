@@ -8,14 +8,17 @@ import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
+import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/primitives.dart';
 import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
+import '../../shared/widgets/user_avatar_action.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/download_filter.dart';
 import '../downloads/downloads_controller.dart';
 import '../downloads/downloads_tile.dart';
+import '../shell/tab_scroll_registry.dart';
 
 class HubPage extends ConsumerStatefulWidget {
   const HubPage({super.key});
@@ -44,36 +47,27 @@ class _HubPageState extends ConsumerState<HubPage> {
         backgroundColor: context.colors.glassStrong,
         onRefresh: () => ref.read(collectionsProvider.notifier).refresh(),
         child: CustomScrollView(
+          controller: TabScrollScope.controllerOf(context, AppTab.hub),
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
           slivers: <Widget>[
+            AppHeaderSliver(
+              title: l10n.hubTitle,
+              subtitle: l10n.anonymousHint,
+              trailing: const UserAvatarAction(),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   AppSpacing.screen,
-                  AppSpacing.lg,
+                  AppSpacing.md,
                   AppSpacing.screen,
                   0,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      l10n.hubTitle,
-                      style: context.texts.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      l10n.anonymousHint,
-                      style: context.texts.bodyMedium?.copyWith(
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
                     SegmentedControl<_HubSegment>(
                       items: <SegmentItem<_HubSegment>>[
                         SegmentItem<_HubSegment>(
