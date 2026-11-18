@@ -80,8 +80,10 @@ Future<SearchFilters?> showFilterSheet(
     useSafeArea: true,
     backgroundColor: AppContentColors.transparent,
     barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
-    builder: (BuildContext context) =>
-        _FilterSheet(initial: initial, facets: facets),
+    builder: (BuildContext context) => KeyedSubtree(
+      key: const ValueKey<String>('filter_bottom_sheet'),
+      child: _FilterSheet(initial: initial, facets: facets),
+    ),
   );
 }
 
