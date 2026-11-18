@@ -360,8 +360,14 @@ parts as (
     -- [0,1) por x/(1+x), então nenhum sinal satura o score sozinho.
     (
       0.60 * (b.decayed_downloads / (1 + b.decayed_downloads))
-      + 0.25 * (ln(1 + b.download_count) / (1 + ln(1 + b.download_count)))
-      + 0.15 * (ln(1 + b.visit_count) / (1 + ln(1 + b.visit_count)))
+      + 0.25 * (
+        ln((1 + b.download_count)::numeric)
+        / (1 + ln((1 + b.download_count)::numeric))
+      )
+      + 0.15 * (
+        ln((1 + b.visit_count)::numeric)
+        / (1 + ln((1 + b.visit_count)::numeric))
+      )
     ) as pop_score,
     (
       0.65 * case when b.released_on is not null then
@@ -440,17 +446,17 @@ final as (
     s.noise,
     s.repetition,
     round(
-      greatest(
-        (select w_pop from c) * s.pop_score
-        + (select w_fresh from c) * s.fresh_score
-        + (select w_qual from c) * s.quality_score
-        + (select w_aff from c) * s.affinity
-        - (select w_rep from c) * s.repetition,
-        0
-      )
-      * (
-        1 + (select w_explore from c) * (2 * s.noise - 1)
-      ),
+      (
+        greatest(
+          (select w_pop from c) * s.pop_score
+          + (select w_fresh from c) * s.fresh_score
+          + (select w_qual from c) * s.quality_score
+          + (select w_aff from c) * s.affinity
+          - (select w_rep from c) * s.repetition,
+          0
+        )
+        * (1 + (select w_explore from c) * (2 * s.noise - 1))
+      )::numeric,
       4
     ) as score,
     (s.released_on is not null

@@ -22,10 +22,11 @@ void main() {
 
     expect(
       RegExp(
-        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-'
+        r'[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
       ).hasMatch(first),
       isTrue,
-      reason: 'anon_id precisa ser um UUID v4 opaco (nunca identificador de pessoa)',
+      reason: 'anon_id e um UUID v4 opaco',
     );
   });
 
