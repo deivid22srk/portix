@@ -153,3 +153,117 @@ APIs reais do repositório (`primitives.dart`, `themes.dart`, `auth.dart`,
 `flutter analyze` (fatal para warnings/infos), `flutter test` e o APK. Nada de
 screenshot/DevTools foi produzido localmente — os goldens existentes
 (`test/goldens_out`) cobrem a tela de detalhes, que não foi alterada.
+
+---
+
+## Iteração 2 — polimento de desktop e acessibilidade
+
+Commit `202b28b`, CI verde (`44205760429`: analyze limpo, **215 testes**, APK
+release publicado).
+
+1. **Hover de mouse** no destino (realce sutil, sem competir com a pílula do
+   ativo) + `SystemMouseCursors.click` — o rail/sidebar agora responde ao
+   ponteiro como um app de desktop.
+2. **Tooltip na sidebar recolhida**: o rótulo sai do pixel, mas o mouse ganha o
+   nome do destino; o `Semantics` já levava o rótulo.
+3. **Headings semânticos**: título de página vira `Semantics(header: true)`; a
+   faixa compacta do sliver saiu da árvore semântica para o mesmo título não ser
+   anunciado duas vezes.
+4. **Cartão de conta** mostra sempre o nome; e-mail/@handle só quando existem.
+5. Faixa compacta do título 15→22 (`titleLarge`) nas páginas internas.
+
+---
+
+## CRÍTICO — rubrica e avaliação da iteração 1
+
+Pesos declarados (somam 1,00). Nota 0–10, uma casa decimal; só conta o que foi
+verificado — código lido + CI, nunca "parece bonito".
+
+| # | Critério | Peso | Iter 1 |
+|---|---|---|---|
+| 1 | Navegação adaptativa (uma fonte de destinos, 3 formas, ≤5) | 0,15 | 8,6 |
+| 2 | Cabeçalho único e variantes (raiz/interna/busca) | 0,12 | 8,8 |
+| 3 | Acessibilidade (semântica, foco, alvos, reduced motion) | 0,15 | 8,2 |
+| 4 | Responsividade sem sobreposição (8 larguras, paisagem, teclado) | 0,13 | 8,9 |
+| 5 | Design/tokens/temas (nenhuma cor solta, AA) | 0,12 | 8,8 |
+| 6 | Feedback e movimento (indicator, haptic, hover, foco) | 0,10 | 8,6 |
+| 7 | Performance (reconstruções, lazy, vidro) | 0,08 | 9,0 |
+| 8 | Estado/scroll/re-toque | 0,08 | 8,8 |
+| 9 | Código, limpeza e testes | 0,07 | 8,9 |
+| | **Ponderado** | 1,00 | **8,7** |
+
+### Problemas abertos no fim da iteração 1
+- 🟡 Sem feedback de ponteiro (hover/cursor): rail e sidebar pareciam "mortos"
+  no mouse.
+- 🟡 Sidebar recolhida escondia o rótulo também do mouse (só o leitor de tela
+  tinha o nome).
+- 🟡 Títulos de página não eram headings: navegação por título no TalkBack
+  ficava sem âncoras.
+- 🟡 Cartão de conta escondia o nome quando a conta não tinha e-mail/handle.
+- 🟢 Faixa compacta repetia o título na árvore semântica.
+
+---
+
+## CRÍTICO — avaliação da iteração 2
+
+| # | Critério | Peso | Iter 1 | Iter 2 |
+|---|---|---|---|---|
+| 1 | Navegação adaptativa | 0,15 | 8,6 | 9,0 |
+| 2 | Cabeçalho único e variantes | 0,12 | 8,8 | 9,2 |
+| 3 | Acessibilidade | 0,15 | 8,2 | 8,6 |
+| 4 | Responsividade sem sobreposição | 0,13 | 8,9 | 9,3 |
+| 5 | Design/tokens/temas | 0,12 | 8,8 | 9,2 |
+| 6 | Feedback e movimento | 0,10 | 8,6 | 9,2 |
+| 7 | Performance | 0,08 | 9,0 | 9,4 |
+| 8 | Estado/scroll/re-toque | 0,08 | 8,8 | 9,2 |
+| 9 | Código, limpeza e testes | 0,07 | 8,9 | 9,3 |
+| | **Ponderado** | 1,00 | **8,7** | **9,1** |
+
+Veredito: **ainda não passa** (alvo ≥9,5 e nenhum critério <9). Releitura
+completa de `app_nav.dart`, `app_header.dart`, `main_shell.dart`,
+`user_avatar_action.dart` e do caminho de scroll por aba achou:
+
+- 🟡 **Busca anunciada como aba não selecionada** — no rail/sidebar a ação de
+  busca era um `AppNavItem` com `selected: false` e
+  `inMutuallyExclusiveGroup: true`; o TalkBack dizia "Buscar, não selecionado,
+  6 de 6". Busca é ação, não destino.
+- 🟡 **320dp quebrava o alvo de toque** — com margem de 16dp e a busca de 68dp
+  ao lado, a barra sobrava 42,4dp por destino (abaixo dos 44dp exigidos). O piso
+  real de telefone (tela pequena + display grande) ficava fora da garantia.
+- 🟡 **Avatar do cabeçalho sem papel de botão** — só `Tooltip` + `Pressable`: o
+  leitor de tela não anunciava "botão" nem um rótulo de ação.
+- 🟢 **Teto de 5 destinos não era contrato** — a constante existia, mas nada
+  impedia uma sexta aba de entrar sem aviso.
+- 🟢 **Número mágico 140** no fallback de `bottomChromePadding`, duplicando o
+  token `navContentReserve`.
+
+---
+
+## Iteração 3 — correções do CRÍTICO
+
+1. `AppNavItem.isTab` (padrão `true`): a busca do rail/sidebar entra com
+   `isTab: false` — não é anunciada como aba nem entra no grupo mutuamente
+   exclusivo; segue `button: true` com o rótulo localizado.
+2. `AppBreakpoints.narrow = 360` + `AppNav.edgeInset(width)`: em telefone
+   estreito a margem da chrome encolhe de 16 → 8dp. A casca usa o mesmo valor, e
+   `AppNav.bottomBarSlot(width)` expõe a invariante "≥44dp por destino", testada
+   de 320 a 767dp.
+3. `UserAvatarAction` vira `Semantics(button:, label:, onTap:)` com o visual em
+   `ExcludeSemantics` — papel e rótulo corretos, sem duplicar o texto interno.
+4. Teto de destinos por `assert` nas três variantes (contrato no componente, não
+   só no teste). Construtores deixaram de ser `const` porque `length` não é
+   avaliável em expressão constante — evita a armadilha de uma invocação `const`
+   que não compila.
+5. `bottomChromePadding` passa a usar `AppSpacing.navContentReserve`.
+
+Testes novos: sexta aba falha na construção, invariante de 44dp em 7 larguras,
+barra a 320dp no layout real da casca e busca fora do grupo de abas.
+
+### Nota de verificação de formato
+
+Tentei baixar o Dart 3.14.0 (o que o Flutter 3.50 do CI embute) para rodar o
+formatador exato do portão. O SDK oficial é compilado para glibc e não executa
+no Android/Bionic (`cannot execute: required file not found`), então o
+alinhamento foi feito por construção: todo construto novo cabe em uma linha
+(`assert` sem mensagem, aritmética em locais curtos) e cada linha fica abaixo de
+80 colunas — não sobra decisão de quebra de linha para as versões divergirem.
