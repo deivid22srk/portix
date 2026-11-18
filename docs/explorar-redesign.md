@@ -45,6 +45,14 @@ pública de leitura em `games`; cache de imagens (`CachedNetworkImage`).
 Latência local (10 chamadas): busca com termo **6,2 ms**, descoberta
 **2,0 ms**, sugestões **1,8 ms**, explore_feed **1,5 ms** (meta < 150 ms).
 
+Sobre o plano de execução: no volume atual (839 jogos, seletividade de 8-30%
+no seed), o planner escolhe Seq Scan e é o plano CERTO (3 ms). O que os
+testes (56) provam de forma determinística é a **compatibilidade de índice**
+da forma da consulta: com `enable_seqscan=off`, o planner produz `BitmapOr`
+sobre os índices GIN de trigramas — o índice assume o caminho principal
+quando a tabela crescer. Os testes 55/56 rodam no CI
+(`tools/feed/run_sql_tests.sh`).
+
 ## Decisões e suposições
 
 1. **"Em alta nas buscas"** — não existe tabela de termos de busca (e criar
@@ -85,7 +93,15 @@ Latência local (10 chamadas): busca com termo **6,2 ms**, descoberta
 12. **Acessibilidade** — padrão combobox/listbox: Enter busca, setas navegam
     (handler global com escopo do campo: o `EditableText` pode consumir o
     evento antes do bubbling), Esc limpa/fecha, painel com `Semantics`
-    `button`+`selected`, contador com `liveRegion`, alvos ≥ 48dp.
+    `button`+`selected`, contador com `liveRegion`, alvos de toque ≥ 44dp
+    (chips de filtro/histórico e botões "x" com área de 48dp; `AppPill`
+    denso = 44dp, padrão = 48dp).
+13. **Filtros ≥ 768px** — painel lateral fixo ancorado à direita (requisito
+    literal); mobile mantém bottom sheet.
+14. **Auditoria visual** — goldens do ANTES em
+    `docs/auditoria/explorar/antes/`; goldens do DEPOIS (5 temas × 3 larguras
+    + estados) em `test/goldens_out/explore/` (gerados por
+    `test/explore_goldens_test.dart`, gate GOLDENS=1).
 
 ## Como aplicar em produção (requer aprovação)
 

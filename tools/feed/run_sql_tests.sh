@@ -38,6 +38,8 @@ run_sql "$ROOT/supabase/tests/30_simulation.sql"
 run_sql "$ROOT/supabase/tests/40_explain.sql"
 run_sql "$ROOT/supabase/tests/45_explain_scale.sql"
 run_sql "$ROOT/supabase/tests/50_purge_accounts.sql"
+run_sql "$ROOT/supabase/tests/55_search_v2_tests.sql"
+run_sql "$ROOT/supabase/tests/56_search_explain.sql"
 
 echo
 echo "FEED_SQL: migrations aplicadas, assertivas, simulação e EXPLAIN verdes."

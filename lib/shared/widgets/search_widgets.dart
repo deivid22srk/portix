@@ -827,9 +827,8 @@ class _ActiveChip extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: Container(
-        constraints: const BoxConstraints(
-          minHeight: AppSpacing.compact + AppSpacing.compact + AppSpacing.sm,
-        ),
+        // Alvo de toque ≥ 48dp (WCAG 2.2 AA 2.5.8).
+        constraints: const BoxConstraints(minHeight: AppSpacing.circleButton),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.compact,
           vertical: AppSpacing.sm,
@@ -989,9 +988,12 @@ class GameCarousel extends StatelessWidget {
 /// Faixa de "Em alta nas buscas": chips de títulos populares (proxy
 /// conservador de termos — veja ExploreFeed.popularSearches).
 class PopularSearchesRow extends ConsumerWidget {
-  const PopularSearchesRow({super.key, required this.games});
+  const PopularSearchesRow({super.key, required this.games, this.extra = 0});
 
   final List<Game> games;
+
+  /// Margem extra de centralização em telas largas (> contentMax).
+  final double extra;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -999,7 +1001,7 @@ class PopularSearchesRow extends ConsumerWidget {
       height: AppSpacing.circleButton,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.screen + extra),
         itemCount: games.length,
         separatorBuilder: (BuildContext context, int index) =>
             const SizedBox(width: AppSpacing.sm),

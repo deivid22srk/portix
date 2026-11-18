@@ -410,10 +410,18 @@ select jsonb_build_object(
   ),
   -- "Em alta nas buscas": não existe registro de termos de busca; a opção
   -- mais conservadora é usar a popularidade (views/downloads) como proxy.
+  -- Exclui os jogos já exibidos em "Em alta" para não duplicar a seção.
   'popular_searches', (
     select coalesce(jsonb_agg(to_jsonb(x)), '[]'::jsonb) from (
       select c.id, c.slug, c.title, c.visit_count
       from public.game_cards c
+      where c.id not in (
+        select t.id from (
+          select g.id from public.game_cards g
+          order by g.visit_count desc, g.title asc
+          limit least(greatest(p_limit, 1), 20)
+        ) t
+      )
       order by c.visit_count desc, c.title asc
       limit 10
     ) x

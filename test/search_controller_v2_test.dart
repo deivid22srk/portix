@@ -494,4 +494,58 @@ void main() {
     );
     await refreshing;
   });
+
+  test(
+    'digitar 5 teclas notifica o estado NO MÁXIMO 2 vezes (sem re-render por tecla)',
+    () async {
+      final _FakeRepo repo = _FakeRepo();
+      final ProviderContainer container = await _makeContainer(repo);
+      addTearDown(container.dispose);
+
+      int notifications = 0;
+      final ProviderSubscription<SearchState> sub = container.listen(
+        searchControllerProvider,
+        (_, SearchState _) => notifications++,
+      );
+      addTearDown(sub.close);
+
+      final SearchController controller = container.read(
+        searchControllerProvider.notifier,
+      );
+      for (final String step in <String>['m', 'ma', 'mar', 'mari', 'mario']) {
+        controller.setQuery(step);
+      }
+      // 1ª tecla troca trending→relevance (1); 'm' (<2 chars) reseta (1).
+      // As demais teclas NÃO escrevem o estado — a grade não reconstrói.
+      expect(
+        notifications,
+        lessThan(3),
+        reason: '5 teclas ⇒ no máximo troca de ordenação + reset; nunca 5',
+      );
+    },
+  );
+
+  test(
+    'fetch assentado ecoa a query BRUTA do campo (espaço final preservado)',
+    () async {
+      final _FakeRepo repo = _FakeRepo();
+      final ProviderContainer container = await _makeContainer(repo);
+      addTearDown(container.dispose);
+      final SearchController controller = container.read(
+        searchControllerProvider.notifier,
+      );
+
+      controller.setQuery('mario ');
+      await Future<void>.delayed(
+        kSearchDebounce + const Duration(milliseconds: 20),
+      );
+      await pumpEventQueue();
+      expect(
+        container.read(searchControllerProvider).query,
+        'mario ',
+        reason: 'echo bruto no settle, sem apagar o espaço digitado',
+      );
+      expect(repo.queries, <String>['mario']);
+    },
+  );
 }

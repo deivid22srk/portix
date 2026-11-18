@@ -615,9 +615,10 @@ class AppPill extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: AppMotion.fast,
+        // Alvo de toque: denso ≥ 44dp, padrão ≥ 48dp (WCAG 2.2 AA 2.5.8).
         padding: EdgeInsets.symmetric(
           horizontal: dense ? AppSpacing.md : AppSpacing.lg,
-          vertical: dense ? 8 : 10,
+          vertical: dense ? AppSpacing.compact : AppSpacing.fieldVertical,
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.pill),

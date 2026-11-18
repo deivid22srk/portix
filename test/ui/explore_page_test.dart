@@ -405,4 +405,24 @@ void main() {
     expect(find.text('Super Mario World'), findsOneWidget);
     expect(find.text('Plataforma'), findsOneWidget);
   });
+
+  testWidgets(
+    'submit dispara EXATAMENTE as buscas esperadas (sem laço rota↔estado)',
+    (WidgetTester tester) async {
+      final _FakeRepo repo = _FakeRepo();
+      await _pump(tester, repo);
+
+      await tester.enterText(find.byType(TextField), 'frontier');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      // Toggle grade/lista NÃO refaz a busca (antes: +2 fetches por toggle).
+      await tester.tap(find.byIcon(Icons.view_list_rounded));
+      await tester.pumpAndSettle();
+
+      expect(repo.queries, <String>[
+        '',
+        'frontier',
+      ], reason: 'descoberta (1) + submit (1); zero refetch do toggle');
+    },
+  );
 }

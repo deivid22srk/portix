@@ -3,9 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 /// Sink de impressões: recebe um lote já pronto para envio.
-typedef ImpressionSink = Future<void> Function(
-  List<Map<String, dynamic>> items,
-);
+typedef ImpressionSink =
+    Future<void> Function(List<Map<String, dynamic>> items);
 
 /// Registra que um card ficou **realmente visível**.
 ///

@@ -405,8 +405,8 @@ class L10n {
   // --------------------------------------------------------------- explore+
   String get exploreTitle => _t('Explorar', 'Explore');
   String get exploreSubtitle => _t(
-    'Busque ports, navegue por categorias e descubra o catálogo.',
-    'Search ports, browse categories and discover the catalog.',
+    'Busque ports e navegue por categorias.',
+    'Search ports and browse by category.',
   );
   String get searchFieldHint => _t(
     'Buscar jogos, categorias ou desenvolvedores',

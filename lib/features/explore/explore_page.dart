@@ -43,8 +43,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       .read(tabScrollRegistryProvider)
       .controllerFor(AppTab.explore);
 
-  bool _appliedInitialQuery = false;
-
   @override
   void initState() {
     super.initState();
@@ -64,7 +62,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     super.didUpdateWidget(oldWidget);
     // Deep link chegando com a tela já montada (ex.: push de outra tela).
     if (!_mapsEqual(widget.initialQuery, oldWidget.initialQuery)) {
-      _appliedInitialQuery = false;
       WidgetsBinding.instance.addPostFrameCallback((Duration _) {
         if (mounted) {
           _applyInitialQuery();
@@ -81,14 +78,24 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   }
 
   Future<void> _applyInitialQuery() async {
-    if (_appliedInitialQuery) {
+    // Guard contra o LAÇO rota↔estado: _syncRoute reescreve a URL, o go_router
+    // reconstrói o builder e didUpdateWidget dispara _applyInitialQuery — se
+    // os params da rota já representam o ESTADO atual, nada é reaplicado
+    // (nenhum refetch, nenhum flash de skeleton).
+    final SearchState current = ref.read(searchControllerProvider);
+    if (_mapsEqual(widget.initialQuery, _routeFromState(current))) {
       return;
     }
     final Map<String, String> params = widget.initialQuery;
     if (params.isEmpty) {
+      // Rota sem params + estado sem params: nada a fazer.
+      if (current.query.isEmpty && current.filters.isDefault) {
+        return;
+      }
+      // Deep link externo limpou a URL: volta ao modo descoberta.
+      ref.read(searchControllerProvider.notifier).clearQuery();
       return;
     }
-    _appliedInitialQuery = true;
     final SearchController controller = ref.read(
       searchControllerProvider.notifier,
     );
@@ -105,6 +112,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     controller.applyFilters(filters);
     if (params['view'] == 'list') {
       ref.read(resultsViewProvider.notifier).set(true);
+    } else {
+      ref.read(resultsViewProvider.notifier).set(false);
     }
     if (q.isNotEmpty) {
       await controller.submitQuery(q);
@@ -120,10 +129,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     }
   }
 
-  Future<void> _openFilters(SearchState state, CatalogFacets facets) async {
+  Future<void> _openFilters(SearchFilters filters, CatalogFacets facets) async {
     final SearchFilters? result = await showFilterSheet(
       context,
-      initial: state.filters,
+      initial: filters,
       facets: facets,
     );
     if (result == null || !mounted) {
@@ -179,9 +188,19 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
-    final SearchState state = ref.watch(searchControllerProvider);
+    // WATCH SELETIVO: a página só reconstrui quando algo VISÍVEL muda — a
+    // query bruta por teclado NÃO entra na assinatura, então digitar não
+    // reconstrui a grade (perfil de re-render limpo).
+    final _SearchView state = ref.watch(
+      searchControllerProvider.select(_SearchView.of),
+    );
     final CatalogFacets facets =
         ref.watch(catalogFacetsProvider).value ?? const CatalogFacets();
+    // Centralização > contentMax (igual às grades): o excesso vira margem.
+    final double width = MediaQuery.sizeOf(context).width;
+    final double extra = width > AppBreakpoints.contentMax
+        ? (width - AppBreakpoints.contentMax) / 2
+        : 0;
 
     ref.listen<SearchState>(searchControllerProvider, (
       SearchState? previous,
@@ -241,16 +260,16 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                       ? l10n.filtersBadge(state.filters.activeCount)
                       : l10n.filters,
                   badgeCount: state.filters.activeCount,
-                  onTap: () => _openFilters(state, facets),
+                  onTap: () => _openFilters(state.filters, facets),
                 ),
               ],
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.screen + extra,
                   AppSpacing.md,
-                  AppSpacing.screen,
+                  AppSpacing.screen + extra,
                   0,
                 ),
                 child: SearchField(),
@@ -264,8 +283,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 height: AppSpacing.circleButton,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screen,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screen + extra,
                   ),
                   children: <Widget>[
                     AppPill(
@@ -321,7 +340,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
             if (state.query.trim().length < kSearchMinChars)
-              ..._discoverySlivers(l10n, facets)
+              ..._discoverySlivers(l10n, facets, extra)
             else
               ..._resultsSlivers(l10n, state, facets),
           ],
@@ -332,7 +351,11 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   // ----------------------------------------------------------------- descoberta
 
-  List<Widget> _discoverySlivers(L10n l10n, CatalogFacets facets) {
+  List<Widget> _discoverySlivers(
+    L10n l10n,
+    CatalogFacets facets,
+    double extra,
+  ) {
     final ExploreState explore = ref.watch(exploreControllerProvider);
     final List<String> recent = ref.watch(recentSearchesProvider);
     final List<Widget> slivers = <Widget>[];
@@ -341,10 +364,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screen,
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.screen + extra,
               0,
-              AppSpacing.screen,
+              AppSpacing.screen + extra,
               AppSpacing.md,
             ),
             child: StaleBanner(
@@ -391,10 +414,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.screen + extra,
                   0,
-                  AppSpacing.screen,
+                  AppSpacing.screen + extra,
                   AppSpacing.sm,
                 ),
                 child: Semantics(
@@ -407,7 +430,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   ),
                 ),
               ),
-              PopularSearchesRow(games: feed.popularSearches),
+              PopularSearchesRow(games: feed.popularSearches, extra: extra),
             ],
           ),
         ),
@@ -437,7 +460,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
         ),
       );
-      slivers.add(_CategoryGrid(genres: feed.genres));
+      slivers.add(_CategoryGrid(genres: feed.genres, extra: extra));
     }
 
     // Carrosséis de descoberta (seções vazias não renderizam).
@@ -446,7 +469,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xl),
+              // extra: mesmo alinhamento das grades em telas largas.
+              padding: EdgeInsets.fromLTRB(extra, AppSpacing.xl, extra, 0),
               child: GameCarousel(title: title, games: games),
             ),
           ),
@@ -466,7 +490,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   List<Widget> _resultsSlivers(
     L10n l10n,
-    SearchState state,
+    _SearchView state,
     CatalogFacets facets,
   ) {
     final List<Widget> slivers = <Widget>[];
@@ -732,9 +756,10 @@ class _RecentChip extends ConsumerWidget {
 
 /// Grade de categorias: 2 colunas no telefone, 3 no tablet, 4 nas larguras.
 class _CategoryGrid extends ConsumerWidget {
-  const _CategoryGrid({required this.genres});
+  const _CategoryGrid({required this.genres, required this.extra});
 
   final List<GenreInfo> genres;
+  final double extra;
 
   int _columns(double width) {
     if (width >= AppBreakpoints.desktop) {
@@ -751,9 +776,6 @@ class _CategoryGrid extends ConsumerWidget {
     return SliverLayoutBuilder(
       builder: (BuildContext context, SliverConstraints constraints) {
         final double width = constraints.crossAxisExtent;
-        final double extra = width > AppBreakpoints.contentMax
-            ? (width - AppBreakpoints.contentMax) / 2
-            : 0;
         return SliverPadding(
           padding: EdgeInsets.fromLTRB(
             AppSpacing.screen + extra,
@@ -798,7 +820,7 @@ class _CategoryGrid extends ConsumerWidget {
 class _EmptySearch extends ConsumerWidget {
   const _EmptySearch({required this.state});
 
-  final SearchState state;
+  final _SearchView state;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -844,6 +866,15 @@ class _EmptySearch extends ConsumerWidget {
           ),
           if (suggestion != null) ...<Widget>[
             const SizedBox(height: AppSpacing.lg),
+            Text(
+              l10n.didYouMean,
+              textAlign: TextAlign.center,
+              style: context.texts.labelLarge?.copyWith(
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Semantics(
               button: true,
               child: AppPill(
@@ -919,7 +950,7 @@ class _EmptySearch extends ConsumerWidget {
 class _ResultsFooter extends StatelessWidget {
   _ResultsFooter({required this.state, required this.onLoadMore});
 
-  final SearchState state;
+  final _SearchView state;
   final VoidCallback onLoadMore;
 
   @override
@@ -966,4 +997,75 @@ class _ResultsFooter extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Assinatura de re-render da página: apenas os campos VISÍVEIS. A query
+/// entra (para o modo descoberta↔busca), mas o controller só a escreve no
+/// settle do fetch — digitar não reconstrói a grade.
+class _SearchView {
+  const _SearchView({
+    required this.status,
+    required this.query,
+    required this.items,
+    required this.total,
+    required this.cursor,
+    required this.filters,
+    required this.error,
+    required this.stale,
+    required this.suggestion,
+  });
+
+  factory _SearchView.of(SearchState s) => _SearchView(
+    status: s.status,
+    query: s.query,
+    items: s.items,
+    total: s.total,
+    cursor: s.cursor,
+    filters: s.filters,
+    error: s.error,
+    stale: s.stale,
+    suggestion: s.suggestion,
+  );
+
+  final SearchStatus status;
+  final String query;
+  final List<Game> items;
+  final int total;
+  final Map<String, dynamic>? cursor;
+  final SearchFilters filters;
+  final Object? error;
+  final bool stale;
+  final String? suggestion;
+
+  bool get isInitialLoading => status == SearchStatus.loading && items.isEmpty;
+
+  bool get isLoadingMore => status == SearchStatus.loadingMore;
+
+  bool get hasMore => cursor != null || items.length < total;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _SearchView &&
+      other.status == status &&
+      other.query == query &&
+      identical(other.items, items) &&
+      other.total == total &&
+      other.cursor == cursor &&
+      other.filters == filters &&
+      other.error == error &&
+      other.stale == stale &&
+      other.suggestion == suggestion;
+
+  @override
+  int get hashCode => Object.hash(
+    status,
+    query,
+    identityHashCode(items),
+    total,
+    cursor,
+    filters,
+    error,
+    stale,
+    suggestion,
+  );
 }

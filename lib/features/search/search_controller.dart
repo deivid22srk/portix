@@ -193,17 +193,17 @@ class SearchController extends Notifier<SearchState> {
     }
   }
 
-  /// A cada tecla: atualiza o texto, agenda o debounce e mantém a ordenação
-  /// coerente (digitou → relevância, a menos que o usuário já tenha escolhido
-  /// outro critério).
+  /// A cada tecla: atualiza o TEXTO (provider leve) e agenda o debounce.
+  /// O estado do controller NÃO muda por tecla — a grade e a página não
+  /// reconstruem até o fetch do debounce assentar.
   void setQuery(String value) {
     ref.read(searchTextProvider.notifier).set(value);
-    state = state.copyWith(query: value);
     _debounce?.cancel();
     if (value.trim().length < kSearchMinChars) {
       // Menos de 2 caracteres: volta ao modo descoberta (sem requisição
       // obsoleta e sem "1 resultado" para um byte digitado).
       state = state.copyWith(
+        query: value,
         items: const <Game>[],
         total: 0,
         clearCursor: true,
@@ -272,6 +272,7 @@ class SearchController extends Notifier<SearchState> {
     String sort = kDefaultSort,
   }) {
     _debounce?.cancel();
+    ref.read(searchTextProvider.notifier).clear();
     state = state.copyWith(
       query: '',
       filters: SearchFilters(
@@ -335,7 +336,9 @@ class SearchController extends Notifier<SearchState> {
 
   Future<void> _fetch({required bool reset, bool keepItems = false}) async {
     final int requestId = ++_requestId;
-    final String query = state.query.trim();
+    // O TEXTO vem do provider leve (fonte da verdade do campo); a versão
+    // trimada serve para a requisição e para o histórico.
+    final String query = ref.read(searchTextProvider).trim();
     final SearchFilters filters = state.filters;
     final bool useCursor = !reset && state.cursor != null;
     final String cacheKey = _cacheKey(query, filters);
@@ -344,7 +347,7 @@ class SearchController extends Notifier<SearchState> {
     final bool wasIdle = state.status == SearchStatus.idle;
 
     state = SearchState(
-      query: state.query,
+      query: ref.read(searchTextProvider),
       filters: filters,
       items: (reset && !keepItems) ? const <Game>[] : state.items,
       total: (reset && !keepItems) ? 0 : state.total,
@@ -417,9 +420,10 @@ class SearchController extends Notifier<SearchState> {
       // Página seguinte sem total recontado (cursor): preserva o anterior.
       final int total = useCursor ? state.total : asInt(payloadMap['total']);
       state = SearchState(
-        // A query BRUTA do campo é a fonte da verdade do texto; a trimada só
-        // serve para a requisição e para "buscas recentes".
-        query: state.query,
+        // A query BRUTA do campo (searchTextProvider) é a fonte da verdade:
+        // ecoada UMA vez, quando o fetch assenta — nunca por tecla, então a
+        // grade não reconstrói enquanto o usuário digita.
+        query: ref.read(searchTextProvider),
         filters: filters,
         items: items,
         total: total,
@@ -441,7 +445,7 @@ class SearchController extends Notifier<SearchState> {
           stalePayload['items'],
         ).map(Game.fromMap).toList(growable: false);
         state = SearchState(
-          query: state.query,
+          query: ref.read(searchTextProvider),
           filters: filters,
           items: items,
           total: asInt(stalePayload['total']),
@@ -453,7 +457,7 @@ class SearchController extends Notifier<SearchState> {
       }
       state = SearchState(
         // Idem ao sucesso: nunca ecoar a query trimada/congelada de volta.
-        query: state.query,
+        query: ref.read(searchTextProvider),
         filters: filters,
         items: reset ? const <Game>[] : state.items,
         total: reset ? 0 : state.total,
