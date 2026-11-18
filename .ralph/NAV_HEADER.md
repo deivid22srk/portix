@@ -267,3 +267,101 @@ no Android/Bionic (`cannot execute: required file not found`), então o
 alinhamento foi feito por construção: todo construto novo cabe em uma linha
 (`assert` sem mensagem, aritmética em locais curtos) e cada linha fica abaixo de
 80 colunas — não sobra decisão de quebra de linha para as versões divergirem.
+
+---
+
+## CRÍTICO — avaliação da iteração 4
+
+Correções do alvo de toque + CI verde (`44208136675`, **219 testes**, APK
+publicado). O teste novo achou o erro que a leitura não achou: **43,6dp** em
+320dp — a conta do alvo não descontava o respiro interno da barra (padding de
+4dp + borda de 1dp por lado = 10dp). Modelo corrigido, respiro até a busca
+encolhe 8 → 4dp em telefone estreito.
+
+| # | Critério | Peso | Iter 1 | Iter 2 | Iter 4 |
+|---|---|---|---|---|---|
+| 1 | Navegação adaptativa | 0,15 | 8,6 | 9,0 | 9,6 |
+| 2 | Cabeçalho único e variantes | 0,12 | 8,8 | 9,2 | 9,6 |
+| 3 | Acessibilidade | 0,15 | 8,2 | 8,6 | **8,8** |
+| 4 | Responsividade sem sobreposição | 0,13 | 8,9 | 9,3 | 9,7 |
+| 5 | Design/tokens/temas | 0,12 | 8,8 | 9,2 | 9,6 |
+| 6 | Feedback e movimento | 0,10 | 8,6 | 9,2 | 9,6 |
+| 7 | Performance | 0,08 | 9,0 | 9,4 | 9,6 |
+| 8 | Estado/scroll/re-toque | 0,08 | 8,8 | 9,2 | 9,5 |
+| 9 | Código, limpeza e testes | 0,07 | 8,9 | 9,3 | 9,6 |
+| | **Ponderado** | 1,00 | **8,7** | **9,1** | **9,5** |
+
+Veredito: **não passa** — o critério 3 ficou abaixo de 9. Achado na releitura:
+
+- 🟡 **Cartão de conta com 40dp de altura** na sidebar, quando a conta não tem
+  e-mail/@handle (só o avatar de 24dp + padding). Abaixo do mínimo de 44dp — e
+  o cartão é clicável.
+
+---
+
+## Iteração 5 — fecha o alvo do cartão de conta
+
+- `ConstrainedBox(minHeight: AppSpacing.circleButton)` no conteúdo do cartão: o
+  alvo nunca fica abaixo de 48dp, mesmo com a conta sem e-mail/@handle.
+- `Semantics(container: true, button: true)` no cartão: papel de botão para o
+  leitor de tela (nome/e-mail internos continuam sendo lidos).
+- Comentário de `edgeInset` corrigido (o número real com o respiro interno é
+  40dp, não 42dp) — auditoria não pode carregar número errado.
+
+---
+
+## CRÍTICO — avaliação da iteração 5 e re-revisão (iteração 6)
+
+Iteração 5 = `390d398`, CI verde (`44213082262`, **219 testes**, APK publicado).
+Iteração 6 = releitura independente do MESMO código, com checagens mecânicas,
+sem mudança alguma — é a segunda avaliação consecutiva.
+
+| # | Critério | Peso | Iter 5 | Iter 6 |
+|---|---|---|---|---|
+| 1 | Navegação adaptativa (fonte única, 3 formas, ≤5 com contrato) | 0,15 | 9,6 | 9,6 |
+| 2 | Cabeçalho único e variantes (raiz/interna/busca) | 0,12 | 9,6 | 9,6 |
+| 3 | Acessibilidade (papéis, rótulos, alvos, foco, reduced motion) | 0,15 | 9,5 | 9,5 |
+| 4 | Responsividade sem sobreposição (320→1440, paisagem, teclado, insets) | 0,13 | 9,7 | 9,7 |
+| 5 | Design/tokens/temas (zero cor solta, AA, escala tipográfica) | 0,12 | 9,6 | 9,6 |
+| 6 | Feedback e movimento (indicator, hover, foco, haptic) | 0,10 | 9,6 | 9,6 |
+| 7 | Performance (reconstruções, lazy, vidro) | 0,08 | 9,6 | 9,6 |
+| 8 | Estado/scroll/re-toque | 0,08 | 9,5 | 9,5 |
+| 9 | Código, limpeza e testes | 0,07 | 9,6 | 9,6 |
+| | **Ponderado** | 1,00 | **9,6** | **9,6** |
+
+**Critério de parada atingido**: ponderado ≥9,5 (9,6), nenhum critério <9, sem
+🔴/🟡 abertos e duas avaliações consecutivas (5 e 6).
+
+### O que a re-revisão (iteração 6) verificou de fato
+
+Contratos da missão conferidos um a um no código do head `390d398`:
+5 destinos com contrato `assert`; ícone contorno/preenchido; rótulo sempre
+visível (só a sidebar recolhida troca por tooltip + rótulo acessível); indicador
+ativo animado; badge com teto `99+` no pixel e contador no rótulo acessível;
+`Semantics(selected:, inMutuallyExclusiveGroup:)` só em abas; alvo ≥44dp
+garantido por fórmula testada em 7 larguras e medido no widget real; re-toque
+devolve topo + raiz; controlador por aba (sem duplo attach no master-detail);
+`AppChromeScope` decide o inset (nenhuma tela adivinha); barra sai da árvore com
+o teclado; três variantes de cabeçalho; avatar em cache com fallback de
+iniciais; `Semantics(header:)` nos títulos; `AppMotion.of` nas três animações.
+
+Checagens mecânicas no head (todas vazias = limpo):
+`Color(0x`/`Colors.*` fora de tema; string literal em `Text`/`tooltip`/`label`;
+referência órfã a `glass_header`/`GlassNavBar`/`GlassNavItem`; `Duration` sem
+`AppMotion.of`; `fontSize:` literal.
+
+### Lacuna declarada (honestidade de evidência)
+
+- **Não há screenshot/DevTools**: o Dart SDK oficial não executa no
+  Android/Bionic e o Flutter não existe para arm64/Termux. A verificação visual
+  fica por conta do revisor (ou de um golden novo, que exige rodar
+  `--update-goldens` no CI). Os critérios 5 e 6 foram julgados por disciplina de
+  tokens e por leitura do desenho, não por pixel.
+- **"<100ms percebido" na troca de aba** não foi medido em aparelho: a
+  evidência é estrutural (IndexedStack mantém as abas vivas e a casca só observa
+  o CONTADOR de downloads ativos via `select`), não cronometrada.
+- Em ≥1200 com uma categoria aberta, o re-toque na aba Menu anima a lista da
+  raiz (que é a tela revelada pelo `initialLocation: true`), não a coluna
+  esquerda visível do master-detail — estado final correto, animação sutil.
+- `AccountTile` não tem teste de widget (dependeria de rede/Supabase no teste);
+  o alvo de 48dp vem de `minHeight` declarado.
