@@ -135,7 +135,7 @@ class MainShell extends ConsumerWidget {
                         onSelect: select,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    SizedBox(width: AppNav.barActionGap(width)),
                     SearchFab(tooltip: l10n.tooltipSearch, onTap: openSearch),
                   ],
                 ),

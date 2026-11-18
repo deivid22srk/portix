@@ -118,9 +118,10 @@ void main() {
     });
 
     test('nenhuma largura de telefone deixa destino abaixo de 44dp', () {
-      // 320dp é o piso real (tela pequena com display grande): sem encolher a
-      // margem, a barra + a busca deixariam 42dp por destino.
-      for (final double width in <double>[320, 340, 360, 375, 411, 600, 767]) {
+      // 320dp é o piso real (tela pequena com display grande). A conta inclui
+      // o respiro interno da barra (padding + borda), que o CI já flagrou: sem
+      // ele o destino caía a 43,6dp.
+      for (final double width in <double>[320, 330, 340, 360, 375, 411, 600]) {
         expect(
           AppNav.bottomBarSlot(width),
           greaterThanOrEqualTo(44),
@@ -278,7 +279,7 @@ void main() {
                     onSelect: (_) {},
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                SizedBox(width: AppNav.barActionGap(width)),
                 const SizedBox(
                   width: AppSpacing.searchFab,
                   height: AppSpacing.searchFab,

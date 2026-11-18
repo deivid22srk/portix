@@ -76,12 +76,22 @@ class AppNav {
   static double edgeInset(double width) =>
       width < AppBreakpoints.narrow ? AppSpacing.sm : AppSpacing.screen;
 
-  /// Largura útil de cada destino da barra inferior, já descontando a margem,
-  /// o respiro e a busca ao lado (invariante: nunca abaixo de 44dp).
+  /// Respiro entre a barra e a busca. Em telefone estreito ele encolhe junto
+  /// com a margem: o alvo de toque vem antes do respiro.
+  static double barActionGap(double width) =>
+      width < AppBreakpoints.narrow ? AppSpacing.xs : AppSpacing.sm;
+
+  /// Respiro interno da barra antes dos destinos: `padding` de 4dp + borda de
+  /// 1dp em cada lado. Entra na conta do alvo porque encolhe a faixa útil.
+  static const double barInnerInset = 2 * AppSpacing.xs + 2;
+
+  /// Largura útil de cada destino da barra inferior — margem da chrome,
+  /// respiro até a busca, busca e respiro interno da barra descontados.
+  /// Invariante: nunca abaixo de 44dp em nenhuma largura de telefone.
   static double bottomBarSlot(double width) {
-    final double gutters = 2 * edgeInset(width) + AppSpacing.sm;
-    final double actionWidth = AppSpacing.searchFab;
-    return (width - gutters - actionWidth) / maxDestinations;
+    final double gutters = 2 * edgeInset(width) + barActionGap(width);
+    final double chrome = AppSpacing.searchFab + barInnerInset;
+    return (width - gutters - chrome) / maxDestinations;
   }
 }
 
