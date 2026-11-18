@@ -368,6 +368,40 @@ class L10n {
   String get sectionTopRated => _t('Mais bem avaliados', 'Top rated');
   String get sectionPopular => _t('Mais populares', 'Most popular');
 
+  // ------------------------------------------------- feed algorítmico (Início)
+  String get sectionFeatured => _t('Destaques', 'Featured');
+  String get sectionForYou => _t('Para você', 'For you');
+  String get sectionTrending => _t('Em alta', 'Trending');
+  String get sectionNewReleases => _t('Novidades', 'New releases');
+  String get sectionRecentlyUpdated =>
+      _t('Atualizados recentemente', 'Recently updated');
+  String get sectionDiscover => _t('Descubra', 'Discover');
+  String get sectionByCategory => _t('Por categoria', 'By category');
+
+  /// Microcopy personalizada da seção "Para você".
+  String sectionForYouReason(String genre) =>
+      _t('Porque você curte $genre', 'Because you like $genre');
+
+  String get badgeNew => _t('NOVO', 'NEW');
+  String get badgeUpdated => _t('ATUALIZADO', 'UPDATED');
+  String get viewGame => _t('Ver', 'View');
+
+  // Estados do feed (vazio / offline / limite).
+  String get feedEmptyTitle => _t('Nada por aqui ainda', 'Nothing here yet');
+  String get feedEmptyBody =>
+      _t('Puxe para baixo para tentar de novo.', 'Pull down to try again.');
+  String get feedOfflineTitle => _t('Sem conexão', 'No connection');
+  String get feedRateLimitTitle =>
+      _t('Muitas requisições', 'Too many requests');
+  String get feedRateLimitBody => _t(
+    'O catálogo está ocupado agora. Tente novamente em instantes.',
+    'The catalog is busy right now. Try again in a moment.',
+  );
+  String get errorRateLimited => _t(
+    'O catálogo está temporariamente sobrecarregado.',
+    'The catalog is temporarily overloaded.',
+  );
+
   // --------------------------------------------------------------- explore+
   String get exploreTitle => _t('Explorar', 'Explore');
 

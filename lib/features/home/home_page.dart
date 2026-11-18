@@ -4,29 +4,38 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/theme.dart';
-import '../../core/env.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/game.dart';
 import '../../models/home_feed.dart';
-import '../../shared/widgets/game_media.dart';
 import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/hero_carousel.dart';
 import '../../shared/widgets/primitives.dart';
-import '../../shared/widgets/user_avatar_action.dart';
-import '../shell/tab_scroll_registry.dart';
-import '../../shared/widgets/reveal.dart';
 import '../../shared/widgets/states.dart';
+import '../../shared/widgets/user_avatar_action.dart';
 import '../search/search_controller.dart';
+import '../shell/tab_scroll_registry.dart';
+import 'feed_impressions.dart';
+import 'feed_sections.dart';
 import 'home_controller.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
+  /// Distância (px) do fim em que a próxima página de `discover` é pedida.
+  static const double _loadMoreThreshold = 640;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final L10n l10n = context.l10n;
     final AsyncValue<HomeFeed> async = ref.watch(homeFeedProvider);
     final HomeFeed? feed = async.value;
+    final HomeDiscoverState more = ref.watch(homeDiscoverProvider);
+    final FeedImpressionTracker tracker = ref.watch(feedImpressionsProvider);
+
+    final HomeFeedSection? discover = feed?.sectionByKey('discover');
+    final Map<String, dynamic>? discoverCursor =
+        more.cursor ?? discover?.cursor;
+    final bool hasMoreDiscover =
+        discover != null && !more.ended && discoverCursor != null;
 
     return SafeArea(
       bottom: false,
@@ -34,30 +43,54 @@ class HomePage extends ConsumerWidget {
         color: context.colors.accent,
         backgroundColor: context.colors.glassStrong,
         onRefresh: () => ref.read(homeFeedProvider.notifier).refresh(),
-        child: CustomScrollView(
-          // Controlador da aba: re-toque no destino ativo volta ao topo.
-          controller: TabScrollScope.controllerOf(context, AppTab.home),
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          slivers: <Widget>[
-            const _HomeHeader(),
-            if (feed == null && async.isLoading)
-              const SliverToBoxAdapter(child: HomeSkeleton()),
-            if (feed == null && async.hasError)
-              // Viewport inteiro (SliverFillRemaining): o estado de erro
-              // centra e cresce com texto ampliado (2.0) sem overflow —
-              // um SizedBox fixo de 380px estourava em fontes grandes.
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: ErrorStateView(
-                  message: context.failureText(async.error),
-                  retryLabel: l10n.tryAgain,
-                  onRetry: () => ref.read(homeFeedProvider.notifier).refresh(),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (ScrollNotification notification) {
+            if (feed != null) {
+              // Reavalia os cards que entraram no viewport durante a rolagem.
+              tracker.scan();
+            }
+            final ScrollMetrics metrics = notification.metrics;
+            if (hasMoreDiscover &&
+                metrics.axis == Axis.vertical &&
+                metrics.maxScrollExtent > 0 &&
+                metrics.pixels >=
+                    metrics.maxScrollExtent - _loadMoreThreshold) {
+              // `loadMore` se protege contra reentrância e fim de lista.
+              ref.read(homeFeedProvider.notifier).loadMore();
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            // Controlador da aba: re-toque no destino ativo volta ao topo.
+            controller: TabScrollScope.controllerOf(context, AppTab.home),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: <Widget>[
+              const _HomeHeader(),
+              if (feed == null && async.isLoading)
+                const SliverToBoxAdapter(child: HomeSkeleton()),
+              if (feed == null && async.hasError)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: FeedErrorState(
+                    error: async.error,
+                    onRetry: () =>
+                        ref.read(homeFeedProvider.notifier).refresh(),
+                  ),
                 ),
-              ),
-            if (feed != null) ..._feedSlivers(context, ref, feed),
-          ],
+              if (feed != null)
+                ..._feedSlivers(
+                  context,
+                  ref,
+                  feed,
+                  more,
+                  tracker,
+                  hasMoreDiscover,
+                  revalidateFailed: async.hasError,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -67,209 +100,131 @@ class HomePage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     HomeFeed feed,
-  ) {
+    HomeDiscoverState more,
+    FeedImpressionTracker tracker,
+    bool hasMoreDiscover, {
+    bool revalidateFailed = false,
+  }) {
     final L10n l10n = context.l10n;
-    final List<PlatformInfo> platforms = feed.platforms
-        .where((PlatformInfo platform) => !platform.isSecondary)
-        .toList(growable: false);
+    final String sessionId = feed.seed;
     final List<Widget> slivers = <Widget>[];
 
-    if (feed.highlights.isNotEmpty) {
+    // Fallback/offline: o feed pode estar desatualizado — avisa sem esconder.
+    if (feed.degraded || revalidateFailed) {
+      slivers.add(
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: AppSpacing.md),
+            child: FeedOfflineBanner(),
+          ),
+        ),
+      );
+    }
+
+    if (feed.isEmpty) {
+      slivers.add(
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: Icons.explore_rounded,
+            title: l10n.feedEmptyTitle,
+            body: l10n.feedEmptyBody,
+            actionLabel: l10n.tryAgain,
+            actionIcon: Icons.refresh_rounded,
+            onAction: () => ref.read(homeFeedProvider.notifier).refresh(),
+          ),
+        ),
+      );
+      return slivers;
+    }
+
+    // 1) Destaques (hero).
+    final HomeFeedSection? hero = feed.sectionByKey('featured');
+    if (hero != null && hero.items.isNotEmpty) {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-            child: HeroCarousel(games: feed.highlights, tagPrefix: 'home'),
-          ),
-        ),
-      );
-    }
-
-    slivers.add(
-      const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
-    );
-
-    // Card de apresentação.
-    slivers.add(
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-          child: GlassContainer(
-            radius: AppRadii.lg,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  l10n.homeIntroTitle,
-                  style: context.texts.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  l10n.homeIntroBody,
-                  style: context.texts.bodyMedium?.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SecondaryButton(
-                  label: l10n.explore,
-                  icon: Icons.explore_rounded,
-                  expand: false,
-                  onPressed: () => context.go('/explore'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    // Faixa de plataformas (atalho).
-    if (platforms.isNotEmpty) {
-      slivers.add(
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
-      );
-      slivers.add(
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.sectionPlatforms)),
-      );
-      slivers.add(
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 48,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screen,
-              ),
-              itemCount: platforms.length,
-              separatorBuilder: (BuildContext context, int index) =>
-                  const SizedBox(width: AppSpacing.sm),
-              itemBuilder: (BuildContext context, int index) {
-                final PlatformInfo platform = platforms[index];
-                return AppPill(
-                  label: platform.name,
-                  dense: true,
-                  onTap: () => _browse(context, ref, platform: platform.slug),
-                );
-              },
+            child: HeroCarousel(
+              games: hero.items,
+              tagPrefix: 'home',
+              showMeta: true,
+              showCta: true,
             ),
           ),
         ),
       );
+      slivers.add(const SliverToBoxAdapter(child: _Gap(AppSpacing.xxl)));
     }
 
-    // Explorar por seção (tiles de vidro).
-    final List<_BrowseTarget> tiles = _sectionTiles(context, feed);
-    if (tiles.isNotEmpty) {
+    // 2) Chips de categoria (gêneros + plataformas).
+    final List<GenreInfo> genres = feed.genres.take(12).toList(growable: false);
+    final List<PlatformInfo> platforms = feed.platforms
+        .where((PlatformInfo platform) => !platform.isSecondary)
+        .take(8)
+        .toList(growable: false);
+    if (genres.isNotEmpty || platforms.isNotEmpty) {
       slivers.add(
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
-      );
-      slivers.add(
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.sectionExploreBy)),
-      );
-      slivers.add(
-        ResponsiveCoverGrid(
-          mainAxisExtent: 62,
-          itemBuilder: (BuildContext context, int index) {
-            final _BrowseTarget target = tiles[index];
-            return SectionTile(
-              icon: target.icon,
-              label: target.label,
-              onTap: () => _browse(
-                context,
-                ref,
-                platform: target.platform,
-                genre: target.genre,
-                freeOnly: target.freeOnly,
-                sort: target.sort,
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              SectionHeader(title: l10n.sectionByCategory),
+              FeedCategoryChips(
+                genres: genres,
+                platforms: platforms,
+                onGenre: (String name) => _browse(context, ref, genre: name),
+                onPlatform: (String slug) =>
+                    _browse(context, ref, platform: slug),
               ),
-            );
-          },
-          itemCount: tiles.length,
-        ),
-      );
-    }
-
-    if (feed.recent.isNotEmpty) {
-      slivers.add(
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
-      );
-      slivers.add(
-        SliverToBoxAdapter(
-          child: SectionHeader(
-            title: l10n.sectionNews,
-            actionLabel: l10n.seeAll,
-            onAction: () => context.go('/news'),
+            ],
           ),
         ),
       );
-      slivers.add(
-        _GameGrid(
-          games: feed.recent.take(6).toList(growable: false),
-          prefix: 'home-news',
-        ),
-      );
+      slivers.add(const SliverToBoxAdapter(child: _Gap(AppSpacing.xxl)));
     }
 
-    if (feed.topRated.isNotEmpty) {
-      slivers.add(
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
-      );
+    // 3) Seções em carrossel horizontal (ordem do servidor).
+    for (final HomeFeedSection section in feed.sections) {
+      if (!section.isRow || section.items.isEmpty) {
+        continue;
+      }
       slivers.add(
         SliverToBoxAdapter(
-          child: SectionHeader(
-            title: l10n.sectionTopRated,
+          child: FeedSectionRow(
+            section: section,
+            tracker: tracker,
+            sessionId: sessionId,
             actionLabel: l10n.seeAll,
-            onAction: () => _browse(context, ref),
+            onAction: () => _seeAll(context, ref, section),
           ),
         ),
       );
-      slivers.add(
-        _GameGrid(
-          games: feed.topRated.take(6).toList(growable: false),
-          prefix: 'home-top',
-        ),
-      );
+      slivers.add(const SliverToBoxAdapter(child: _Gap(AppSpacing.xxl)));
     }
 
-    if (feed.trending.isNotEmpty) {
+    // 4) Descoberta (grade com scroll infinito por cursor).
+    final HomeFeedSection? discover = feed.sectionByKey('discover');
+    if (discover != null) {
       slivers.add(
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+        SliverToBoxAdapter(child: SectionHeader(title: l10n.sectionDiscover)),
       );
       slivers.add(
-        SliverToBoxAdapter(
-          child: SectionHeader(
-            title: l10n.sectionPopular,
-            actionLabel: l10n.seeAll,
-            onAction: () => _browse(context, ref, sort: 'trending'),
-          ),
+        FeedGrid(
+          items: _mergeDiscover(discover, more.extra),
+          tracker: tracker,
+          sectionKey: 'discover',
+          sessionId: sessionId,
         ),
       );
       slivers.add(
         SliverToBoxAdapter(
-          child: SizedBox(
-            height: 236,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screen,
-              ),
-              itemCount: feed.trending.length,
-              separatorBuilder: (BuildContext context, int index) =>
-                  const SizedBox(width: AppSpacing.md),
-              itemBuilder: (BuildContext context, int index) {
-                final Game game = feed.trending[index];
-                return GameCard(
-                  game: game,
-                  width: 150,
-                  heroTag: 'home-pop-${game.id}',
-                );
-              },
-            ),
+          child: _DiscoverFooter(
+            loading: more.loading,
+            error: more.error,
+            hasMore: hasMoreDiscover,
+            onRetry: () => ref.read(homeFeedProvider.notifier).loadMore(),
           ),
         ),
       );
@@ -281,53 +236,46 @@ class HomePage extends ConsumerWidget {
     return slivers;
   }
 
-  List<_BrowseTarget> _sectionTiles(BuildContext context, HomeFeed feed) {
-    final L10n l10n = context.l10n;
-    final List<_BrowseTarget> tiles = <_BrowseTarget>[];
-
-    if (feed.free.isNotEmpty) {
-      tiles.add(
-        _BrowseTarget(
-          icon: Icons.bolt_rounded,
-          label: l10n.sectionFree,
-          freeOnly: true,
-        ),
-      );
-    }
-    if (feed.classics.isNotEmpty) {
-      tiles.add(
-        _BrowseTarget(
-          icon: Icons.history_edu_rounded,
-          label: l10n.sectionClassics,
-          sort: 'year',
-        ),
-      );
-    }
-    for (final GenreInfo genre in feed.genres.take(2)) {
-      tiles.add(
-        _BrowseTarget(
-          icon: Icons.category_rounded,
-          label: genre.name,
-          genre: genre.name,
-        ),
-      );
-    }
-    if (tiles.length < 4) {
-      final List<PlatformInfo> platforms = feed.platforms
-          .where((PlatformInfo platform) => !platform.isSecondary)
-          .toList(growable: false);
-      if (platforms.isNotEmpty) {
-        final PlatformInfo platform = platforms.first;
-        tiles.add(
-          _BrowseTarget(
-            icon: Icons.sports_esports_rounded,
-            label: platform.name,
-            platform: platform.slug,
-          ),
-        );
+  List<Game> _mergeDiscover(HomeFeedSection section, List<Game> extra) {
+    final Set<String> seen = <String>{
+      for (final Game game in section.items) game.id,
+    };
+    final List<Game> merged = List<Game>.of(section.items);
+    for (final Game game in extra) {
+      if (seen.add(game.id)) {
+        merged.add(game);
       }
     }
-    return tiles.take(4).toList(growable: false);
+    return merged;
+  }
+
+  VoidCallback _seeAll(
+    BuildContext context,
+    WidgetRef ref,
+    HomeFeedSection section,
+  ) {
+    switch (section.key) {
+      case 'new_releases':
+      case 'recently_updated':
+        return () => _browse(context, ref, sort: 'recent');
+      case 'trending':
+      case 'top_rated':
+        return () => _browse(context, ref, sort: 'trending');
+      case 'free':
+        return () => _browse(context, ref, freeOnly: true);
+      case 'classics':
+        return () => _browse(context, ref, sort: 'year');
+    }
+    if (section.isCategory) {
+      final String genre =
+          section.title ?? section.key.substring('category:'.length);
+      return () => _browse(context, ref, genre: genre);
+    }
+    final FeedSectionReason? reason = section.reason;
+    if (section.key == 'for_you' && reason != null && reason.kind == 'genre') {
+      return () => _browse(context, ref, genre: reason.value);
+    }
+    return () => _browse(context, ref);
   }
 
   void _browse(
@@ -350,43 +298,59 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-class _BrowseTarget {
-  const _BrowseTarget({
-    required this.icon,
-    required this.label,
-    this.platform,
-    this.genre,
-    this.freeOnly = false,
-    this.sort = 'trending',
-  });
+/// Espaçador entre blocos (token de espaçamento, sem número mágico).
+class _Gap extends StatelessWidget {
+  const _Gap(this.size);
 
-  final IconData icon;
-  final String label;
-  final String? platform;
-  final String? genre;
-  final bool freeOnly;
-  final String sort;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(height: size);
 }
 
-class _GameGrid extends StatelessWidget {
-  const _GameGrid({required this.games, required this.prefix});
+/// Rodapé da grade de descoberta: spinner ao paginar, retry em erro e um
+/// respiro quando a lista acabou.
+class _DiscoverFooter extends StatelessWidget {
+  const _DiscoverFooter({
+    required this.loading,
+    required this.error,
+    required this.hasMore,
+    required this.onRetry,
+  });
 
-  final List<Game> games;
-  final String prefix;
+  final bool loading;
+  final Object? error;
+  final bool hasMore;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveCoverGrid(
-      itemBuilder: (BuildContext context, int index) {
-        final Game game = games[index];
-        // Mesma entrada escalonada das telas irmãs (explore/search/hub).
-        return RevealOnMount(
-          index: index,
-          child: GameCard(game: game, heroTag: '$prefix-${game.id}'),
-        );
-      },
-      itemCount: games.length,
-    );
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Center(
+          child: SecondaryButton(
+            label: context.l10n.tryAgain,
+            icon: Icons.refresh_rounded,
+            expand: false,
+            onPressed: onRetry,
+          ),
+        ),
+      );
+    }
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Center(
+          child: SizedBox(
+            width: AppSpacing.xl,
+            height: AppSpacing.xl,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    return SizedBox(height: hasMore ? AppSpacing.xxxl : AppSpacing.xl);
   }
 }
 

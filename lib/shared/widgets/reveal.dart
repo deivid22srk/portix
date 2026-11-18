@@ -51,6 +51,10 @@ class _RevealOnMountState extends State<RevealOnMount>
 
   @override
   Widget build(BuildContext context) {
+    // Reduced motion: a entrada é instantânea (o conteúdo aparece pronto).
+    if (MediaQuery.disableAnimationsOf(context)) {
+      return widget.child;
+    }
     return FadeTransition(
       opacity: _curve,
       child: SlideTransition(

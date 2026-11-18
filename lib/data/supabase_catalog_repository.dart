@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/cache_store.dart';
 import '../core/env.dart';
+import '../core/session.dart';
 import '../models/app_update.dart';
 import '../models/collections.dart';
 import '../models/compat_report.dart';
@@ -18,17 +19,40 @@ import '../models/search.dart';
 import '../models/user_result.dart';
 import 'catalog_repository.dart';
 
-class SupabaseCatalogRepository implements CatalogRepository {
+/// Cascata do feed: RPC nova → RPC legada (marcada `degraded`). Se a legada
+/// também falhar, o erro sobe — quem chama (o controller) mantém o cache já
+/// pintado, então a tela nunca fica vazia.
+///
+/// Fica como função pura para ser testável sem um cliente Supabase.
+Future<HomeFeed> resolveHomeFeedWithFallback({
+  required Future<HomeFeed> Function() primary,
+  required Future<HomeFeed> Function() legacy,
+}) async {
+  try {
+    return await primary();
+  } on Object {
+    final HomeFeed fallback = await legacy();
+    return fallback.copyWith(degraded: true);
+  }
+}
+
+class SupabaseCatalogRepository
+    implements CatalogRepository, HomeFeedAlgorithmRepository {
   SupabaseCatalogRepository(this._client, this._cache);
 
   final SupabaseClient _client;
   final CacheStore _cache;
 
+  /// Último payload bom da RPC NOVA (`get_home_feed`) — o cache preferido.
+  static const String _homeFeedCacheKey = 'home_feed_v2';
+
+  /// Cache do payload legado (`home_feed`), usado só no fallback.
   static const String _homeCacheKey = 'home_feed';
 
   @override
   HomeFeed? readCachedHome() {
-    final Map<String, dynamic>? raw = _cache.readMap(_homeCacheKey);
+    final Map<String, dynamic>? fresh = _cache.readMap(_homeFeedCacheKey);
+    final Map<String, dynamic>? raw = fresh ?? _cache.readMap(_homeCacheKey);
     if (raw == null) {
       return null;
     }
@@ -40,6 +64,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     }
   }
 
+  /// RPC legada `home_feed`: fallback do feed quando o algoritmo novo falha.
   @override
   Future<HomeFeed> fetchHome() async {
     final Object? response = await _guard<Object?>(
@@ -51,6 +76,110 @@ class SupabaseCatalogRepository implements CatalogRepository {
     }
     await _cache.writeMap(_homeCacheKey, map);
     return HomeFeed.fromMap(map);
+  }
+
+  @override
+  Future<HomeFeed> fetchHomeFeed({
+    required String seed,
+    List<String> seen = const <String>[],
+    Map<String, dynamic>? cursor,
+    List<String>? sections,
+  }) async {
+    return resolveHomeFeedWithFallback(
+      primary: () async {
+        final Map<String, dynamic> map = await _getHomeFeed(
+          seed: seed,
+          seen: seen,
+          cursor: cursor,
+          sections: sections,
+        );
+        // Só o payload bom da RPC nova vira cache preferido.
+        await _cache.writeMap(_homeFeedCacheKey, map);
+        return HomeFeed.fromMap(map);
+      },
+      // Cascata: RPC nova → RPC legada. Se a legada também falhar, o erro
+      // sobe e a tela mantém o cache já pintado.
+      legacy: fetchHome,
+    );
+  }
+
+  @override
+  Future<HomeFeed> loadMoreDiscover({
+    required String seed,
+    required Map<String, dynamic> cursor,
+    List<String> seen = const <String>[],
+    List<String>? sections,
+  }) async {
+    // Paginação não tem fallback: a seção `discover` só existe na RPC nova.
+    final Map<String, dynamic> map = await _getHomeFeed(
+      seed: seed,
+      seen: seen,
+      cursor: cursor,
+      sections: sections ?? const <String>['discover'],
+    );
+    return HomeFeed.fromMap(map);
+  }
+
+  @override
+  Future<void> recordImpressions(
+    List<Map<String, dynamic>> items, {
+    String? sessionId,
+  }) async {
+    if (items.isEmpty) {
+      return;
+    }
+    // Opt-out: ausente ou `on` permite; qualquer outro valor desliga.
+    if (!feedImpressionsAllowed(_cache.readString(kFeedImpressionsPrefKey))) {
+      return;
+    }
+    final String anon = FeedSession(_cache).anonymousId();
+    final List<Map<String, dynamic>> payload = <Map<String, dynamic>>[
+      for (final Map<String, dynamic> item in items)
+        if (item['game_id'] != null)
+          <String, dynamic>{
+            'game_id': item['game_id'],
+            'section': item['section'] ?? '',
+            if ((item['session_id'] ?? sessionId) != null)
+              'session_id': item['session_id'] ?? sessionId,
+          },
+    ];
+    if (payload.isEmpty) {
+      return;
+    }
+    try {
+      await _client.rpc(
+        'record_feed_impressions',
+        params: <String, dynamic>{'p_anon': anon, 'p_items': payload},
+      );
+    } on Object {
+      // Melhor esforço: impressão não é caminho crítico e nunca quebra o feed.
+    }
+  }
+
+  Future<Map<String, dynamic>> _getHomeFeed({
+    required String seed,
+    required List<String> seen,
+    required Map<String, dynamic>? cursor,
+    required List<String>? sections,
+  }) async {
+    final Object? response = await _guard<Object?>(
+      () => _client.rpc(
+        'get_home_feed',
+        params: <String, dynamic>{
+          'p_seed': seed,
+          'p_limit': 12,
+          'p_seen': seen,
+          'p_cursor': cursor,
+          'p_sections': sections,
+        },
+      ),
+    );
+    final Map<String, dynamic> map = _map(response);
+    if (!map.containsKey('sections')) {
+      // Sem `sections` não é um payload válido do algoritmo novo.
+      throw const AppFailure(FailureKind.server);
+    }
+    return map;
   }
 
   @override
@@ -115,9 +244,9 @@ class SupabaseCatalogRepository implements CatalogRepository {
     );
     final Map<String, dynamic> map = _map(response);
     return NewsPayload(
-      items: asMapList(
-        map['items'],
-      ).map(NewsItem.fromMap).toList(growable: false),
+      items: asMapList(map['items'])
+          .map(NewsItem.fromMap)
+          .toList(growable: false),
       total: asInt(map['total']),
     );
   }
@@ -213,9 +342,9 @@ class SupabaseCatalogRepository implements CatalogRepository {
       ),
     );
     final Map<String, dynamic> map = _map(response);
-    return asMapList(
-      map['items'],
-    ).map(UserResult.fromMap).toList(growable: false);
+    return asMapList(map['items'])
+        .map(UserResult.fromMap)
+        .toList(growable: false);
   }
 
   @override
@@ -357,6 +486,16 @@ class SupabaseCatalogRepository implements CatalogRepository {
 
   Map<String, dynamic> _map(Object? value) => asMap(value);
 
+  /// `429`/`Too Many Requests` do PostgREST vira um estado de UI próprio
+  /// ("muitas requisições") em vez de um erro genérico.
+  bool _isRateLimited(PostgrestException error) {
+    if (error.code == '429') {
+      return true;
+    }
+    final String message = error.message.toLowerCase();
+    return message.contains('rate limit') || message.contains('too many');
+  }
+
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {
       return await action();
@@ -365,6 +504,9 @@ class SupabaseCatalogRepository implements CatalogRepository {
     } on PostgrestException catch (error) {
       if (error.code == 'PGRST116') {
         throw const AppFailure(FailureKind.notFound);
+      }
+      if (_isRateLimited(error)) {
+        throw AppFailure(FailureKind.rateLimited, detail: error.message);
       }
       throw AppFailure(FailureKind.server, detail: error.message);
     } on AuthException catch (error) {

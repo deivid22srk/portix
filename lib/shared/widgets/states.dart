@@ -141,6 +141,18 @@ class HomeSkeleton extends StatelessWidget {
               radius: AppRadii.lg,
             ),
             const SizedBox(height: AppSpacing.xxl),
+            const SkeletonBox(width: 150, height: 22),
+            const SizedBox(height: AppSpacing.lg),
+            const Row(
+              children: <Widget>[
+                SkeletonBox(width: 72, height: 44, radius: AppRadii.pill),
+                SizedBox(width: AppSpacing.sm),
+                SkeletonBox(width: 96, height: 44, radius: AppRadii.pill),
+                SizedBox(width: AppSpacing.sm),
+                SkeletonBox(width: 84, height: 44, radius: AppRadii.pill),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxl),
             const SkeletonBox(width: 180, height: 22),
             const SizedBox(height: AppSpacing.lg),
             const Row(

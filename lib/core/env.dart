@@ -26,7 +26,15 @@ class Env {
       supabaseUrl.trim().isNotEmpty && supabaseAnonKey.trim().isNotEmpty;
 }
 
-enum FailureKind { config, network, server, auth, notFound, unknown }
+enum FailureKind {
+  config,
+  network,
+  server,
+  auth,
+  notFound,
+  rateLimited,
+  unknown,
+}
 
 class AppFailure implements Exception {
   const AppFailure(this.kind, {this.detail});
@@ -52,6 +60,8 @@ String describeFailure(Object? error, L10n l10n) {
         return l10n.errorAuth;
       case FailureKind.notFound:
         return l10n.errorNotFound;
+      case FailureKind.rateLimited:
+        return l10n.errorRateLimited;
       case FailureKind.unknown:
         return l10n.errorGeneric;
     }

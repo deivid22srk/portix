@@ -19,6 +19,9 @@ class Game {
     this.isFree = false,
     this.needsRom = false,
     this.releasedOn,
+    this.isNew = false,
+    this.isUpdated = false,
+    this.score = 0,
   });
 
   final String id;
@@ -38,6 +41,16 @@ class Game {
   final bool isFree;
   final bool needsRom;
   final DateTime? releasedOn;
+
+  /// Selo "NOVO": lançado recentemente (ver `get_home_feed`). Ausente no
+  /// catálogo legado — por isso o padrão é `false`.
+  final bool isNew;
+
+  /// Selo "ATUALIZADO": o port recebeu atividade recente.
+  final bool isUpdated;
+
+  /// Pontuação do ranking do feed (só o feed algorítmico preenche; 0 fora dele).
+  final double score;
 
   bool get hasRating => ratingCount > 0 && rating > 0;
   String get primaryPlatform => platforms.isEmpty ? '' : platforms.first;
@@ -62,6 +75,9 @@ class Game {
       isFree: map['is_free'] == true,
       needsRom: map['needs_rom'] == true,
       releasedOn: asDate(map['released_on']),
+      isNew: map['is_new'] == true,
+      isUpdated: map['is_updated'] == true,
+      score: asDouble(map['score']),
     );
   }
 }
