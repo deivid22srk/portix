@@ -95,7 +95,8 @@ quando a tabela crescer. Os testes 55/56 rodam no CI
     evento antes do bubbling), Esc limpa/fecha, painel com `Semantics`
     `button`+`selected`, contador com `liveRegion`, alvos de toque ≥ 44dp
     (chips de filtro/histórico e botões "x" com área de 48dp; `AppPill`
-    denso = 44dp, padrão = 48dp).
+    denso = 44dp, padrão = 48dp) — MEDIDOS por teste de widget
+    (`test/ui/explore_page_test.dart`: 'alvos de toque medidos').
 13. **Filtros ≥ 768px** — painel lateral fixo ancorado à direita (requisito
     literal); mobile mantém bottom sheet.
 14. **Auditoria visual** — goldens do ANTES em

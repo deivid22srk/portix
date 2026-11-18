@@ -308,8 +308,10 @@ class _SearchFieldState extends ConsumerState<SearchField> {
               if (text.isNotEmpty)
                 Pressable(
                   onTap: _onEscape,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xxs),
+                  // Alvo de toque ≥ 48dp: a área inteira limpa o campo.
+                  child: SizedBox(
+                    width: AppSpacing.circleButton,
+                    height: AppSpacing.circleButton,
                     child: Icon(
                       Icons.close_rounded,
                       size: 18,

@@ -37,7 +37,8 @@ String ratingFilterLabel(double rating) {
 }
 
 /// Abre o painel de filtros (vidro) e devolve o resultado aplicado.
-/// Mobile: bottom sheet. Telas largas (≥768px): painel flutuante centralizado.
+/// Mobile: bottom sheet. Telas largas (≥768px): PAINEL LATERAL fixo ancorado
+/// à direita, altura inteira (padrão Play Store desktop).
 Future<SearchFilters?> showFilterSheet(
   BuildContext context, {
   required SearchFilters initial,
@@ -49,13 +50,25 @@ Future<SearchFilters?> showFilterSheet(
     return showDialog<SearchFilters>(
       context: context,
       barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
-      builder: (BuildContext dialogContext) => Dialog(
-        backgroundColor: AppContentColors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: AppBreakpoints.settingsDetail + 96,
+      builder: (BuildContext dialogContext) => Align(
+        alignment: Alignment.centerRight,
+        child: Material(
+          color: AppContentColors.transparent,
+          child: Container(
+            width: (AppBreakpoints.settingsDetail / 2).clamp(320.0, 420.0),
+            decoration: BoxDecoration(
+              color: dialogContext.colors.bgElevated,
+              borderRadius: const BorderRadius.horizontal(left: AppRadii.sheet),
+              border: Border(
+                left: BorderSide(color: dialogContext.colors.glassBorder),
+              ),
+            ),
+            child: _FilterSheet(
+              initial: initial,
+              facets: facets,
+              floating: true,
+            ),
           ),
-          child: _FilterSheet(initial: initial, facets: facets, floating: true),
         ),
       ),
     );

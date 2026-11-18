@@ -616,6 +616,11 @@ class AppPill extends StatelessWidget {
       child: AnimatedContainer(
         duration: AppMotion.fast,
         // Alvo de toque: denso ≥ 44dp, padrão ≥ 48dp (WCAG 2.2 AA 2.5.8).
+        constraints: BoxConstraints(
+          minHeight: dense
+              ? AppSpacing.compact + AppSpacing.compact + AppSpacing.xxl
+              : AppSpacing.circleButton,
+        ),
         padding: EdgeInsets.symmetric(
           horizontal: dense ? AppSpacing.md : AppSpacing.lg,
           vertical: dense ? AppSpacing.compact : AppSpacing.fieldVertical,

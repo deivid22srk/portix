@@ -180,8 +180,11 @@ Future<(ProviderContainer, GoRouter)> _pump(
   _FakeRepo repo, {
   Map<String, String> initialQuery = const <String, String>{},
   Size size = const Size(390, 844),
+  List<String> recentSearches = const <String>[],
 }) async {
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(<String, Object>{
+    if (recentSearches.isNotEmpty) 'search.recent': recentSearches,
+  });
   final SharedPreferences prefs = await SharedPreferences.getInstance();
 
   final GoRouter router = GoRouter(
@@ -425,4 +428,42 @@ void main() {
       ], reason: 'descoberta (1) + submit (1); zero refetch do toggle');
     },
   );
+
+  testWidgets('alvos de toque medidos: chips ≥ 44dp e botões x com 48dp', (
+    WidgetTester tester,
+  ) async {
+    final _FakeRepo repo = _FakeRepo();
+    await _pump(tester, repo, recentSearches: <String>['busca antiga']);
+
+    // Chip denso (histórico): altura ≥ 44.
+    final Finder pillDense = find.text('busca antiga');
+    await tester.ensureVisible(pillDense);
+    final Size dense = tester.getSize(
+      find
+          .ancestor(of: pillDense, matching: find.byType(AnimatedContainer))
+          .first,
+    );
+    expect(dense.height, greaterThanOrEqualTo(44));
+
+    // Digita: o x do campo aparece com alvo de 48dp.
+    await tester.enterText(find.byType(TextField), 'ma');
+    await tester.pump();
+    final Finder fieldX = find.byIcon(Icons.close_rounded).last;
+    final Size xSize = tester.getSize(fieldX);
+    expect(
+      xSize.height,
+      greaterThanOrEqualTo(44),
+      reason: 'x do campo com alvo 48dp',
+    );
+    expect(xSize.width, greaterThanOrEqualTo(44));
+
+    // Chip do histórico: o x de remover também tem 48dp.
+    final Finder chipX = find.byIcon(Icons.close_rounded).first;
+    final Size chipXSize = tester.getSize(chipX);
+    expect(
+      chipXSize.height,
+      greaterThanOrEqualTo(44),
+      reason: 'x de remover do histórico com alvo 48dp',
+    );
+  });
 }

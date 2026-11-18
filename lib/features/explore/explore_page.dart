@@ -166,11 +166,18 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       if (filters.genre != null) 'genre': filters.genre!,
       if (filters.freeOnly) 'free': '1',
       if (filters.needsRom) 'rom': '1',
-      if (filters.minRating != null) 'min': '${filters.minRating}',
+      if (filters.minRating != null) 'min': _minToParam(filters.minRating!),
       if (filters.sort != kDefaultSort) 'sort': filters.sort,
       if (ref.read(resultsViewProvider)) 'view': 'list',
     };
     return params;
+  }
+
+  /// Normaliza a nota mínima para a rota: 4.0 → "4" (deep link e estado
+  /// produzem a MESMA query string — sem refetch por diferença de formato).
+  String _minToParam(double value) {
+    final bool whole = value == value.truncateToDouble();
+    return value.toStringAsFixed(whole ? 0 : 1);
   }
 
   bool _mapsEqual(Map<String, String> a, Map<String, String> b) {
@@ -442,10 +449,11 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screen,
+            // Mesmo `extra` da grade: título e cards alinhados em telas largas.
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.screen + extra,
               AppSpacing.xl,
-              AppSpacing.screen,
+              AppSpacing.screen + extra,
               0,
             ),
             child: Column(
@@ -739,8 +747,10 @@ class _RecentChip extends ConsumerWidget {
         label: context.l10n.removeSearch,
         child: Pressable(
           onTap: () => ref.read(recentSearchesProvider.notifier).remove(term),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.hairline),
+          // Alvo de toque ≥ 48dp para remover o item (WCAG 2.2 AA 2.5.8).
+          child: SizedBox(
+            width: AppSpacing.circleButton,
+            height: AppSpacing.circleButton,
             child: Icon(
               Icons.close_rounded,
               size: AppSpacing.navIconSize - AppSpacing.xxs - AppSpacing.xs,
