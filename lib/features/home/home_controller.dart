@@ -29,6 +29,11 @@ HomeFeedAlgorithmRepository? _algorithmOf(CatalogRepository repository) =>
 
 final homeFeedProvider = AsyncNotifierProvider<HomeFeedNotifier, HomeFeed>(
   HomeFeedNotifier.new,
+  // Desliga o retry automático do Riverpod: com ele, uma falha de `build`
+  // vira um `AsyncLoading` com erro (retrying) por ~20s — o estado de erro
+  // fica inalcançável e `provider.future` permanece pendente. O feed já tem
+  // retry explícito ("Tentar novamente").
+  retry: (int retryCount, Object error) => null,
 );
 
 /// Registro de impressões do feed (best-effort, respeita o opt-out no repo).
@@ -186,17 +191,17 @@ class HomeFeedNotifier extends AsyncNotifier<HomeFeed> {
   bool _alive = true;
 
   @override
-  Future<HomeFeed> build() {
+  FutureOr<HomeFeed> build() {
     _alive = true;
     ref.onDispose(() => _alive = false);
 
     final CatalogRepository repository = ref.watch(catalogRepositoryProvider);
     final HomeFeed? cached = repository.readCachedHome();
     if (cached != null) {
-      // Stale-while-revalidate: pinta o cache na hora e troca quando a rede
-      // responde, sem bloquear a home.
+      // Stale-while-revalidate: o cache é o estado INICIAL (síncrono, sem
+      // frame de loading) e a rede revalida em background.
       unawaited(_revalidate(repository));
-      return Future<HomeFeed>.value(cached);
+      return cached;
     }
     return _load(repository);
   }
@@ -215,13 +220,28 @@ class HomeFeedNotifier extends AsyncNotifier<HomeFeed> {
   /// Pagina a seção `discover` (delegado ao notifier de paginação).
   Future<void> loadMore() => ref.read(homeDiscoverProvider.notifier).loadMore();
 
-  Future<HomeFeed> _load(CatalogRepository repository) {
+  /// Cascata do cliente, para a tela nunca ficar vazia:
+  /// 1) RPC nova (`get_home_feed`);
+  /// 2) em falha, RPC legada (`home_feed`), marcada `degraded`;
+  /// 3) se a legada também falhar, reemite o erro ORIGINAL — assim a UI
+  ///    distingue offline de rate limit (429) em vez de mostrar um erro genérico.
+  Future<HomeFeed> _load(CatalogRepository repository) async {
     final HomeFeedAlgorithmRepository? algo = _algorithmOf(repository);
-    if (algo != null) {
-      return algo.fetchHomeFeed(seed: ref.read(feedSessionProvider).seed());
+    if (algo == null) {
+      // Repositórios legados (e fakes de teste) seguem pelo RPC antigo.
+      return repository.fetchHome();
     }
-    // Repositórios legados (e fakes de teste) seguem pelo RPC antigo.
-    return repository.fetchHome();
+    final String seed = ref.read(feedSessionProvider).seed();
+    try {
+      return await algo.fetchHomeFeed(seed: seed);
+    } on Object catch (primaryError, primaryStack) {
+      try {
+        final HomeFeed legacy = await repository.fetchHome();
+        return legacy.copyWith(degraded: true);
+      } on Object {
+        Error.throwWithStackTrace(primaryError, primaryStack);
+      }
+    }
   }
 
   Future<void> _revalidate(CatalogRepository repository) async {

@@ -68,32 +68,57 @@ class HomePage extends ConsumerWidget {
             ),
             slivers: <Widget>[
               const _HomeHeader(),
-              if (feed == null && async.isLoading)
-                const SliverToBoxAdapter(child: HomeSkeleton()),
-              if (feed == null && async.hasError)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: FeedErrorState(
-                    error: async.error,
-                    onRetry: () =>
-                        ref.read(homeFeedProvider.notifier).refresh(),
-                  ),
-                ),
-              if (feed != null)
-                ..._feedSlivers(
-                  context,
-                  ref,
-                  feed,
-                  more,
-                  tracker,
-                  hasMoreDiscover,
-                  revalidateFailed: async.hasError,
-                ),
+              ..._bodySlivers(
+                context,
+                ref,
+                async,
+                feed,
+                more,
+                tracker,
+                hasMoreDiscover,
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Corpo da Início, com estados exclusivos: feed > erro > skeleton. A
+  /// precedência do erro garante que ele apareça mesmo se o provider reportar
+  /// "loading" junto do erro (p.ex. durante um retry).
+  List<Widget> _bodySlivers(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<HomeFeed> async,
+    HomeFeed? feed,
+    HomeDiscoverState more,
+    FeedImpressionTracker tracker,
+    bool hasMoreDiscover,
+  ) {
+    if (feed != null) {
+      return _feedSlivers(
+        context,
+        ref,
+        feed,
+        more,
+        tracker,
+        hasMoreDiscover,
+        revalidateFailed: async.hasError,
+      );
+    }
+    if (async.hasError) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: FeedErrorState(
+            error: async.error,
+            onRetry: () => ref.read(homeFeedProvider.notifier).refresh(),
+          ),
+        ),
+      ];
+    }
+    return const <Widget>[SliverToBoxAdapter(child: HomeSkeleton())];
   }
 
   List<Widget> _feedSlivers(

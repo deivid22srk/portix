@@ -191,3 +191,34 @@ mesma lista.
 🟡 Sem personalização: usuário com histórico recebe o mesmo feed do anônimo.
 🟡 `top_rated` ordena por `rating_avg` sem índice.
 🟢 Sem impressões: nenhuma telemetria de exposição para calibrar o ranking.
+
+---
+
+## Resultado medido (job `feed-sql`, 2 execuções verdes consecutivas)
+
+Saída literal do CI (`supabase/tests/30_simulation.sql`, 20 aberturas por
+cenário, top 10 por abertura):
+
+| Métrica | ANTES (RPC legada) | DEPOIS (`get_home_feed`) | Meta |
+|---|---|---|---|
+| Repetição no top 10 entre aberturas consecutivas | **100,0 %** | **17,4 %** | < 30 % ✅ |
+| Cobertura em 20 aberturas (usuário novo) | 10 itens | **5,6×** a linha de base | ≥ 3× ✅ |
+| Cobertura em 20 aberturas (com histórico) | 10 itens | **8,2×** a linha de base | ≥ 3× ✅ |
+| Latência da RPC (volume real) | ~— | **96,7 ms** | < 150 ms ✅ |
+| Latência da RPC com 2M de downloads | — | **96,8 ms** | não crescer ✅ |
+| Relevância (score do topo vs média do catálogo) | — | ≥ 1,5× (assertiva) | preservada ✅ |
+
+Leitura: o feed antigo repetia 100 % do top 10 porque a ordenação era
+determinística sobre contador acumulado. Com banda de relevância + jitter por
+seed, ~8 de 10 itens mudam a cada abertura, a cobertura do catálogo multiplica
+por 5–8 e a latência fica **estável** com o histórico crescendo (popularidade
+denormalizada com decaimento preguiçoso).
+
+## Achado extra: data futura explodia o score
+
+Os números da simulação denunciaram scores de ~2,25 × 10¹² (média do catálogo
+6,6 × 10¹⁰). Causa: `released_on`/`last_activity_on`/download com data **no
+futuro** (pré-venda ou dado sujo) faziam `exp(-idade)` explodir. Corrigido com
+`greatest(idade, 0)` nos três pontos e preso por assertiva (nenhum score > 10).
+Nenhuma revisão de código encontraria isso: só apareceu porque os números foram
+medidos.

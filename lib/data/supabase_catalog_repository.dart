@@ -19,23 +19,6 @@ import '../models/search.dart';
 import '../models/user_result.dart';
 import 'catalog_repository.dart';
 
-/// Cascata do feed: RPC nova → RPC legada (marcada `degraded`). Se a legada
-/// também falhar, o erro sobe — quem chama (o controller) mantém o cache já
-/// pintado, então a tela nunca fica vazia.
-///
-/// Fica como função pura para ser testável sem um cliente Supabase.
-Future<HomeFeed> resolveHomeFeedWithFallback({
-  required Future<HomeFeed> Function() primary,
-  required Future<HomeFeed> Function() legacy,
-}) async {
-  try {
-    return await primary();
-  } on Object {
-    final HomeFeed fallback = await legacy();
-    return fallback.copyWith(degraded: true);
-  }
-}
-
 class SupabaseCatalogRepository
     implements CatalogRepository, HomeFeedAlgorithmRepository {
   SupabaseCatalogRepository(this._client, this._cache);
@@ -44,6 +27,11 @@ class SupabaseCatalogRepository
   final CacheStore _cache;
 
   /// Último payload bom da RPC NOVA (`get_home_feed`) — o cache preferido.
+  ///
+  /// Chave ESTÁVEL por sessão/instalação (não por seed): o seed só rege a
+  /// ORDENAÇÃO do feed, não a identidade do cache. Uma chave por seed falharia
+  /// o stale-while-revalidate ao reabrir o app (seed nova ⇒ cache vazio ⇒ tela
+  /// em branco à espera da rede).
   static const String _homeFeedCacheKey = 'home_feed_v2';
 
   /// Cache do payload legado (`home_feed`), usado só no fallback.
@@ -78,6 +66,9 @@ class SupabaseCatalogRepository
     return HomeFeed.fromMap(map);
   }
 
+  /// RPC nova, SEM cascata: a cascata (nova → legada → cache → erro) é
+  /// orquestrada pelo controller, que preserva o erro ORIGINAL para a tela
+  /// distinguir offline de rate limit (429).
   @override
   Future<HomeFeed> fetchHomeFeed({
     required String seed,
@@ -85,22 +76,15 @@ class SupabaseCatalogRepository
     Map<String, dynamic>? cursor,
     List<String>? sections,
   }) async {
-    return resolveHomeFeedWithFallback(
-      primary: () async {
-        final Map<String, dynamic> map = await _getHomeFeed(
-          seed: seed,
-          seen: seen,
-          cursor: cursor,
-          sections: sections,
-        );
-        // Só o payload bom da RPC nova vira cache preferido.
-        await _cache.writeMap(_homeFeedCacheKey, map);
-        return HomeFeed.fromMap(map);
-      },
-      // Cascata: RPC nova → RPC legada. Se a legada também falhar, o erro
-      // sobe e a tela mantém o cache já pintado.
-      legacy: fetchHome,
+    final Map<String, dynamic> map = await _getHomeFeed(
+      seed: seed,
+      seen: seen,
+      cursor: cursor,
+      sections: sections,
     );
+    // Só o payload bom da RPC nova vira cache preferido.
+    await _cache.writeMap(_homeFeedCacheKey, map);
+    return HomeFeed.fromMap(map);
   }
 
   @override

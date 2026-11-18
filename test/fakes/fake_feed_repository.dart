@@ -30,6 +30,9 @@ class FakeFeedRepository
   final List<Map<String, dynamic>> loadMoreCursors = <Map<String, dynamic>>[];
   final List<List<Map<String, dynamic>>> impressionBatches =
       <List<Map<String, dynamic>>>[];
+
+  /// Quantas vezes o fallback legado foi acionado.
+  int legacyCalls = 0;
   int _pageIndex = 0;
 
   @override
@@ -37,6 +40,7 @@ class FakeFeedRepository
 
   @override
   Future<HomeFeed> fetchHome() async {
+    legacyCalls++;
     final Future<HomeFeed> Function()? handler = onLegacy;
     if (handler == null) {
       throw StateError('FakeFeedRepository.fetchHome não configurado');

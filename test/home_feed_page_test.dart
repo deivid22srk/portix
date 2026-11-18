@@ -68,8 +68,7 @@ Future<void> _pumpHome(
   );
   // 1º frame: loading; seguintes: resolução do future do feed.
   await tester.pump();
-  await tester.pump();
-  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
 }
 
 void main() {
@@ -87,8 +86,7 @@ void main() {
 
     await tester.tap(find.text('Tentar de novo'));
     await tester.pump();
-    await tester.pump();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
     expect(
       repository.seeds.length,
       greaterThanOrEqualTo(2),
