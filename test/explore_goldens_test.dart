@@ -225,7 +225,8 @@ final ExploreFeed _feed = ExploreFeed(
   ],
 );
 
-/// Fontes embutidas do app (Poppins) para o golden ficar fiel ao real.
+/// Fontes embutidas do app (Poppins + MaterialIcons) para o golden ficar
+/// fiel ao real — ícones deixam de renderizar como tofu.
 Future<void> _loadFonts() async {
   for (final String path in <String>[
     'assets/fonts/Poppins-Regular.ttf',
@@ -238,6 +239,12 @@ Future<void> _loadFonts() async {
       ..addFont(Future<ByteData>.value(data));
     await loader.load();
   }
+  final ByteData icons = await rootBundle.load(
+    'fonts/MaterialIcons-Regular.otf',
+  );
+  final FontLoader iconsLoader = FontLoader('MaterialIcons')
+    ..addFont(Future<ByteData>.value(icons));
+  await iconsLoader.load();
 }
 
 Future<void> _pumpExplore(

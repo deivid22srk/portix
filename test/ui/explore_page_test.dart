@@ -14,6 +14,7 @@ import 'package:portix/core/env.dart';
 import 'package:portix/core/providers.dart';
 import 'package:portix/data/catalog_repository.dart';
 import 'package:portix/features/explore/explore_page.dart';
+import 'package:portix/shared/widgets/app_header.dart';
 import 'package:portix/models/app_update.dart';
 import 'package:portix/models/collections.dart';
 import 'package:portix/models/compat_report.dart';
@@ -465,5 +466,40 @@ void main() {
       greaterThanOrEqualTo(44),
       reason: 'x de remover do histórico com alvo 48dp',
     );
+  });
+
+  testWidgets(
+    'filtros ≥ 768px: PAINEL LATERAL ancorado à direita (largura 320-420)',
+    (WidgetTester tester) async {
+      final _FakeRepo repo = _FakeRepo();
+      await _pump(tester, repo, size: const Size(900, 700));
+
+      // Abre o painel pelo botão de filtros do header.
+      await tester.tap(find.byType(AppHeaderActionButton).first);
+      await tester.pumpAndSettle();
+
+      // O painel é o Container com raio horizontal-esquerdo dentro do dialog.
+      final Finder panel = find.byKey(
+        const ValueKey<String>('filter_side_panel'),
+      );
+      expect(panel, findsOneWidget);
+      final Size size = tester.getSize(panel);
+      expect(size.width, inExclusiveRange(320, 420));
+      // Ancorado à DIREITA: borda direita do painel colada na janela.
+      final Rect box = tester.getRect(panel);
+      expect(box.right, moreOrLessEquals(900, epsilon: 1));
+    },
+  );
+
+  testWidgets('filtros < 768px: bottom sheet', (WidgetTester tester) async {
+    final _FakeRepo repo = _FakeRepo();
+    await _pump(tester, repo, size: const Size(390, 844));
+
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+
+    // Bottom sheet: sem Dialog na árvore; o sheet ocupa a base.
+    expect(find.byType(Dialog), findsNothing);
+    expect(find.text('Filtros'), findsOneWidget);
   });
 }

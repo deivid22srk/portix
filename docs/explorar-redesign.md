@@ -99,7 +99,11 @@ quando a tabela crescer. Os testes 55/56 rodam no CI
     (`test/ui/explore_page_test.dart`: 'alvos de toque medidos').
 13. **Filtros ≥ 768px** — painel lateral fixo ancorado à direita (requisito
     literal); mobile mantém bottom sheet.
-14. **Auditoria visual** — goldens do ANTES em
+14. **Hint do campo em 375px** — a microcopy exigida pela missão
+    ("Buscar jogos, categorias ou desenvolvedores") truncará com elipse em
+    larguras muito estreitas: mantivemos o texto completo (microcopy >
+    estética) e o campo continua usável.
+15. **Auditoria visual** — goldens do ANTES em
     `docs/auditoria/explorar/antes/`; goldens do DEPOIS (5 temas × 3 larguras
     + estados) em `test/goldens_out/explore/` (gerados por
     `test/explore_goldens_test.dart`, gate GOLDENS=1).

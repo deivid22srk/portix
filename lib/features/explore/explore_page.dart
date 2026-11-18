@@ -462,6 +462,13 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 SectionHeader(
                   title: l10n.categoriesTitle,
                   subtitle: l10n.categoriesSubtitle,
+                  // A margem lateral já vem do Padding externo (screen+extra):
+                  // zerar o inset interno alinha o título EXATO ao box dos
+                  // cards em qualquer largura.
+                  padding: const EdgeInsets.only(
+                    right: AppSpacing.md,
+                    bottom: AppSpacing.md,
+                  ),
                 ),
               ],
             ),

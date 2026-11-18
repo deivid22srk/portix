@@ -671,22 +671,29 @@ class SectionHeader extends StatelessWidget {
     this.subtitle,
     this.actionLabel,
     this.onAction,
+
+    /// Sobrescreve o inset padrão (screen à esquerda) — use quando o caller
+    /// já aplica a margem lateral (ex.: seções centralizadas > contentMax).
+    this.padding,
   });
 
   final String title;
   final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screen,
-        0,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
+      padding:
+          padding ??
+          const EdgeInsets.fromLTRB(
+            AppSpacing.screen,
+            0,
+            AppSpacing.md,
+            AppSpacing.md,
+          ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[

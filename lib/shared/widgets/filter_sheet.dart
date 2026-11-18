@@ -38,7 +38,7 @@ String ratingFilterLabel(double rating) {
 
 /// Abre o painel de filtros (vidro) e devolve o resultado aplicado.
 /// Mobile: bottom sheet. Telas largas (≥768px): PAINEL LATERAL fixo ancorado
-/// à direita, altura inteira (padrão Play Store desktop).
+/// à direita, conteúdo até 90% da altura (padrão Play Store desktop).
 Future<SearchFilters?> showFilterSheet(
   BuildContext context, {
   required SearchFilters initial,
@@ -55,6 +55,7 @@ Future<SearchFilters?> showFilterSheet(
         child: Material(
           color: AppContentColors.transparent,
           child: Container(
+            key: const ValueKey<String>('filter_side_panel'),
             width: (AppBreakpoints.settingsDetail / 2).clamp(320.0, 420.0),
             decoration: BoxDecoration(
               color: dialogContext.colors.bgElevated,
