@@ -13,6 +13,8 @@ import com.deivid22srk.portix.device.PortixDeviceInfo
 import com.deivid22srk.portix.downloader.DownloadService
 import com.deivid22srk.portix.downloader.DownloaderBridge
 import com.deivid22srk.portix.downloader.NativeDownloader
+import com.deivid22srk.portix.install.InstallBridge
+import com.deivid22srk.portix.install.PermissionBridge
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -21,13 +23,18 @@ import java.io.File
 
 /**
  * Atividade principal. Além do Flutter padrão, expõe os canais do sistema de
- * download (iniciar/cancelar/instalar) e o fluxo de eventos de progresso.
+ * download (iniciar/cancelar/instalar), o fluxo de eventos de progresso e os
+ * canais de permissões/instalação (portix/permissions, portix/install +
+ * portix/install/events — contrato em lib/features/install/).
  */
 class MainActivity : FlutterActivity() {
     private val methodsChannelName = "portix/downloader"
     private val eventsChannelName = "portix/downloader/events"
     private val deviceChannelName = "portix/device"
     private val apkChannelName = "portix/apk"
+    private val permissionsChannelName = "portix/permissions"
+    private val installChannelName = "portix/install"
+    private val installEventsChannelName = "portix/install/events"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -115,6 +122,106 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Permissões relevantes à instalação (lib/features/install/permissions.dart).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, permissionsChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "snapshot" -> result.success(PermissionBridge.snapshot(applicationContext))
+                    "openInstallAppsSettings" -> result.success(
+                        PermissionBridge.openInstallAppsSettings(this),
+                    )
+                    "requestNotifications" -> PermissionBridge.requestNotifications(this, result)
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Instalador nativo (lib/features/install/native_installer.dart).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, installChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "freeBytes" -> result.success(InstallBridge.freeBytes(applicationContext))
+                    "sha256" -> {
+                        val path = call.argument<String>("path").orEmpty()
+                        if (path.isEmpty()) {
+                            result.success(null)
+                        } else {
+                            InstallBridge.sha256(path, result)
+                        }
+                    }
+                    "prepare" -> {
+                        val key = call.argument<String>("key").orEmpty()
+                        val attemptId = call.argument<Number>("attemptId")?.toInt() ?: 0
+                        val packageName = call.argument<String>("packageName").orEmpty()
+                        val label = call.argument<String>("label").orEmpty()
+                        val iconPng = call.argument<ByteArray>("iconPng")
+                        val sizeBytes = call.argument<Number>("sizeBytes")?.toLong() ?: 0L
+                        result.success(
+                            InstallBridge.prepare(
+                                this,
+                                key,
+                                attemptId,
+                                packageName,
+                                label,
+                                iconPng,
+                                sizeBytes,
+                            ),
+                        )
+                    }
+                    "commitPrepared" -> {
+                        val key = call.argument<String>("key").orEmpty()
+                        val sessionId = call.argument<Number>("sessionId")?.toInt() ?: 0
+                        val path = call.argument<String>("path").orEmpty()
+                        val expectedPackage = call.argument<String>("expectedPackage")
+                        InstallBridge.commitPrepared(this, key, sessionId, path, expectedPackage)
+                        result.success(null)
+                    }
+                    "commitFresh" -> {
+                        val key = call.argument<String>("key").orEmpty()
+                        val path = call.argument<String>("path").orEmpty()
+                        InstallBridge.commitFresh(this, key, path)
+                        result.success(null)
+                    }
+                    "abandon" -> {
+                        val sessionId = call.argument<Number>("sessionId")?.toInt() ?: 0
+                        InstallBridge.abandon(this, sessionId)
+                        result.success(null)
+                    }
+                    "cancelPrepare" -> {
+                        val key = call.argument<String>("key").orEmpty()
+                        val attemptId = call.argument<Number>("attemptId")?.toInt() ?: 0
+                        InstallBridge.cancelPrepare(this, key, attemptId)
+                        result.success(null)
+                    }
+                    "cleanupOrphanSessions" -> {
+                        InstallBridge.cleanupOrphanSessions(applicationContext)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, installEventsChannelName)
+            .setStreamHandler(
+                object : EventChannel.StreamHandler {
+                    override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                        InstallBridge.events = events
+                    }
+
+                    override fun onCancel(arguments: Any?) {
+                        InstallBridge.events = null
+                    }
+                },
+            )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        PermissionBridge.onRequestPermissionsResult(requestCode, grantResults)
     }
 
     private fun requestNotifications() {
