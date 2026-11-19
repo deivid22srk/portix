@@ -15,6 +15,7 @@ import com.deivid22srk.portix.downloader.DownloaderBridge
 import com.deivid22srk.portix.downloader.NativeDownloader
 import com.deivid22srk.portix.install.InstallBridge
 import com.deivid22srk.portix.install.PermissionBridge
+import com.deivid22srk.portix.install.ShizukuBridge
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -24,8 +25,9 @@ import java.io.File
 /**
  * Atividade principal. Além do Flutter padrão, expõe os canais do sistema de
  * download (iniciar/cancelar/instalar), o fluxo de eventos de progresso e os
- * canais de permissões/instalação (portix/permissions, portix/install +
- * portix/install/events — contrato em lib/features/install/).
+ * canais de permissões/instalação/Shizuku (portix/permissions, portix/install
+ * + portix/install/events, portix/shizuku + portix/shizuku/events — contrato
+ * em lib/features/install/).
  */
 class MainActivity : FlutterActivity() {
     private val methodsChannelName = "portix/downloader"
@@ -35,6 +37,8 @@ class MainActivity : FlutterActivity() {
     private val permissionsChannelName = "portix/permissions"
     private val installChannelName = "portix/install"
     private val installEventsChannelName = "portix/install/events"
+    private val shizukuChannelName = "portix/shizuku"
+    private val shizukuEventsChannelName = "portix/shizuku/events"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -210,6 +214,48 @@ class MainActivity : FlutterActivity() {
 
                     override fun onCancel(arguments: Any?) {
                         InstallBridge.events = null
+                    }
+                },
+            )
+
+        // Estado do Shizuku + instalação silenciosa
+        // (lib/features/install/shizuku.dart). O attach logo no arranque
+        // registra os listeners e já alimenta PermissionBridge.shizukuStatus
+        // (o snapshot de portix/permissions lê essa string).
+        ShizukuBridge.attach(applicationContext)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shizukuChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "status" -> result.success(ShizukuBridge.status(applicationContext))
+                    "requestPermission" -> {
+                        ShizukuBridge.requestPermission()
+                        result.success(null)
+                    }
+                    "openShizuku" -> result.success(ShizukuBridge.openShizuku(applicationContext))
+                    "install" -> {
+                        val key = call.argument<String>("key").orEmpty()
+                        val path = call.argument<String>("path").orEmpty()
+                        val expectedPackage = call.argument<String>("expectedPackage")
+                        result.success(
+                            ShizukuBridge.install(applicationContext, key, path, expectedPackage),
+                        )
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, shizukuEventsChannelName)
+            .setStreamHandler(
+                object : EventChannel.StreamHandler {
+                    override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                        ShizukuBridge.events = events
+                        // Sticky: emite o estado atual para o novo ouvinte.
+                        ShizukuBridge.attach(applicationContext)
+                    }
+
+                    override fun onCancel(arguments: Any?) {
+                        ShizukuBridge.events = null
                     }
                 },
             )

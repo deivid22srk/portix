@@ -37,7 +37,7 @@ import java.util.concurrent.Executors
 //   'prepared' → 'preapprovalPending' (diálogo) → 'preapprovalApproved' /
 //   'preapprovalDeclined' / 'preapprovalFailed'. API < 34: 'false' sem
 //   evento — o Dart registra 'session-failed' e instala via commitFresh.
-// - commitPrepared: escreve o APK na sessão pré-aprovada + commit (nenhum
+// - commitPrepared: escreve o APK na sessão pré-aprovada e faz commit (nenhum
 //   diálogo novo no Android 14+).
 // - commitFresh: sessão sem pré-aprovação (1 diálogo no commit — Android
 //   ≤ 13 e primeira instalação de pacote desconhecido).
@@ -522,8 +522,9 @@ object InstallBridge {
             discardState(appContext, entry.key, entry.value, abandon = false)
         }
         abandonSessionQuietly(appContext, sessionId)
-        // SecurityException (sessão de shell) será tratada pelo caminho
-        // Shizuku do ShizukuBridge (parte 4b) — aqui o silêncio é o contrato.
+        // SecurityException (sessão de shell) cai no gancho do ShizukuBridge
+        // (parte 4b) dentro de abandonSessionQuietly — aqui o silêncio é o
+        // contrato.
     }
 
     /**
@@ -608,6 +609,9 @@ object InstallBridge {
         try {
             context.packageManager.packageInstaller.abandon(sessionId)
         } catch (ignored: Throwable) {
+            // Sessão de shell (criada pelo caminho Shizuku) dá SecurityException:
+            // o gancho da parte 4b tenta o abandon pelo binder do Shizuku.
+            ShizukuBridge.abandonViaShizuku(context, sessionId)
         }
     }
 
