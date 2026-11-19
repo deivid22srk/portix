@@ -38,19 +38,24 @@ void main() {
       expect(plan.expectedPackage, kPkg);
     });
 
-    test('Shizuku instalado parado → AndroidPlan (automático cai para Android)', () {
-      final InstallPlan plan = resolveInstaller(
-        choice: InstallerChoice.automatic,
-        shizuku: ShizukuStatus.installedStopped,
-        canInstallApps: true,
-        sdkInt: 34,
-        expectedPackage: kPkg,
-      );
-      // Missão: "Automático: Shizuku ATIVO → Shizuku; senão → Android" — sem
-      // blocker: o fallback é silencioso e usa o instalador do Android.
-      planOf(plan).expectAndroid(usePreapproval: true, needsInstallPermission: false);
-      expect(plan.expectedPackage, kPkg);
-    });
+    test(
+      'Shizuku instalado parado → AndroidPlan (automático cai para Android)',
+      () {
+        final InstallPlan plan = resolveInstaller(
+          choice: InstallerChoice.automatic,
+          shizuku: ShizukuStatus.installedStopped,
+          canInstallApps: true,
+          sdkInt: 34,
+          expectedPackage: kPkg,
+        );
+        // Missão: "Automático: Shizuku ATIVO → Shizuku; senão → Android" — sem
+        // blocker: o fallback é silencioso e usa o instalador do Android.
+        planOf(
+          plan,
+        ).expectAndroid(usePreapproval: true, needsInstallPermission: false);
+        expect(plan.expectedPackage, kPkg);
+      },
+    );
 
     test(
       'Shizuku rodando sem permissão → AndroidPlan (automático cai para Android)',
@@ -61,7 +66,9 @@ void main() {
           canInstallApps: true,
           sdkInt: 34,
         );
-        planOf(plan).expectAndroid(usePreapproval: false, needsInstallPermission: false);
+        planOf(
+          plan,
+        ).expectAndroid(usePreapproval: false, needsInstallPermission: false);
       },
     );
 
@@ -72,7 +79,9 @@ void main() {
         canInstallApps: true,
         sdkInt: 34,
       );
-      planOf(plan).expectAndroid(usePreapproval: false, needsInstallPermission: false);
+      planOf(
+        plan,
+      ).expectAndroid(usePreapproval: false, needsInstallPermission: false);
     });
   });
 
@@ -103,10 +112,9 @@ void main() {
           sdkInt: 35,
           expectedPackage: kPkg,
         );
-        planOf(plan).expectAndroid(
-          needsInstallPermission: true,
-          usePreapproval: false,
-        );
+        planOf(
+          plan,
+        ).expectAndroid(needsInstallPermission: true, usePreapproval: false);
       },
     );
   });
@@ -170,10 +178,9 @@ void main() {
           sdkInt: 0,
           expectedPackage: kPkg,
         );
-        planOf(plan).expectAndroid(
-          needsInstallPermission: false,
-          usePreapproval: false,
-        );
+        planOf(
+          plan,
+        ).expectAndroid(needsInstallPermission: false, usePreapproval: false);
       },
     );
 
@@ -201,10 +208,9 @@ void main() {
           sdkInt: 34,
           expectedPackage: kPkg,
         );
-        planOf(plan).expectAndroid(
-          needsInstallPermission: true,
-          usePreapproval: false,
-        );
+        planOf(
+          plan,
+        ).expectAndroid(needsInstallPermission: true, usePreapproval: false);
         expect(plan.expectedPackage, kPkg);
       },
     );
@@ -218,10 +224,9 @@ void main() {
           canInstallApps: false,
           sdkInt: 21,
         );
-        planOf(plan).expectAndroid(
-          needsInstallPermission: true,
-          usePreapproval: false,
-        );
+        planOf(
+          plan,
+        ).expectAndroid(needsInstallPermission: true, usePreapproval: false);
       },
     );
   });
@@ -237,31 +242,30 @@ void main() {
         );
 
     test('pacote + Android 14 → pré-aprovação', () {
-      planOf(resolve()).expectAndroid(
-        needsInstallPermission: false,
-        usePreapproval: true,
-      );
+      planOf(
+        resolve(),
+      ).expectAndroid(needsInstallPermission: false, usePreapproval: true);
     });
 
-    test('pacote + Android 13 (33) → sem pré-aprovação (diálogo no commit)', () {
-      planOf(resolve(sdkInt: 33)).expectAndroid(
-        needsInstallPermission: false,
-        usePreapproval: false,
-      );
-    });
+    test(
+      'pacote + Android 13 (33) → sem pré-aprovação (diálogo no commit)',
+      () {
+        planOf(
+          resolve(sdkInt: 33),
+        ).expectAndroid(needsInstallPermission: false, usePreapproval: false);
+      },
+    );
 
     test('pacote nulo + Android 14 → sem pré-aprovação', () {
-      planOf(resolve(package: null)).expectAndroid(
-        needsInstallPermission: false,
-        usePreapproval: false,
-      );
+      planOf(
+        resolve(package: null),
+      ).expectAndroid(needsInstallPermission: false, usePreapproval: false);
     });
 
     test('pacote vazio é tratado como desconhecido → sem pré-aprovação', () {
-      planOf(resolve(package: '')).expectAndroid(
-        needsInstallPermission: false,
-        usePreapproval: false,
-      );
+      planOf(
+        resolve(package: ''),
+      ).expectAndroid(needsInstallPermission: false, usePreapproval: false);
     });
 
     test('pacote é repassado ao plano Android (verificação pós-download)', () {
@@ -276,9 +280,9 @@ void main() {
         sdkInt: 34,
         expectedPackage: kPkg,
       );
-      final ShizukuPlan shizuku = planOf(plan).expectShizuku(
-        blocker: ShizukuStatus.installedStopped,
-      );
+      final ShizukuPlan shizuku = planOf(
+        plan,
+      ).expectShizuku(blocker: ShizukuStatus.installedStopped);
       expect(shizuku.expectedPackage, kPkg);
     });
 

@@ -90,46 +90,54 @@ void main() {
       expect(c.prefs.getString('install.installer'), 'android');
     });
 
-    test('recriar o controller (novo container) restaura a escolha gravada', () async {
-      SharedPreferences.setMockInitialValues(<String, Object>{});
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
+    test(
+      'recriar o controller (novo container) restaura a escolha gravada',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      final ProviderContainer primeiro = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      primeiro
-          .read(installPrefsProvider.notifier)
-          .setChoice(InstallerChoice.shizuku);
-      await _flush();
-      primeiro.dispose();
+        final ProviderContainer primeiro = ProviderContainer(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        );
+        primeiro
+            .read(installPrefsProvider.notifier)
+            .setChoice(InstallerChoice.shizuku);
+        await _flush();
+        primeiro.dispose();
 
-      // "Reinício do processo": o controller novo relê a MESMA prefs.
-      final ProviderContainer segundo = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(segundo.dispose);
-      expect(
-        segundo.read(installPrefsProvider).choice,
-        InstallerChoice.shizuku,
-        reason: 'estado restaurado de install.installer',
-      );
-    });
+        // "Reinício do processo": o controller novo relê a MESMA prefs.
+        final ProviderContainer segundo = ProviderContainer(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        );
+        addTearDown(segundo.dispose);
+        expect(
+          segundo.read(installPrefsProvider).choice,
+          InstallerChoice.shizuku,
+          reason: 'estado restaurado de install.installer',
+        );
+      },
+    );
 
-    test('valor desconhecido gravado na prefs cai no automático (decode seguro)',
-        () async {
-      final _Ctx c = await _ctx(seed: <String, Object>{'install.installer': 'root'});
-      addTearDown(c.dispose);
-      expect(
-        c.container.read(installPrefsProvider).choice,
-        InstallerChoice.automatic,
-      );
-    });
+    test(
+      'valor desconhecido gravado na prefs cai no automático (decode seguro)',
+      () async {
+        final _Ctx c = await _ctx(
+          seed: <String, Object>{'install.installer': 'root'},
+        );
+        addTearDown(c.dispose);
+        expect(
+          c.container.read(installPrefsProvider).choice,
+          InstallerChoice.automatic,
+        );
+      },
+    );
 
     test('ciclo completo volta ao automático e persiste', () async {
       final _Ctx c = await _ctx();
       addTearDown(c.dispose);
-      final InstallPrefsController controller =
-          c.container.read(installPrefsProvider.notifier);
+      final InstallPrefsController controller = c.container.read(
+        installPrefsProvider.notifier,
+      );
 
       controller.setChoice(InstallerChoice.shizuku);
       controller.setChoice(InstallerChoice.android);
@@ -151,72 +159,87 @@ void main() {
       expect(kSetupVersionValue, 1);
     });
 
-    test('conclusão grava int 1 + lista de ids e leitura confere (round-trip)',
-        () async {
-      final _Ctx c = await _ctx();
-      addTearDown(c.dispose);
+    test(
+      'conclusão grava int 1 + lista de ids e leitura confere (round-trip)',
+      () async {
+        final _Ctx c = await _ctx();
+        addTearDown(c.dispose);
 
-      // Mesmas escritas de SetupPage._finish().
-      await c.prefs.setInt(kSetupVersionKey, kSetupVersionValue);
-      await c.prefs.setStringList(kSetupDoneStepsKey, <String>[
-        'welcome',
-        'installApps',
-        'installer',
-      ]);
+        // Mesmas escritas de SetupPage._finish().
+        await c.prefs.setInt(kSetupVersionKey, kSetupVersionValue);
+        await c.prefs.setStringList(kSetupDoneStepsKey, <String>[
+          'welcome',
+          'installApps',
+          'installer',
+        ]);
 
-      expect(c.prefs.getInt(kSetupVersionKey), 1);
-      // O redirect usa prefs.get(): int OU string contam como versão gravada.
-      expect(c.prefs.get(kSetupVersionKey), isNotNull);
-      expect(c.prefs.getStringList(kSetupDoneStepsKey), <String>[
-        'welcome',
-        'installApps',
-        'installer',
-      ]);
-    });
+        expect(c.prefs.getInt(kSetupVersionKey), 1);
+        // O redirect usa prefs.get(): int OU string contam como versão gravada.
+        expect(c.prefs.get(kSetupVersionKey), isNotNull);
+        expect(c.prefs.getStringList(kSetupDoneStepsKey), <String>[
+          'welcome',
+          'installApps',
+          'installer',
+        ]);
+      },
+    );
 
-    test('processo morto retoma: valores pré-gravados reaparecem em prefs novas',
-        () async {
-      final _Ctx c = await _ctx(seed: <String, Object>{
-        'setup.version': 1,
-        'setup.doneSteps': <String>['welcome'],
-      });
-      addTearDown(c.dispose);
+    test(
+      'processo morto retoma: valores pré-gravados reaparecem em prefs novas',
+      () async {
+        final _Ctx c = await _ctx(
+          seed: <String, Object>{
+            'setup.version': 1,
+            'setup.doneSteps': <String>['welcome'],
+          },
+        );
+        addTearDown(c.dispose);
 
-      expect(c.prefs.getInt(kSetupVersionKey), 1);
-      expect(c.prefs.getStringList(kSetupDoneStepsKey), <String>['welcome']);
-    });
+        expect(c.prefs.getInt(kSetupVersionKey), 1);
+        expect(c.prefs.getStringList(kSetupDoneStepsKey), <String>['welcome']);
+      },
+    );
 
-    test('setup pendente = versão ausente (redirect levaria ao /setup)', () async {
-      final _Ctx c = await _ctx();
-      addTearDown(c.dispose);
+    test(
+      'setup pendente = versão ausente (redirect levaria ao /setup)',
+      () async {
+        final _Ctx c = await _ctx();
+        addTearDown(c.dispose);
 
-      expect(c.prefs.get(kSetupVersionKey), isNull);
-      expect(c.prefs.getStringList(kSetupDoneStepsKey), isNull);
+        expect(c.prefs.get(kSetupVersionKey), isNull);
+        expect(c.prefs.getStringList(kSetupDoneStepsKey), isNull);
 
-      await c.prefs.setInt(kSetupVersionKey, kSetupVersionValue);
-      expect(c.prefs.get(kSetupVersionKey), isNotNull);
-    });
+        await c.prefs.setInt(kSetupVersionKey, kSetupVersionValue);
+        expect(c.prefs.get(kSetupVersionKey), isNotNull);
+      },
+    );
   });
 
   group('install.packages — cache de pacote por port', () {
-    test('packageCacheKey: GitHub vira owner/repo; URL estranha vira a própria URL',
-        () {
-      expect(packageCacheKey(kGithubUrl), 'owner/repo');
-      expect(packageCacheKey(kForeignUrl), kForeignUrl);
-    });
+    test(
+      'packageCacheKey: GitHub vira owner/repo; URL estranha vira a própria URL',
+      () {
+        expect(packageCacheKey(kGithubUrl), 'owner/repo');
+        expect(packageCacheKey(kForeignUrl), kForeignUrl);
+      },
+    );
 
-    test('rememberKnownPackage grava e lookupKnownPackage lê (round-trip)', () async {
-      final _Ctx c = await _ctx();
-      addTearDown(c.dispose);
+    test(
+      'rememberKnownPackage grava e lookupKnownPackage lê (round-trip)',
+      () async {
+        final _Ctx c = await _ctx();
+        addTearDown(c.dispose);
 
-      rememberKnownPackage(c.ref, kGithubUrl, 'com.example.game');
-      await _flush();
+        rememberKnownPackage(c.ref, kGithubUrl, 'com.example.game');
+        await _flush();
 
-      final Map<Object?, Object?> cached =
-          jsonDecode(c.prefs.getString('install.packages')!) as Map<Object?, Object?>;
-      expect(cached['owner/repo'], 'com.example.game');
-      expect(lookupKnownPackage(c.ref, kGithubUrl), 'com.example.game');
-    });
+        final Map<Object?, Object?> cached =
+            jsonDecode(c.prefs.getString('install.packages')!)
+                as Map<Object?, Object?>;
+        expect(cached['owner/repo'], 'com.example.game');
+        expect(lookupKnownPackage(c.ref, kGithubUrl), 'com.example.game');
+      },
+    );
 
     test('porta sem GitHub memoriza pela URL completa', () async {
       final _Ctx c = await _ctx();
@@ -239,7 +262,8 @@ void main() {
       await _flush();
 
       final Map<Object?, Object?> cached =
-          jsonDecode(c.prefs.getString('install.packages')!) as Map<Object?, Object?>;
+          jsonDecode(c.prefs.getString('install.packages')!)
+              as Map<Object?, Object?>;
       expect(cached, <Object?, Object?>{
         'owner/repo': 'com.example.game',
         kForeignUrl: 'org.exemplo.jogo',
@@ -293,24 +317,30 @@ void main() {
       expect(c.prefs.getString('install.packages'), isNull);
     });
 
-    test('cache alimenta o plano: expectedPackage habilita pré-aprovação', () async {
-      final _Ctx c = await _ctx(seed: <String, Object>{
-        'install.packages':
-            jsonEncode(<String, String>{'owner/repo': 'com.example.game'}),
-      });
-      addTearDown(c.dispose);
+    test(
+      'cache alimenta o plano: expectedPackage habilita pré-aprovação',
+      () async {
+        final _Ctx c = await _ctx(
+          seed: <String, Object>{
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': 'com.example.game',
+            }),
+          },
+        );
+        addTearDown(c.dispose);
 
-      final String? known = lookupKnownPackage(c.ref, kGithubUrl);
-      final InstallPlan plan = resolveInstaller(
-        choice: InstallerChoice.automatic,
-        shizuku: ShizukuStatus.notInstalled,
-        canInstallApps: true,
-        sdkInt: 34,
-        expectedPackage: known,
-      );
-      expect(plan, isA<AndroidPlan>());
-      expect((plan as AndroidPlan).usePreapproval, isTrue);
-      expect(plan.expectedPackage, 'com.example.game');
-    });
+        final String? known = lookupKnownPackage(c.ref, kGithubUrl);
+        final InstallPlan plan = resolveInstaller(
+          choice: InstallerChoice.automatic,
+          shizuku: ShizukuStatus.notInstalled,
+          canInstallApps: true,
+          sdkInt: 34,
+          expectedPackage: known,
+        );
+        expect(plan, isA<AndroidPlan>());
+        expect((plan as AndroidPlan).usePreapproval, isTrue);
+        expect(plan.expectedPackage, 'com.example.game');
+      },
+    );
   });
 }

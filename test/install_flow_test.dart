@@ -37,7 +37,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 const String kGameId = 'g1';
 const String kPkg = 'com.example.game';
 const String kDigest = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
-const String kUrl = 'https://github.com/owner/repo/releases/download/v1/game.apk';
+const String kUrl =
+    'https://github.com/owner/repo/releases/download/v1/game.apk';
 
 const Game kGame = Game(
   id: kGameId,
@@ -150,7 +151,8 @@ class RecordingDownloads extends DownloadsController {
   void failDownload(String gameId, [String error = 'network']) {
     _apply(
       gameId,
-      (DownloadTask t) => t.copyWith(status: DownloadStatus.failed, error: error),
+      (DownloadTask t) =>
+          t.copyWith(status: DownloadStatus.failed, error: error),
     );
   }
 
@@ -177,7 +179,9 @@ class _Harness {
   late final StreamController<NativeInstallEvent> events;
   late final ProviderContainer container;
 
-  Future<void> init({Map<String, Object> prefsSeed = const <String, Object>{}}) async {
+  Future<void> init({
+    Map<String, Object> prefsSeed = const <String, Object>{},
+  }) async {
     // O resolvedor/instalador consultam defaultTargetPlatform: sem este
     // override os testes rodam como desktop e os mocks nunca são chamados.
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -243,7 +247,9 @@ class _Harness {
     messenger.setMockMethodCallHandler(
       const MethodChannel('portix/permissions'),
       (MethodCall call) async {
-        permissionCalls.add(_Call('portix/permissions', call.method, call.arguments));
+        permissionCalls.add(
+          _Call('portix/permissions', call.method, call.arguments),
+        );
         if (call.method == 'snapshot') {
           return nativo.snapshotMap;
         }
@@ -307,10 +313,12 @@ class _Harness {
     await settle();
   }
 
-  List<_Call> calls(String channel, String method) =>
-      <_Call>[...installCalls, ...permissionCalls, ...shizukuCalls, ...apkCalls]
-          .where((_Call c) => c.channel == channel && c.method == method)
-          .toList();
+  List<_Call> calls(String channel, String method) => <_Call>[
+    ...installCalls,
+    ...permissionCalls,
+    ...shizukuCalls,
+    ...apkCalls,
+  ].where((_Call c) => c.channel == channel && c.method == method).toList();
 
   List<_Call> get prepares => calls('portix/install', 'prepare');
   List<_Call> get abandons => calls('portix/install', 'abandon');
@@ -320,17 +328,16 @@ class _Harness {
 
   InstallPhase get phase => flow().phase;
 
-  Future<void> begin({
-    String? url = kUrl,
-    String? digest,
-    int sizeBytes = 0,
-  }) => container.read(installFlowProvider.notifier).begin(
-        kGame,
-        null,
-        url: url ?? '',
-        digest: digest,
-        sizeBytes: sizeBytes,
-      );
+  Future<void> begin({String? url = kUrl, String? digest, int sizeBytes = 0}) =>
+      container
+          .read(installFlowProvider.notifier)
+          .begin(
+            kGame,
+            null,
+            url: url ?? '',
+            digest: digest,
+            sizeBytes: sizeBytes,
+          );
 
   /// Alinha o singleton do Shizuku com o valor do teste (o resolvedor lê
   /// `ShizukuService.instance.current` sincronamente).
@@ -353,17 +360,23 @@ void main() {
       expectedPackage: kPkg,
     );
 
-    test('FlowBegin: Shizuku bloqueado → fase blocked + oferta de fallback', () {
-      final FlowState next = installFlowReducer(
-        const FlowState.idle(),
-        const FlowBegin(
-          ShizukuPlan(blocker: ShizukuStatus.installedStopped, expectedPackage: kPkg),
-        ),
-      );
-      expect(next.phase, InstallPhase.blocked);
-      expect(next.offerAndroidFallback, isTrue);
-      expect(next.plan, isA<ShizukuPlan>());
-    });
+    test(
+      'FlowBegin: Shizuku bloqueado → fase blocked + oferta de fallback',
+      () {
+        final FlowState next = installFlowReducer(
+          const FlowState.idle(),
+          const FlowBegin(
+            ShizukuPlan(
+              blocker: ShizukuStatus.installedStopped,
+              expectedPackage: kPkg,
+            ),
+          ),
+        );
+        expect(next.phase, InstallPhase.blocked);
+        expect(next.offerAndroidFallback, isTrue);
+        expect(next.plan, isA<ShizukuPlan>());
+      },
+    );
 
     test('FlowBegin: falta permissão → needsInstallPermission', () {
       final FlowState next = installFlowReducer(
@@ -406,17 +419,17 @@ void main() {
 
     test('FlowPreapproval: prepared grava sessionId sem mudar fase', () {
       final FlowState state = installFlowReducer(
-        const FlowState(phase: InstallPhase.awaitingPreapproval, plan: preapproval),
+        const FlowState(
+          phase: InstallPhase.awaitingPreapproval,
+          plan: preapproval,
+        ),
         const FlowPreapproval('prepared', sessionId: 42),
       );
       expect(state.phase, InstallPhase.awaitingPreapproval);
       expect(state.sessionId, 42);
       // 'pending' não muda nada.
       expect(
-        installFlowReducer(
-          state,
-          const FlowPreapproval('pending'),
-        ).sessionId,
+        installFlowReducer(state, const FlowPreapproval('pending')).sessionId,
         42,
       );
     });
@@ -441,7 +454,10 @@ void main() {
 
     test('FlowPreapproval: falha → failed com erro preservado', () {
       final FlowState next = installFlowReducer(
-        const FlowState(phase: InstallPhase.awaitingPreapproval, plan: preapproval),
+        const FlowState(
+          phase: InstallPhase.awaitingPreapproval,
+          plan: preapproval,
+        ),
         const FlowPreapproval('preapprovalFailed', error: 'boom'),
       );
       expect(next.phase, InstallPhase.failed);
@@ -454,7 +470,10 @@ void main() {
         plan: preapproval,
         error: 'antigo',
       );
-      final FlowState next = installFlowReducer(state, const FlowDownloadDone());
+      final FlowState next = installFlowReducer(
+        state,
+        const FlowDownloadDone(),
+      );
       expect(next.phase, InstallPhase.verifying);
       expect(next.error, isNull);
     });
@@ -477,39 +496,55 @@ void main() {
       );
     });
 
-    test('FlowVerified: pass → installing; divergente → failed com veredito', () {
-      const FlowState state = FlowState(phase: InstallPhase.verifying, plan: preapproval);
-      expect(
-        installFlowReducer(
+    test(
+      'FlowVerified: pass → installing; divergente → failed com veredito',
+      () {
+        const FlowState state = FlowState(
+          phase: InstallPhase.verifying,
+          plan: preapproval,
+        );
+        expect(
+          installFlowReducer(
+            state,
+            const FlowVerified(IntegrityVerdict.pass),
+          ).phase,
+          InstallPhase.installing,
+        );
+        final FlowState bad = installFlowReducer(
           state,
-          const FlowVerified(IntegrityVerdict.pass),
-        ).phase,
-        InstallPhase.installing,
-      );
-      final FlowState bad = installFlowReducer(
-        state,
-        const FlowVerified(IntegrityVerdict.digestMismatch),
-      );
-      expect(bad.phase, InstallPhase.failed);
-      expect(bad.verdict, IntegrityVerdict.digestMismatch);
-      expect(bad.plan, preapproval);
-    });
+          const FlowVerified(IntegrityVerdict.digestMismatch),
+        );
+        expect(bad.phase, InstallPhase.failed);
+        expect(bad.verdict, IntegrityVerdict.digestMismatch);
+        expect(bad.plan, preapproval);
+      },
+    );
 
-    test('FlowInstallFinished: ok → installed; falha preserva offerFallback', () {
-      const FlowState state = FlowState(phase: InstallPhase.installing, plan: preapproval);
-      expect(
-        installFlowReducer(state, const FlowInstallFinished(true)).phase,
-        InstallPhase.installed,
-      );
-      final FlowState failed = installFlowReducer(
-        state,
-        const FlowInstallFinished(false, error: 'shizuku-unavailable', offerFallback: true),
-      );
-      expect(failed.phase, InstallPhase.failed);
-      expect(failed.error, 'shizuku-unavailable');
-      expect(failed.offerAndroidFallback, isTrue);
-      expect(failed.plan, preapproval);
-    });
+    test(
+      'FlowInstallFinished: ok → installed; falha preserva offerFallback',
+      () {
+        const FlowState state = FlowState(
+          phase: InstallPhase.installing,
+          plan: preapproval,
+        );
+        expect(
+          installFlowReducer(state, const FlowInstallFinished(true)).phase,
+          InstallPhase.installed,
+        );
+        final FlowState failed = installFlowReducer(
+          state,
+          const FlowInstallFinished(
+            false,
+            error: 'shizuku-unavailable',
+            offerFallback: true,
+          ),
+        );
+        expect(failed.phase, InstallPhase.failed);
+        expect(failed.error, 'shizuku-unavailable');
+        expect(failed.offerAndroidFallback, isTrue);
+        expect(failed.plan, preapproval);
+      },
+    );
 
     test('FlowCancelled e FlowReset → idle completo', () {
       const FlowState state = FlowState(
@@ -518,7 +553,10 @@ void main() {
         sessionId: 9,
         error: 'x',
       );
-      for (final FlowEvent event in const <FlowEvent>[FlowCancelled(), FlowReset()]) {
+      for (final FlowEvent event in const <FlowEvent>[
+        FlowCancelled(),
+        FlowReset(),
+      ]) {
         final FlowState next = installFlowReducer(state, event);
         expect(next.phase, InstallPhase.idle);
         expect(next.sessionId, isNull);
@@ -528,41 +566,53 @@ void main() {
 
     test('FlowPermissionResolved: granted re-começa; denied → failed', () {
       final FlowState granted = installFlowReducer(
-        const FlowState(phase: InstallPhase.needsInstallPermission, plan: preapproval),
+        const FlowState(
+          phase: InstallPhase.needsInstallPermission,
+          plan: preapproval,
+        ),
         const FlowPermissionResolved(preapproval, true),
       );
       expect(granted.phase, InstallPhase.awaitingPreapproval);
       final FlowState denied = installFlowReducer(
-        const FlowState(phase: InstallPhase.needsInstallPermission, plan: preapproval),
+        const FlowState(
+          phase: InstallPhase.needsInstallPermission,
+          plan: preapproval,
+        ),
         const FlowPermissionResolved(preapproval, false),
       );
       expect(denied.phase, InstallPhase.failed);
       expect(denied.error, 'permission-required');
     });
 
-    test('shouldClearRequest: falha terminal libera retry; fallback/bloqueio preservam', () {
-      expect(
-        shouldClearRequest(
-          const FlowState(phase: InstallPhase.failed, error: 'x'),
-        ),
-        isTrue,
-      );
-      expect(
-        shouldClearRequest(
-          const FlowState(
-            phase: InstallPhase.failed,
-            offerAndroidFallback: true,
+    test(
+      'shouldClearRequest: falha terminal libera retry; fallback/bloqueio preservam',
+      () {
+        expect(
+          shouldClearRequest(
+            const FlowState(phase: InstallPhase.failed, error: 'x'),
           ),
-        ),
-        isFalse,
-      );
-      expect(
-        shouldClearRequest(
-          const FlowState(phase: InstallPhase.blocked, offerAndroidFallback: true),
-        ),
-        isFalse,
-      );
-    });
+          isTrue,
+        );
+        expect(
+          shouldClearRequest(
+            const FlowState(
+              phase: InstallPhase.failed,
+              offerAndroidFallback: true,
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          shouldClearRequest(
+            const FlowState(
+              phase: InstallPhase.blocked,
+              offerAndroidFallback: true,
+            ),
+          ),
+          isFalse,
+        );
+      },
+    );
   });
 
   // ------------------------------------------------------------- controller
@@ -576,7 +626,9 @@ void main() {
 
     Directory? tmpDir;
     File apk() {
-      final Directory dir = Directory.systemTemp.createTempSync('portix_flow_test');
+      final Directory dir = Directory.systemTemp.createTempSync(
+        'portix_flow_test',
+      );
       tmpDir = dir;
       return File('${dir.path}${Platform.pathSeparator}portix-$kGameId.apk')
         ..writeAsBytesSync(<int>[1, 2, 3, 4]);
@@ -603,8 +655,14 @@ void main() {
           },
         );
         h.nativo.sha256 = kDigest;
-        h.nativo.inspect = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
-        h.nativo.installed = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
+        h.nativo.inspect = <String, Object?>{
+          'packageName': kPkg,
+          'versionCode': 5,
+        };
+        h.nativo.installed = <String, Object?>{
+          'packageName': kPkg,
+          'versionCode': 5,
+        };
         final File file = apk();
 
         final List<InstallPhase> fases = <InstallPhase>[];
@@ -613,7 +671,10 @@ void main() {
         expect(h.prepares, hasLength(1));
         expect(h.prepares.single.arg('packageName'), kPkg);
         expect(h.prepares.single.arg('attemptId'), 0);
-        expect(h.downloads.startedUrls, isEmpty); // nada baixado antes da aprovação
+        expect(
+          h.downloads.startedUrls,
+          isEmpty,
+        ); // nada baixado antes da aprovação
 
         await h.pushInstallEvent(<String, Object?>{
           'type': 'prepared',
@@ -629,7 +690,9 @@ void main() {
         });
         fases.add(h.phase);
         await h.settle();
-        expect(h.downloads.startedUrls, <String>[kUrl]); // download único, pós-aprovação
+        expect(h.downloads.startedUrls, <String>[
+          kUrl,
+        ]); // download único, pós-aprovação
 
         h.downloads.finishWithApk(kGameId, path: file.path);
         // O dispatch do download é síncrono: verifying é observável aqui.
@@ -660,10 +723,15 @@ void main() {
         expect(commits.single.arg('path'), file.path);
         expect(h.calls('portix/install', 'commitFresh'), isEmpty);
         // APK confirmado → apagado do armazenamento privado.
-        expect(file.existsSync(), isFalse, reason: 'APK deve ser apagado pós-instalação');
+        expect(
+          file.existsSync(),
+          isFalse,
+          reason: 'APK deve ser apagado pós-instalação',
+        );
         // Cache de pacote: merge preservou a entrada de OUTRO port.
         final Map<Object?, Object?> cache =
-            jsonDecode(h.prefs.getString('install.packages')!) as Map<Object?, Object?>;
+            jsonDecode(h.prefs.getString('install.packages')!)
+                as Map<Object?, Object?>;
         expect(cache['owner/repo'], kPkg);
         expect(cache['other/port'], 'com.other');
       },
@@ -674,7 +742,9 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
 
@@ -696,7 +766,8 @@ void main() {
         expect(
           h.downloads.startedUrls,
           isEmpty,
-          reason: 'recusa ANTES do download: portix/downloader start não pode '
+          reason:
+              'recusa ANTES do download: portix/downloader start não pode '
               'ter sido invocado',
         );
       },
@@ -738,7 +809,11 @@ void main() {
 
         expect(h.phase, InstallPhase.failed);
         expect(h.flow().verdict, IntegrityVerdict.digestMismatch);
-        expect(file.existsSync(), isFalse, reason: 'APK divergente é descartado');
+        expect(
+          file.existsSync(),
+          isFalse,
+          reason: 'APK divergente é descartado',
+        );
         expect(h.calls('portix/install', 'commitPrepared'), isEmpty);
         expect(h.calls('portix/install', 'commitFresh'), isEmpty);
         expect(h.downloads.startedUrls, hasLength(1));
@@ -750,7 +825,9 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
 
@@ -776,7 +853,9 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
 
@@ -810,45 +889,46 @@ void main() {
       },
     );
 
-    testWidgets(
-      '(g) Shizuku preferido sem estar ativo → blocked; '
-      '"usar Android desta vez" troca o plano de forma atômica',
-      (WidgetTester tester) async {
-        await h.init(
-          prefsSeed: <String, Object>{
-            'install.installer': 'shizuku',
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
-          },
-        );
-        h.nativo.shizuku = ShizukuStatus.installedStopped;
-        await h.syncShizuku();
+    testWidgets('(g) Shizuku preferido sem estar ativo → blocked; '
+        '"usar Android desta vez" troca o plano de forma atômica', (
+      WidgetTester tester,
+    ) async {
+      await h.init(
+        prefsSeed: <String, Object>{
+          'install.installer': 'shizuku',
+          'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+        },
+      );
+      h.nativo.shizuku = ShizukuStatus.installedStopped;
+      await h.syncShizuku();
 
-        await h.begin();
-        final FlowState blocked = h.flow();
-        expect(blocked.phase, InstallPhase.blocked);
-        expect(blocked.offerAndroidFallback, isTrue);
-        expect(blocked.plan, isA<ShizukuPlan>());
-        expect(
-          (blocked.plan as ShizukuPlan).blocker,
-          ShizukuStatus.installedStopped,
-        );
-        expect(h.downloads.startedUrls, isEmpty);
-        expect(h.prepares, isEmpty);
+      await h.begin();
+      final FlowState blocked = h.flow();
+      expect(blocked.phase, InstallPhase.blocked);
+      expect(blocked.offerAndroidFallback, isTrue);
+      expect(blocked.plan, isA<ShizukuPlan>());
+      expect(
+        (blocked.plan as ShizukuPlan).blocker,
+        ShizukuStatus.installedStopped,
+      );
+      expect(h.downloads.startedUrls, isEmpty);
+      expect(h.prepares, isEmpty);
 
-        // Fallback do sheet: re-resolve com Android mantendo o pacote.
-        await h.container.read(installFlowProvider.notifier).useAndroidThisTime(kGameId);
-        final FlowState fallback = h.flow();
-        expect(fallback.plan, isA<AndroidPlan>());
-        expect(
-          (fallback.plan as AndroidPlan).usePreapproval,
-          isTrue,
-          reason: 'pacote conhecido + Android 14+: pré-aprovação preservada',
-        );
-        expect(fallback.phase, InstallPhase.awaitingPreapproval);
-        expect(fallback.offerAndroidFallback, isFalse);
-        expect(h.prepares, hasLength(1));
-      },
-    );
+      // Fallback do sheet: re-resolve com Android mantendo o pacote.
+      await h.container
+          .read(installFlowProvider.notifier)
+          .useAndroidThisTime(kGameId);
+      final FlowState fallback = h.flow();
+      expect(fallback.plan, isA<AndroidPlan>());
+      expect(
+        (fallback.plan as AndroidPlan).usePreapproval,
+        isTrue,
+        reason: 'pacote conhecido + Android 14+: pré-aprovação preservada',
+      );
+      expect(fallback.phase, InstallPhase.awaitingPreapproval);
+      expect(fallback.offerAndroidFallback, isFalse);
+      expect(h.prepares, hasLength(1));
+    });
 
     testWidgets(
       'rechec de permissão: volta da tela do sistema concedida avança; '
@@ -856,7 +936,9 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
         h.nativo.canInstallApps = false;
@@ -866,7 +948,9 @@ void main() {
         expect(h.downloads.startedUrls, isEmpty);
 
         // Usuário negou voltando do sistema.
-        await h.container.read(installFlowProvider.notifier).onPermissionResume(kGameId);
+        await h.container
+            .read(installFlowProvider.notifier)
+            .onPermissionResume(kGameId);
         expect(h.phase, InstallPhase.failed);
         expect(h.flow().error, 'permission-required');
 
@@ -876,7 +960,9 @@ void main() {
 
         // Agora concedeu: rechec avança sozinho para a pré-aprovação.
         h.nativo.canInstallApps = true;
-        await h.container.read(installFlowProvider.notifier).onPermissionResume(kGameId);
+        await h.container
+            .read(installFlowProvider.notifier)
+            .onPermissionResume(kGameId);
         expect(h.phase, InstallPhase.awaitingPreapproval);
         expect(h.prepares, hasLength(1));
         expect(h.downloads.startedUrls, isEmpty); // só baixa após o 'approved'
@@ -890,7 +976,9 @@ void main() {
         await h.init(
           prefsSeed: <String, Object>{
             'install.installer': 'shizuku',
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
         h.nativo.shizuku = ShizukuStatus.active;
@@ -900,7 +988,10 @@ void main() {
           'packageName': kPkg,
           'versionCode': 3, // APK mais antiga que a instalada
         };
-        h.nativo.installed = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
+        h.nativo.installed = <String, Object?>{
+          'packageName': kPkg,
+          'versionCode': 5,
+        };
 
         await h.begin();
         expect(h.phase, InstallPhase.downloading);
@@ -930,7 +1021,9 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
         h.nativo.sdkInt = 33; // sem pré-aprovação: downloading direto
@@ -939,7 +1032,10 @@ void main() {
           'packageName': kPkg,
           'versionCode': 3,
         };
-        h.nativo.installed = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
+        h.nativo.installed = <String, Object?>{
+          'packageName': kPkg,
+          'versionCode': 5,
+        };
 
         await h.begin(digest: null);
         h.downloads.finishWithApk(kGameId, path: file.path);
@@ -959,13 +1055,18 @@ void main() {
         await h.init(
           prefsSeed: <String, Object>{
             'install.installer': 'shizuku',
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
         h.nativo.shizuku = ShizukuStatus.active;
         await h.syncShizuku();
         final File file = apk();
-        h.nativo.inspect = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
+        h.nativo.inspect = <String, Object?>{
+          'packageName': kPkg,
+          'versionCode': 5,
+        };
 
         await h.begin();
         expect(h.phase, InstallPhase.downloading);
@@ -982,7 +1083,9 @@ void main() {
         expect(h.calls('portix/shizuku', 'install'), isEmpty);
 
         // Fallback atômico: request preservado (offerFallback=true).
-        await h.container.read(installFlowProvider.notifier).useAndroidThisTime(kGameId);
+        await h.container
+            .read(installFlowProvider.notifier)
+            .useAndroidThisTime(kGameId);
         expect(h.flow().plan, isA<AndroidPlan>());
         expect(h.phase, InstallPhase.awaitingPreapproval);
       },
@@ -994,7 +1097,9 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+            'install.packages': jsonEncode(<String, String>{
+              'owner/repo': kPkg,
+            }),
           },
         );
         h.nativo.prepareOk = false;
@@ -1033,36 +1138,43 @@ void main() {
       },
     );
 
-    testWidgets(
-      'reinstalação de APK existente vai direto para verifying e usa '
-      'commitFresh (diálogo único no commit)',
-      (WidgetTester tester) async {
-        await h.init();
-        final File file = apk();
-        h.nativo.inspect = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
-        h.nativo.installed = <String, Object?>{'packageName': kPkg, 'versionCode': 5};
+    testWidgets('reinstalação de APK existente vai direto para verifying e usa '
+        'commitFresh (diálogo único no commit)', (WidgetTester tester) async {
+      await h.init();
+      final File file = apk();
+      h.nativo.inspect = <String, Object?>{
+        'packageName': kPkg,
+        'versionCode': 5,
+      };
+      h.nativo.installed = <String, Object?>{
+        'packageName': kPkg,
+        'versionCode': 5,
+      };
 
-        expect(
-          await h.container
-              .read(installFlowProvider.notifier)
-              .reinstallFromApk(kGame, apkPath: file.path),
-          isTrue,
-        );
-        await h.settle();
+      expect(
+        await h.container
+            .read(installFlowProvider.notifier)
+            .reinstallFromApk(kGame, apkPath: file.path),
+        isTrue,
+      );
+      await h.settle();
 
-        expect(h.phase, InstallPhase.installing);
-        final List<_Call> fresh = h.calls('portix/install', 'commitFresh');
-        expect(fresh, hasLength(1));
-        expect(fresh.single.arg('path'), file.path);
-        expect(h.prepares, isEmpty, reason: 'reinstalação não pede pré-aprovação');
+      expect(h.phase, InstallPhase.installing);
+      final List<_Call> fresh = h.calls('portix/install', 'commitFresh');
+      expect(fresh, hasLength(1));
+      expect(fresh.single.arg('path'), file.path);
+      expect(
+        h.prepares,
+        isEmpty,
+        reason: 'reinstalação não pede pré-aprovação',
+      );
 
-        await h.pushInstallEvent(<String, Object?>{
-          'type': 'installDone',
-          'key': kGameId,
-        });
-        expect(h.phase, InstallPhase.installed);
-      },
-    );
+      await h.pushInstallEvent(<String, Object?>{
+        'type': 'installDone',
+        'key': kGameId,
+      });
+      expect(h.phase, InstallPhase.installed);
+    });
 
     testWidgets('reinstalação com arquivo inexistente devolve false', (
       WidgetTester tester,

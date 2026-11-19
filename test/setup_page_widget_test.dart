@@ -91,15 +91,14 @@ Future<(_Snapshot, ProviderContainer)> _pumpSetup(
       return null; // openInstallAppsSettings / requestNotifications
     },
   );
-  messenger.setMockMethodCallHandler(
-    const MethodChannel('portix/shizuku'),
-    (MethodCall call) async {
-      if (call.method == 'status') {
-        return snap.shizuku;
-      }
-      return null; // requestPermission / openShizuku
-    },
-  );
+  messenger.setMockMethodCallHandler(const MethodChannel('portix/shizuku'), (
+    MethodCall call,
+  ) async {
+    if (call.method == 'status') {
+      return snap.shizuku;
+    }
+    return null; // requestPermission / openShizuku
+  });
   // EventChannel do Shizuku: o ShizukuStatusNotifier assina no build.
   messenger.setMockMethodCallHandler(
     const MethodChannel('portix/shizuku/events'),
@@ -112,15 +111,13 @@ Future<(_Snapshot, ProviderContainer)> _pumpSetup(
     routes: <RouteBase>[
       GoRoute(
         path: '/setup',
-        builder: (BuildContext context, GoRouterState state) => SetupPage(
-          review: state.uri.queryParameters['review'] == '1',
-        ),
+        builder: (BuildContext context, GoRouterState state) =>
+            SetupPage(review: state.uri.queryParameters['review'] == '1'),
       ),
       GoRoute(
         path: '/home',
-        builder: (BuildContext context, GoRouterState state) => const Scaffold(
-          body: Center(child: Text(kHomeProbe)),
-        ),
+        builder: (BuildContext context, GoRouterState state) =>
+            const Scaffold(body: Center(child: Text(kHomeProbe))),
       ),
     ],
   );
@@ -191,7 +188,8 @@ void main() {
         final List<FlutterErrorDetails> errors = <FlutterErrorDetails>[];
         final List<String> combos = <String>[];
         final FlutterExceptionHandler? previous = FlutterError.onError;
-        FlutterError.onError = (FlutterErrorDetails details) => errors.add(details);
+        FlutterError.onError = (FlutterErrorDetails details) =>
+            errors.add(details);
         try {
           final _Snapshot snap = _Snapshot();
           for (final List<String> seed in seeds) {
@@ -227,13 +225,15 @@ void main() {
             .map((FlutterErrorDetails e) => e.exception.toString())
             .where(
               (String message) =>
-                  message.contains('RenderFlex') || message.contains('overflowed'),
+                  message.contains('RenderFlex') ||
+                  message.contains('overflowed'),
             )
             .toList();
         expect(
           overflows,
           isEmpty,
-          reason: 'Overflow em alguma combinação de 375/768/1440 × textScale 2.0',
+          reason:
+              'Overflow em alguma combinação de 375/768/1440 × textScale 2.0',
         );
       },
     );
@@ -311,30 +311,34 @@ void main() {
         // Avançou SOZINHO para Notificações e gravou o progresso.
         expect(find.text('Permitir notificações'), findsOneWidget);
         expect(find.text('Permitir instalar apps'), findsNothing);
-        final SharedPreferences prefs = container.read(sharedPreferencesProvider);
-        expect(prefs.getStringList(kSetupDoneStepsKey), contains('installApps'));
-      },
-    );
-
-    testWidgets(
-      'sem mudança de permissão a etapa NÃO avança sozinha',
-      (WidgetTester tester) async {
-        final _Snapshot snap = _Snapshot();
-        final (_, ProviderContainer container) = await _pumpSetup(
-          tester,
-          prefsSeed: <String, Object>{
-            'setup.doneSteps': <String>['welcome'],
-          },
-          snapshot: snap,
+        final SharedPreferences prefs = container.read(
+          sharedPreferencesProvider,
         );
-
-        await container.read(permissionsProvider.notifier).refresh();
-        await tester.pumpAndSettle();
-
-        expect(find.text('Permitir instalar apps'), findsOneWidget);
-        final SharedPreferences prefs = container.read(sharedPreferencesProvider);
-        expect(prefs.getStringList(kSetupDoneStepsKey), <String>['welcome']);
+        expect(
+          prefs.getStringList(kSetupDoneStepsKey),
+          contains('installApps'),
+        );
       },
     );
+
+    testWidgets('sem mudança de permissão a etapa NÃO avança sozinha', (
+      WidgetTester tester,
+    ) async {
+      final _Snapshot snap = _Snapshot();
+      final (_, ProviderContainer container) = await _pumpSetup(
+        tester,
+        prefsSeed: <String, Object>{
+          'setup.doneSteps': <String>['welcome'],
+        },
+        snapshot: snap,
+      );
+
+      await container.read(permissionsProvider.notifier).refresh();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Permitir instalar apps'), findsOneWidget);
+      final SharedPreferences prefs = container.read(sharedPreferencesProvider);
+      expect(prefs.getStringList(kSetupDoneStepsKey), <String>['welcome']);
+    });
   });
 }
