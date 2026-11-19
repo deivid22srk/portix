@@ -113,7 +113,7 @@ if git rev-parse --verify -q 'HEAD~1' >/dev/null 2>&1; then
   UI_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -Ec '^(lib/|assets/|test/|integration_test/|pubspec\.yaml)' || true)
   ONLY_RALPH=$(git diff --name-only HEAD~1 HEAD | grep -Evc '^\.ralph/' || true)
   NATIVE_ONLY=$(git diff --name-only HEAD~1 HEAD | grep -Evc '^(native/|tools/ci/|docs/|\.github/workflows/|\.gitignore$)' || true)
-  if [ "$UI_CHANGED" = "0" ] && [ "$ONLY_RALPH" != "0" ] && [ "$NATIVE_ONLY" = "0" ]; then
+  if [ "$UI_CHANGED" = "0" ] && [ "$ONLY_RALPH" != "0" ] && [ "$NATIVE_ONLY" != "0" ]; then
     echo "UI_GATE FALHOU [ui_change] nenhuma mudança de UI no último commit (lib/|assets/|test/|integration_test/|pubspec.yaml)"
     FAIL=1
   fi
