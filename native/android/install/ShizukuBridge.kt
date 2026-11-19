@@ -462,7 +462,8 @@ object ShizukuBridge {
         context: Context,
     ): Int {
         val methods = installer.javaClass.methods.filter { it.name == "createSession" }
-        val userId = Process.myUserId()
+        // myUserId é @hide: uid/100000 dá o MESMO índice de usuário (público).
+        val userId = Process.myUid() / 100000
         val sorted = methods.sortedByDescending { it.parameterCount }
         for (method in sorted) {
             try {

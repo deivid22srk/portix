@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
-import android.content.pm.PreapprovalDetails
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -31,7 +30,7 @@ import java.util.concurrent.Executors
 // NativeInstallEvent (type/key/sessionId/error).
 //
 // Fluxos:
-// - prepare (API 34+): cria a sessão (MODE_FULL_INSTALL + setSizeBytes),
+// - prepare (API 34+): cria a sessão (MODE_FULL_INSTALL + setSize),
 //   decodifica o ícone já baixado pelo Dart (iconPng), pede a pré-aprovação
 //   com PreapprovalDetails e devolve 'true'. O desenrolar chega por eventos:
 //   'prepared' → 'preapprovalPending' (diálogo) → 'preapprovalApproved' /
@@ -181,7 +180,7 @@ object InstallBridge {
             // O Dart ainda manda 0 (tamanho desconhecido antes do download):
             // nesse caso não inventamos número.
             if (sizeBytes > 0L) {
-                params.setSizeBytes(sizeBytes)
+                params.setSize(sizeBytes)
             }
             sessionId = installer.createSession(params)
             session = installer.openSession(sessionId)
@@ -200,7 +199,7 @@ object InstallBridge {
             // O Dart guarda o sessionId agora (reducer 'prepared').
             emitEvent("prepared", key, sessionId)
 
-            val details = PreapprovalDetails.Builder()
+            val details = PackageInstaller.PreapprovalDetails.Builder()
                 .setIcon(approvalIcon(context, iconPng))
                 .setLabel(
                     if (label.isNotEmpty()) label
