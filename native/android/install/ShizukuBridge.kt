@@ -512,14 +512,14 @@ object ShizukuBridge {
 
     /**
      * IBinder cru do serviço "package". Caminho do demo:
-     * rikka.app.SystemServiceHelper.getSystemService("package") — classe de
-     * pacote incerto (notas §1.6), então reflexão; fallback = ServiceManager
+     * rikka.shizuku.SystemServiceHelper.getSystemService("package") — classe
+     * confirmada no jar 13.1.5; reflexão com fallback = ServiceManager
      * (hidden — isenção Landroid/os/ cobre a reflexão) via reflexão simples e
      * via HiddenApiBypass.invoke como terceira tentativa.
      */
     private fun packageServiceBinder(): IBinder? {
         try {
-            val helper = Class.forName("rikka.app.SystemServiceHelper")
+            val helper = Class.forName("rikka.shizuku.SystemServiceHelper")
             val method = helper.getDeclaredMethod("getSystemService", String::class.java)
             val binder = method.invoke(null, "package")
             if (binder is IBinder) {

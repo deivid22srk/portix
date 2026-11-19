@@ -8,10 +8,21 @@ import android.os.Build
 object PortixApkTools {
     fun inspect(context: Context, path: String): Map<String, Any?>? {
         val info = context.packageManager.getPackageArchiveInfo(path, 0) ?: return null
+        // Label REAL do APK: o pré-aproval do framework compara o label
+        // aprovado com o do APK no commit — usar o título do catálogo quebra
+        // o contrato e falha sempre que divergir.
+        val label: String? = try {
+            info.applicationInfo.sourceDir = path
+            context.packageManager.getApplicationLabel(info.applicationInfo)
+                .toString()
+        } catch (error: Exception) {
+            null
+        }
         return mapOf(
             "packageName" to info.packageName,
             "versionName" to info.versionName,
             "versionCode" to versionCode(info),
+            "applicationLabel" to label,
         )
     }
 

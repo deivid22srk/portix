@@ -155,6 +155,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   /// Jogo do sheet aberto no momento (para o reset no dismiss sem ação).
   String _activeGameId = '';
 
+  /// Jogos que já receberam o snack "Download iniciado" nesta página
+  /// (pausa→retomada re-entra na fase downloading sem repetir o snack).
+  final Set<String> _downloadSnacked = <String>{};
+
   void _onFlowChanged(GameDetail detail, FlowState previous, FlowState next) {
     if (previous.phase == next.phase &&
         previous.offerAndroidFallback == next.offerAndroidFallback) {
@@ -173,6 +177,13 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
         if (next.plan is AndroidPlan &&
             !(next.plan! as AndroidPlan).usePreapproval) {
           _showSnack(context.l10n.preapprovalNotice);
+        } else if (!_downloadSnacked.contains(detail.game.id)) {
+          _downloadSnacked.add(detail.game.id);
+          _showSnack(
+            context.l10n.downloadStarted,
+            actionLabel: context.l10n.viewDownloads,
+            onAction: () => context.go('/hub'),
+          );
         }
       case InstallPhase.installed:
         _showSnack(context.l10n.phaseInstalled);
@@ -556,16 +567,9 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     if (!mounted) {
       return;
     }
-    // O snack só faz sentido quando o download realmente começou; fases de
-    // permissão/pré-aprovação abrem sheet e têm mensagens próprias.
-    final FlowState flow = ref.read(installFlowForGameProvider(detail.game.id));
-    if (flow.phase == InstallPhase.downloading) {
-      _showSnack(
-        l10n.downloadStarted,
-        actionLabel: l10n.viewDownloads,
-        onAction: () => context.go('/hub'),
-      );
-    }
+    // O feedback "Download iniciado" acontece na TRANSIÇÃO para downloading
+    // (_onFlowChanged) — aqui o fluxo pode estar em permissão/pré-aprovação
+    // (fases com mensagens próprias nos sheets).
   }
 
   Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {

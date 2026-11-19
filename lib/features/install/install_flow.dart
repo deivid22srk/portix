@@ -559,11 +559,25 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
     }
     final int attemptId = _nextAttemptId++;
     _attempts[gameId] = attemptId;
+    // 🔴1 (iter 2): o framework compara o label aprovado com o label REAL
+    // do APK no commit (assertPreapprovalDetailsConsistent) — só pré-aprova
+    // com o label verificado do cache (lido do APK anterior + integridade
+    // pass). Sem label verificado: degrada para o fluxo clássico.
+    final String? verifiedLabel = lookupKnownLabel(ref, request.url);
+    if (verifiedLabel == null || verifiedLabel.isEmpty) {
+      const InstallPlan fallback = AndroidPlan(
+        needsInstallPermission: false,
+        usePreapproval: false,
+      );
+      _dispatch(gameId, const FlowBegin(fallback));
+      await _startDownload(gameId);
+      return;
+    }
     final bool ok = await NativeInstaller.prepare(
       key: gameId,
       attemptId: attemptId,
       packageName: expectedPackage,
-      label: request.game.title,
+      label: verifiedLabel,
       iconUrl: request.game.coverUrl,
       sizeBytes: request.sizeBytes,
     );
@@ -703,7 +717,12 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
     if (apk != null &&
         apk.packageName.isNotEmpty &&
         verdict == IntegrityVerdict.pass) {
-      rememberKnownPackage(ref, request.url, apk.packageName);
+      rememberKnownPackage(
+        ref,
+        request.url,
+        apk.packageName,
+        label: apk.applicationLabel,
+      );
     }
     if (verdict != IntegrityVerdict.pass) {
       _deleteQuietly(path);
@@ -789,7 +808,21 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
         _requests.remove(gameId);
       case 'installDone':
         unawaited(_onInstallSuccess(gameId));
-      case 'installFailed' || 'failed' || 'preapprovalFailed':
+      case 'preapprovalFailed':
+        // D20 também para o evento-irmão: o framework pode negar o recurso
+        // (config_isPreApprovalRequestAvailable) VIA BROADCAST — o prepare
+        // responde true e o evento chega depois. Degrada para o clássico
+        // enquanto o download não começou; em fase avançada é ignorado (não
+        // mata um download em curso).
+        if (stateFor(gameId).phase == InstallPhase.awaitingPreapproval) {
+          const InstallPlan legacy = AndroidPlan(
+            needsInstallPermission: false,
+            usePreapproval: false,
+          );
+          _dispatch(gameId, const FlowBegin(legacy));
+          unawaited(_startDownload(gameId));
+        }
+      case 'installFailed' || 'failed':
         final String flowError = event.error ?? 'install-failed';
         _dispatch(
           gameId,
@@ -844,7 +877,20 @@ String packageCacheKey(String url) {
 }
 
 /// Lê o pacote memorizado de um port (habilita pré-aprovação pré-download).
-String? lookupKnownPackage(Ref ref, String url) {
+/// Entrada do cache por port: pacote + label REAIS lidos do APK.
+class KnownPackage {
+  const KnownPackage({required this.packageName, this.label});
+
+  final String packageName;
+  final String? label;
+}
+
+String? lookupKnownPackage(Ref ref, String url) =>
+    lookupKnown(ref, url)?.packageName;
+
+String? lookupKnownLabel(Ref ref, String url) => lookupKnown(ref, url)?.label;
+
+KnownPackage? lookupKnown(Ref ref, String url) {
   try {
     final SharedPreferences prefs = ref.read(sharedPreferencesProvider);
     final String? raw = prefs.getString(_kPackageCacheKey);
@@ -856,32 +902,71 @@ String? lookupKnownPackage(Ref ref, String url) {
       return null;
     }
     final Object? value = decoded[packageCacheKey(url)];
+    if (value is Map) {
+      // Formato novo: {p: pacote, l: label}.
+      final String pkg = value['p']?.toString() ?? '';
+      if (pkg.isEmpty) {
+        return null;
+      }
+      final String label = value['l']?.toString() ?? '';
+      return KnownPackage(
+        packageName: pkg,
+        label: label.isEmpty ? null : label,
+      );
+    }
+    // Formato legado (string simples, sem label).
     final String text = value?.toString() ?? '';
-    return text.isEmpty ? null : text;
+    return text.isEmpty ? null : KnownPackage(packageName: text);
   } on Object {
     return null;
   }
 }
 
-/// Memoriza o pacote de um port (lido do próprio APK baixado).
-void rememberKnownPackage(Ref ref, String url, String packageName) {
+/// Memoriza pacote + label de um port (lidos do próprio APK baixado e
+/// VALIDADOS pela integridade — o pré-aproval do framework compara o
+/// label aprovado com o do APK no commit, então só o label real serve).
+void rememberKnownPackage(
+  Ref ref,
+  String url,
+  String packageName, {
+  String? label,
+}) {
   if (url.isEmpty || packageName.isEmpty) {
     return;
   }
   try {
     final SharedPreferences prefs = ref.read(sharedPreferencesProvider);
-    final Map<String, String> cache = <String, String>{};
+    final Map<String, Object?> cache = <String, Object?>{};
     final String? raw = prefs.getString(_kPackageCacheKey);
     if (raw != null && raw.isNotEmpty) {
       final Object? decoded = jsonDecode(raw);
       if (decoded is Map) {
-        decoded.forEach(
-          (Object? key, Object? value) =>
-              cache[key.toString()] = value.toString(),
-        );
+        decoded.forEach((Object? key, Object? value) {
+          if (value is Map) {
+            cache[key.toString()] = <String, Object?>{
+              'p': value['p']?.toString() ?? value.toString(),
+              'l': value['l']?.toString() ?? '',
+            };
+          } else {
+            // Formato legado.
+            cache[key.toString()] = <String, Object?>{
+              'p': value.toString(),
+              'l': '',
+            };
+          }
+        });
       }
     }
-    cache[packageCacheKey(url)] = packageName;
+    // MERGE: inspect sem label (parse falhou, fake de teste) NÃO pode
+    // apagar um label já verificado — ele é a condição do pré-aproval.
+    final Object? previous = cache[packageCacheKey(url)];
+    final String previousLabel = previous is Map
+        ? (previous['l']?.toString() ?? '')
+        : '';
+    cache[packageCacheKey(url)] = <String, Object?>{
+      'p': packageName,
+      'l': (label ?? previousLabel).isEmpty ? '' : (label ?? previousLabel),
+    };
     unawaited(prefs.setString(_kPackageCacheKey, jsonEncode(cache)));
   } on Object {
     // Cache é otimização: falhar não pode quebrar o fluxo.

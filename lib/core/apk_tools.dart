@@ -83,6 +83,7 @@ class ApkSummary {
     required this.packageName,
     this.versionName,
     this.versionCode,
+    this.applicationLabel,
   });
 
   /// Nome do pacote (ex.: `com.exemplo.jogo`).
@@ -93,6 +94,9 @@ class ApkSummary {
 
   /// Código de versão (`versionCode`), quando disponível.
   final int? versionCode;
+
+  /// Label REAL do APK (o que o pré-aproval do sistema compara no commit).
+  final String? applicationLabel;
 
   factory ApkSummary.fromMap(Map<Object?, Object?> map) {
     String? text(Object? value) {
@@ -105,6 +109,7 @@ class ApkSummary {
       packageName: text(map['packageName']) ?? '',
       versionName: text(map['versionName']),
       versionCode: code is num ? code.toInt() : null,
+      applicationLabel: text(map['applicationLabel']),
     );
   }
 }

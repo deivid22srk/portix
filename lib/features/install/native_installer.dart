@@ -254,7 +254,11 @@ class NativeInstaller {
       final http.Response response = await http
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+      if (response.statusCode != 200 ||
+          response.bodyBytes.isEmpty ||
+          // Teto de 2 MB: catálogo de boa-fé manda ícone; acima disso é
+          // hostil e o canal não deveria transportar bytes ilimitados.
+          response.bodyBytes.length > 2 * 1024 * 1024) {
         return null;
       }
       return response.bodyBytes;

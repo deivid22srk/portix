@@ -35,6 +35,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ============================================================================
 
 const String kGameId = 'g1';
+const String kLabel = 'Spore';
 const String kPkg = 'com.example.game';
 const String kDigest = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
 const String kUrl =
@@ -648,8 +649,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
               'other/port': 'com.other',
             }),
           },
@@ -732,8 +733,13 @@ void main() {
         final Map<Object?, Object?> cache =
             jsonDecode(h.prefs.getString('install.packages')!)
                 as Map<Object?, Object?>;
-        expect(cache['owner/repo'], kPkg);
-        expect(cache['other/port'], 'com.other');
+        final Map<Object?, Object?> entry =
+            cache['owner/repo'] as Map<Object?, Object?>;
+        expect(entry['p'], kPkg);
+        expect(entry['l'], kLabel);
+        final Map<Object?, Object?> other =
+            cache['other/port'] as Map<Object?, Object?>;
+        expect(other['p'], 'com.other');
       },
     );
 
@@ -742,8 +748,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -825,8 +831,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -853,8 +859,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -896,7 +902,9 @@ void main() {
       await h.init(
         prefsSeed: <String, Object>{
           'install.installer': 'shizuku',
-          'install.packages': jsonEncode(<String, String>{'owner/repo': kPkg}),
+          'install.packages': jsonEncode(<String, Object?>{
+          'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
+        }),
         },
       );
       h.nativo.shizuku = ShizukuStatus.installedStopped;
@@ -936,8 +944,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -976,8 +984,8 @@ void main() {
         await h.init(
           prefsSeed: <String, Object>{
             'install.installer': 'shizuku',
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -1021,8 +1029,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -1055,8 +1063,8 @@ void main() {
         await h.init(
           prefsSeed: <String, Object>{
             'install.installer': 'shizuku',
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -1097,8 +1105,8 @@ void main() {
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
-            'install.packages': jsonEncode(<String, String>{
-              'owner/repo': kPkg,
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
             }),
           },
         );
@@ -1109,6 +1117,71 @@ void main() {
         expect(h.flow().error, isNull);
         expect(h.downloads.startedUrls, <String>[kUrl]);
         expect(h.prepares, hasLength(1));
+      },
+    );
+
+    testWidgets(
+      'preapprovalFailed VIA EVENTO (framework nega o recurso) → degrada e '
+      'baixa (o prepare respondeu true; D20 cobre o par reply+evento)',
+      (WidgetTester tester) async {
+        await h.init(
+          prefsSeed: <String, Object>{
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
+            }),
+          },
+        );
+
+        await h.begin();
+        expect(h.phase, InstallPhase.awaitingPreapproval);
+        expect(h.downloads.startedUrls, isEmpty);
+
+        // O framework responde o broadcast com PRE_APPROVAL_NOT_AVAILABLE:
+        // o evento chega DEPOIS do reply true (corrida real do Kotlin).
+        await h.pushInstallEvent(<String, Object?>{
+          'type': 'preapprovalFailed',
+          'key': kGameId,
+          'error': 'shizuku-unavailable-not-applicable',
+        });
+
+        expect(h.phase, InstallPhase.downloading);
+        expect(h.downloads.startedUrls, <String>[kUrl]);
+        // Nada foi baixado antes: o degrade acontece ANTES do _startDownload.
+        expect(h.prepares, hasLength(1));
+      },
+    );
+
+    testWidgets(
+      'preapprovalFailed em fase avançada (downloading) é ignorado — não mata '
+      'um download em curso',
+      (WidgetTester tester) async {
+        await h.init(
+          prefsSeed: <String, Object>{
+            'install.packages': jsonEncode(<String, Object?>{
+              'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
+            }),
+          },
+        );
+
+        await h.begin();
+        await h.pushInstallEvent(<String, Object?>{
+          'type': 'prepared',
+          'key': kGameId,
+          'sessionId': 7,
+        });
+        await h.pushInstallEvent(<String, Object?>{
+          'type': 'preapprovalApproved',
+          'key': kGameId,
+        });
+        expect(h.phase, InstallPhase.downloading);
+
+        await h.pushInstallEvent(<String, Object?>{
+          'type': 'preapprovalFailed',
+          'key': kGameId,
+          'error': 'atrasado',
+        });
+        expect(h.phase, InstallPhase.downloading);
+        expect(h.downloads.startedUrls, hasLength(1));
       },
     );
 
