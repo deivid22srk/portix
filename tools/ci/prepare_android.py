@@ -290,11 +290,6 @@ GRADLE_DEPENDENCIES = (
         '    implementation "dev.rikka.shizuku:provider:13.1.5"\n',
     ),
     (
-        "dev.rikka.hidden:compat",
-        '    implementation("dev.rikka.hidden:compat:4.4.0")\n',
-        '    implementation "dev.rikka.hidden:compat:4.4.0"\n',
-    ),
-    (
         "org.lsposed.hiddenapibypass:hiddenapibypass",
         '    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")\n',
         '    implementation "org.lsposed.hiddenapibypass:hiddenapibypass:6.1"\n',
@@ -472,7 +467,31 @@ def main() -> None:
     patch_lint(android)
     patch_signing(android)
     copy_native(android)
+    _diagnose_gradle(android)
     print("Scaffold Android ajustado para release (com download nativo e instalador).")
+
+
+def _diagnose_gradle(android: Path) -> None:
+    """Imprime compileSdk e o bloco dependencies (visível nos logs do CI)."""
+    for name in ("build.gradle.kts", "build.gradle"):
+        path = android / "app" / name
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if any(
+                key in line
+                for key in ("compileSdk", "minSdk", "targetSdk", "ndkVersion")
+            ):
+                print(f"[prepare] {name}: {line.strip()}")
+        i = text.find("dependencies {")
+        print("[prepare] dependencies block:")
+        print(text[i : i + 800] if i >= 0 else "  (NENHUM bloco dependencies!)")
+        print(
+            "[prepare] deps shizuku presentes:",
+            "dev.rikka.shizuku:api" in text,
+        )
+        break
 
 
 if __name__ == "__main__":

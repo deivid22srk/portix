@@ -503,9 +503,9 @@ object InstallBridge {
     @Suppress("DEPRECATION")
     private fun extraIntent(intent: Intent): Intent? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(PackageInstaller.EXTRA_INTENT, Intent::class.java)
+            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
         } else {
-            intent.getParcelableExtra(PackageInstaller.EXTRA_INTENT)
+            intent.getParcelableExtra(Intent.EXTRA_INTENT)
         }
     }
 
@@ -549,11 +549,14 @@ object InstallBridge {
         sessionIo.execute {
             try {
                 val installer = appContext.packageManager.packageInstaller
-                val infos = if (Build.VERSION.SDK_INT >= MIN_PREAPPROVAL_SDK) {
-                    installer.mySessions
-                } else {
-                    installer.sessionInfos
-                }
+                // getMySessions (34+); abaixo disso getAllSessions com filtro
+                // por installerPackageName (mesmo resultado para o app).
+                val infos: List<PackageInstaller.SessionInfo> =
+                    if (Build.VERSION.SDK_INT >= MIN_PREAPPROVAL_SDK) {
+                        installer.mySessions
+                    } else {
+                        installer.allSessions
+                    }
                 for (info in infos) {
                     if (info.installerPackageName != appContext.packageName) {
                         continue
@@ -562,7 +565,7 @@ object InstallBridge {
                         continue
                     }
                     try {
-                        installer.abandon(info.sessionId)
+                        installer.abandonSession(info.sessionId)
                     } catch (ignored: Throwable) {
                         // Sessão já fechada: segue para as demais.
                     }
@@ -597,7 +600,7 @@ object InstallBridge {
             return
         }
         try {
-            ContextCompat.unregisterReceiver(context, receiver)
+            context.unregisterReceiver(receiver)
         } catch (ignored: Throwable) {
         }
     }
@@ -607,7 +610,7 @@ object InstallBridge {
             return
         }
         try {
-            context.packageManager.packageInstaller.abandon(sessionId)
+            context.packageManager.packageInstaller.abandonSession(sessionId)
         } catch (ignored: Throwable) {
             // Sessão de shell (criada pelo caminho Shizuku) dá SecurityException:
             // o gancho da parte 4b tenta o abandon pelo binder do Shizuku.

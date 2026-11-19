@@ -15,12 +15,15 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.ParcelFileDescriptor
+import android.os.Process
+import android.system.Os
 import androidx.core.content.ContextCompat
-import dev.rikka.shizuku.Shizuku
+import rikka.shizuku.Shizuku
 import io.flutter.plugin.common.EventChannel
 import java.io.File
 import java.io.FileInputStream
-import java.io.OutputStream
+import java.io.FileOutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -246,7 +249,7 @@ object ShizukuBridge {
                 return
             }
             try {
-                HiddenApiBypass.addExemptions(
+                HiddenApiBypass.addHiddenApiExemptions(
                     "Landroid/content/",
                     "Landroid/os/",
                     "Landroid/app/",
@@ -386,7 +389,7 @@ object ShizukuBridge {
                 PackageInstaller.SessionParams.MODE_FULL_INSTALL,
             )
             allowDowngrade(params)
-            sessionId = installer.createSession(params)
+            sessionId = invokeCreateSession(installer, params, context)
             // Local não-nulo: evita smart cast de var capturada por closure
             // (as chamadas seguintes ficam em lambda `use`).
             val opened: IPackageInstallerSession = installer.openSession(sessionId)
@@ -403,29 +406,37 @@ object ShizukuBridge {
 
             emitInstallEvent("prepared", key, sessionId)
             emitInstallEvent("writing", key, sessionId)
-            val out: OutputStream = opened.openWrite("portix.apk", 0L, file.length())
+            // AIDL real: openWrite devolve ParcelFileDescriptor transferido pelo
+            // binder — a escrita é LOCAL no FD e o sync também (não existe
+            // fsync na AIDL; o sync do lado remoto acontece no close).
+            val pfd: ParcelFileDescriptor = opened.openWrite("portix.apk", 0L, file.length())
             try {
-                FileInputStream(file).use { input ->
-                    val buffer = ByteArray(COPY_BUFFER_BYTES)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read <= 0) {
-                            break
+                FileOutputStream(pfd.fileDescriptor).use { out ->
+                    FileInputStream(file).use { input ->
+                        val buffer = ByteArray(COPY_BUFFER_BYTES)
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read <= 0) {
+                                break
+                            }
+                            out.write(buffer, 0, read)
                         }
-                        out.write(buffer, 0, read)
+                        out.flush()
                     }
-                    out.flush()
-                    opened.fsync(out)
+                    try {
+                        Os.fsync(pfd.fileDescriptor)
+                    } catch (ignored: Throwable) {
+                    }
                 }
             } finally {
                 try {
-                    out.close()
+                    pfd.close()
                 } catch (ignored: Throwable) {
                 }
             }
             opened.close()
             emitInstallEvent("committing", key, sessionId)
-            opened.commit(intentSenderOf(statusPendingIntent(context, sessionId, key)))
+            invokeCommit(opened, intentSenderOf(statusPendingIntent(context, sessionId, key)))
         } catch (error: Throwable) {
             unregisterQuietly(context, sessionId)
             session?.let { opened ->
@@ -437,6 +448,61 @@ object ShizukuBridge {
             abandonViaShizuku(context, sessionId)
             emitInstallFailure("installFailed", key, sessionId.takeIf { it > 0 }, errorDebug(error))
         }
+    }
+
+
+    /**
+     * createSession pela AIDL real do device: 4 args (12+), 3 (11) e 2 (10-).
+     * O objeto é um proxy da interface REAL (framework), então os métodos
+     * existentes variam conforme a versão — tenta da mais nova para a mais velha.
+     */
+    private fun invokeCreateSession(
+        installer: Any,
+        params: PackageInstaller.SessionParams,
+        context: Context,
+    ): Int {
+        val methods = installer.javaClass.methods.filter { it.name == "createSession" }
+        val userId = Process.myUserId()
+        val sorted = methods.sortedByDescending { it.parameterCount }
+        for (method in sorted) {
+            try {
+                return when (method.parameterCount) {
+                    4 -> method.invoke(installer, params, context.packageName, null, userId) as Int
+                    3 -> method.invoke(installer, params, context.packageName, userId) as Int
+                    2 -> method.invoke(installer, params, context.packageName) as Int
+                    else -> continue
+                }
+            } catch (ignored: Throwable) {
+                // Tenta a assinatura seguinte (versão diferente do SO).
+            }
+        }
+        throw IllegalStateException("createSession indisponível via Shizuku")
+    }
+
+    /**
+     * commit pela AIDL real: 2 args (14+, forTransferred) ou 1 arg (13-).
+     * O statusReceiver chega como broadcast no PendingIntent do próprio app.
+     */
+    private fun invokeCommit(session: Any, sender: Any) {
+        val methods = session.javaClass.methods.filter { it.name == "commit" }
+        for (method in methods.sortedByDescending { it.parameterCount }) {
+            try {
+                when (method.parameterCount) {
+                    2 -> {
+                        method.invoke(session, sender, false)
+                        return
+                    }
+                    1 -> {
+                        method.invoke(session, sender)
+                        return
+                    }
+                    else -> continue
+                }
+            } catch (ignored: Throwable) {
+                // Tenta a assinatura seguinte (versão diferente do SO).
+            }
+        }
+        throw IllegalStateException("commit indisponível via Shizuku")
     }
 
     // ---------------------------------------------------------- binder hidden
@@ -592,9 +658,9 @@ object ShizukuBridge {
     @Suppress("DEPRECATION")
     private fun extraIntent(intent: Intent): Intent? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(PackageInstaller.EXTRA_INTENT, Intent::class.java)
+            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
         } else {
-            intent.getParcelableExtra(PackageInstaller.EXTRA_INTENT)
+            intent.getParcelableExtra(Intent.EXTRA_INTENT)
         }
     }
 
@@ -620,7 +686,7 @@ object ShizukuBridge {
             val rawBinder = packageServiceBinder() ?: return
             val wrapper = shizukuWrapper(rawBinder) ?: return
             val installer = IPackageManager.Stub.asInterface(wrapper).getPackageInstaller()
-            installer.abandon(sessionId)
+            installer.abandonSession(sessionId)
         } catch (ignored: Throwable) {
         }
     }
@@ -633,7 +699,7 @@ object ShizukuBridge {
             return
         }
         try {
-            ContextCompat.unregisterReceiver(context, receiver)
+            context.unregisterReceiver(receiver)
         } catch (ignored: Throwable) {
         }
     }
