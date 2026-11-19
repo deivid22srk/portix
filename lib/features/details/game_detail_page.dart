@@ -520,9 +520,22 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
       downloadForGameProvider(detail.game.id),
     );
     final String? installedTag = current?.releaseTag;
-    if (installedTag != null &&
+    final bool older =
+        installedTag != null &&
         installedTag.isNotEmpty &&
-        isOlderThan(release.tag, installedTag)) {
+        isOlderThan(release.tag, installedTag);
+    if (older) {
+      // Downgrade: o instalador do Android 14+ SEMPRE nega (API do sistema);
+      // avisar ANTES de gastar o download. Só o Shizuku (uid shell) consegue
+      // instalar versão menor — o confirm segue existindo nesse caminho.
+      final InstallerChoice choice = ref.read(installPrefsProvider).choice;
+      final ShizukuStatus shizuku = ShizukuService.instance.current;
+      final bool shizukuActive =
+          choice == InstallerChoice.shizuku && shizuku.isActive;
+      if (!shizukuActive) {
+        _showSnack(l10n.errDowngrade);
+        return;
+      }
       final bool proceed = await _confirmOlderVersion(installedTag);
       if (!proceed || !mounted) {
         return;
@@ -543,11 +556,16 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     if (!mounted) {
       return;
     }
-    _showSnack(
-      l10n.downloadStarted,
-      actionLabel: l10n.viewDownloads,
-      onAction: () => context.go('/hub'),
-    );
+    // O snack só faz sentido quando o download realmente começou; fases de
+    // permissão/pré-aprovação abrem sheet e têm mensagens próprias.
+    final FlowState flow = ref.read(installFlowForGameProvider(detail.game.id));
+    if (flow.phase == InstallPhase.downloading) {
+      _showSnack(
+        l10n.downloadStarted,
+        actionLabel: l10n.viewDownloads,
+        onAction: () => context.go('/hub'),
+      );
+    }
   }
 
   Future<ApkAsset?> _pickApkAsset(List<ApkAsset> assets) {

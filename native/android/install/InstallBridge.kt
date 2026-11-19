@@ -231,9 +231,24 @@ object InstallBridge {
 
     /** Ícone para o diálogo do sistema: bytes do Dart, fallback o do app. */
     private fun approvalIcon(context: Context, iconPng: ByteArray?): Bitmap {
+        // Bytes HTTP podem ser gigantes/hostis: mede antes de decodificar e
+        // usa inSampleSize para não estourar memória na thread de preparo.
         val decoded = if (iconPng != null && iconPng.isNotEmpty()) {
             try {
-                BitmapFactory.decodeByteArray(iconPng, 0, iconPng.size)
+                val bounds = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeByteArray(iconPng, 0, iconPng.size, bounds)
+                var sample = 1
+                var largest = maxOf(bounds.outWidth, bounds.outHeight)
+                while (largest > MAX_ICON_DIMENSION * 2) {
+                    sample *= 2
+                    largest /= 2
+                }
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = sample
+                }
+                BitmapFactory.decodeByteArray(iconPng, 0, iconPng.size, options)
             } catch (error: Throwable) {
                 null
             }

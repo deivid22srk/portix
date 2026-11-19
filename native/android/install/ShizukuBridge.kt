@@ -340,7 +340,9 @@ object ShizukuBridge {
         val state = currentState()
         emitStatus(state)
         if (state != STATE_ACTIVE) {
-            emitInstallFailure("failed", key, null, "shizuku-unavailable ($state)")
+            // Token EXATO que o Dart casa (offerFallback automático); o estado
+            // vai nos logs, não na mensagem de erro.
+            emitInstallFailure("failed", key, null, "shizuku-unavailable")
             return mapOf("ok" to false, "sessionId" to null)
         }
         shizukuIo.execute { installBlocking(appCtx, key, path, expectedPackage) }

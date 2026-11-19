@@ -565,12 +565,18 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
       packageName: expectedPackage,
       label: request.game.title,
       iconUrl: request.game.coverUrl,
+      sizeBytes: request.sizeBytes,
     );
     if (!ok) {
-      _dispatch(
-        gameId,
-        const FlowPreapproval('failed', error: 'session-failed'),
+      // D20: prepare indisponível (API <34, sessão negada, storage do
+      // sistema) NÃO é falha terminal — degrada sozinho para o fluxo
+      // clássico (1 único diálogo no commit) e continua o download.
+      const InstallPlan legacy = AndroidPlan(
+        needsInstallPermission: false,
+        usePreapproval: false,
       );
+      _dispatch(gameId, const FlowBegin(legacy));
+      await _startDownload(gameId);
     }
   }
 
@@ -678,11 +684,6 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
     }
     final String? expectedDigest = canHash ? request.digest : null;
     final ApkSummary? apk = await ApkTools.inspect(path);
-    if (apk != null && apk.packageName.isNotEmpty) {
-      // Memoriza o pacote por port (lido do APK): habilita pré-aprovação
-      // já na próxima instalação deste port, sem depender da tarefa atual.
-      rememberKnownPackage(ref, request.url, apk.packageName);
-    }
     ApkSummary? installed;
     if (expectedPackage != null && expectedPackage.isNotEmpty) {
       installed = await ApkTools.installed(expectedPackage);
@@ -696,6 +697,14 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
       installedVersionCode: installed?.versionCode,
       apkVersionCode: apk?.versionCode,
     );
+    // Memoriza o pacote por port SÓ quando a integridade PASSOU —
+    // APK adulterado (digest/pacote divergente) não pode envenenar o
+    // cache e pré-aprovar o pacote errado na próxima tentativa.
+    if (apk != null &&
+        apk.packageName.isNotEmpty &&
+        verdict == IntegrityVerdict.pass) {
+      rememberKnownPackage(ref, request.url, apk.packageName);
+    }
     if (verdict != IntegrityVerdict.pass) {
       _deleteQuietly(path);
       _dispatch(gameId, FlowVerified(verdict));
@@ -781,9 +790,16 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
       case 'installDone':
         unawaited(_onInstallSuccess(gameId));
       case 'installFailed' || 'failed' || 'preapprovalFailed':
+        final String flowError = event.error ?? 'install-failed';
         _dispatch(
           gameId,
-          FlowInstallFinished(false, error: event.error ?? 'install-failed'),
+          FlowInstallFinished(
+            false,
+            error: flowError,
+            // Corrida Shizuku (morte entre o rechec Dart e o Kotlin): o
+            // token do bridge indica indisponibilidade → fallback Android.
+            offerFallback: flowError.startsWith('shizuku-unavailable'),
+          ),
         );
       default:
         break;

@@ -1092,8 +1092,8 @@ void main() {
     );
 
     testWidgets(
-      'prepare falha (Android < 34 ou sessão negada) → failed session-failed '
-      '(fallback commitFresh acontece sozinho — D20)',
+      'prepare falha (Android < 34 ou sessão negada) → degrada para o fluxo '
+      'clássico e baixa (fallback commitFresh acontece sozinho — D20)',
       (WidgetTester tester) async {
         await h.init(
           prefsSeed: <String, Object>{
@@ -1105,10 +1105,10 @@ void main() {
         h.nativo.prepareOk = false;
 
         await h.begin();
-        expect(h.phase, InstallPhase.failed);
-        expect(h.flow().error, 'session-failed');
-        expect(h.flow().sessionId, isNull);
-        expect(h.downloads.startedUrls, isEmpty);
+        expect(h.phase, InstallPhase.downloading);
+        expect(h.flow().error, isNull);
+        expect(h.downloads.startedUrls, <String>[kUrl]);
+        expect(h.prepares, hasLength(1));
       },
     );
 

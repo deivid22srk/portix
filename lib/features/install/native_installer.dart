@@ -138,6 +138,7 @@ class NativeInstaller {
     required String packageName,
     required String label,
     String? iconUrl,
+    int sizeBytes = 0,
   }) async {
     if (!isAndroid || key.isEmpty || packageName.isEmpty) {
       return false;
@@ -152,9 +153,9 @@ class NativeInstaller {
           'packageName': packageName,
           'label': label,
           'iconPng': iconPng,
-          // Tamanho desconhecido antes do download; o sistema usa para
-          // estimar espaço quando > 0.
-          'sizeBytes': 0,
+          // Tamanho estimado do APK (quando conhecido): o pré-aproval do
+          // sistema usa para reservar/alocar espaço.
+          'sizeBytes': sizeBytes,
         },
       );
       return ok ?? false;

@@ -295,7 +295,8 @@ void main() {
   );
 
   testWidgets(
-    'selecionar versão antiga → CTA "Atualizar" e diálogo de downgrade',
+    'selecionar versão antiga → CTA "Atualizar" bloqueia ANTES de baixar '
+    '(o instalador do Android nega downgrade; Shizuku mantém o confirm)',
     (WidgetTester tester) async {
       _mobileViewport(tester);
       _nonAndroidPlatform();
@@ -312,48 +313,19 @@ void main() {
       await tester.pump();
       expect(find.text('Atualizar'), findsOneWidget);
 
-      // Toca no CTA: 1 asset (sem sheet) → isOlderThan → diálogo de downgrade.
+      // Toca no CTA: 1 asset (sem sheet) → isOlderThan → o caminho Android
+      // avisa errDowngrade ANTES de gastar o download (iter 2, 🟡6).
       await tester.tap(find.text('Atualizar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Versão mais antiga'), findsOneWidget);
-      expect(find.textContaining('v0.1.4 já está instalada'), findsOneWidget);
-      expect(find.text('Baixar assim mesmo'), findsOneWidget);
-      expect(downloads.started, isEmpty); // nada baixado antes da confirmação
-
-      await tester.tap(find.text('Baixar assim mesmo'));
-      await tester.pumpAndSettle();
-
-      // Download da versão específica (não a mais recente) comprovado:
-      expect(downloads.started, hasLength(1));
-      expect(downloads.started.single.releaseTag, 'v0.1.3');
+      expect(find.textContaining('menor que a instalada'), findsWidgets);
       expect(
-        downloads.started.single.url,
-        'https://github.com/VinTeRuS/spore-re/releases/download/v1/spore-v0.1.3.apk',
-      );
+        find.text('Versão mais antiga'),
+        findsNothing,
+      ); // sem confirm que promete o que o sistema nega
+      expect(downloads.started, isEmpty);
     },
   );
-
-  testWidgets('escolher "Depois" no diálogo de downgrade não baixa', (
-    WidgetTester tester,
-  ) async {
-    _mobileViewport(tester);
-    _nonAndroidPlatform();
-    final FakeDownloadsController downloads = FakeDownloadsController();
-    final ProviderContainer container = await _container(downloads: downloads);
-    addTearDown(container.dispose);
-    await tester.pumpWidget(_host(container));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('v0.1.3'), warnIfMissed: false);
-    await tester.pump();
-    await tester.tap(find.text('Atualizar'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Depois'));
-    await tester.pumpAndSettle();
-
-    expect(downloads.started, isEmpty);
-  });
 
   testWidgets('release sem APK: card desabilitado e badge Beta', (
     WidgetTester tester,

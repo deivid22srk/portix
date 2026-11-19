@@ -137,11 +137,15 @@ def patch_gradle(android: Path) -> None:
         "# Motor de download nativo (Rust/JNI) e serviço de primeiro plano.\n"
         "-keepclasseswithmembernames class * { native <methods>; }\n"
         "-keep class com.deivid22srk.portix.downloader.** { *; }\n"
-        "# Instalador: Shizuku-API, hidden compat e pontes do instalador.\n"
-        "-keep class dev.rikka.shizuku.** { *; }\n"
-        "-dontwarn dev.rikka.shizuku.**\n"
-        "-keep class rikka.hidden.** { *; }\n"
-        "-dontwarn rikka.hidden.**\n"
+        "# Instalador: Shizuku-API e pontes do instalador. As classes do\n"
+        "# artefato dev.rikka.shizuku:api vivem no pacote rikka.shizuku.**\n"
+        "# (verificado no jar 13.1.5); ShizukuBinderWrapper e\n"
+        "# SystemServiceHelper são usados SÓ por reflexão — sem keep, o R8\n"
+        "# remove no release.\n"
+        "-keep class rikka.shizuku.** { *; }\n"
+        "-dontwarn rikka.shizuku.**\n"
+        "-keep class rikka.app.** { *; }\n"
+        "-dontwarn rikka.app.**\n"
         "-keep class com.deivid22srk.portix.install.** { *; }\n",
         encoding="utf-8",
     )
