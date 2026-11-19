@@ -11,10 +11,15 @@ object PortixApkTools {
         // Label REAL do APK: o pré-aproval do framework compara o label
         // aprovado com o do APK no commit — usar o título do catálogo quebra
         // o contrato e falha sempre que divergir.
+        // getPackageArchiveInfo devolve applicationInfo anulável.
         val label: String? = try {
-            info.applicationInfo.sourceDir = path
-            context.packageManager.getApplicationLabel(info.applicationInfo)
-                .toString()
+            val appInfo = info.applicationInfo
+            if (appInfo != null) {
+                appInfo.sourceDir = path
+                context.packageManager.getApplicationLabel(appInfo).toString()
+            } else {
+                null
+            }
         } catch (error: Exception) {
             null
         }
