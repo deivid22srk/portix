@@ -903,8 +903,8 @@ void main() {
         prefsSeed: <String, Object>{
           'install.installer': 'shizuku',
           'install.packages': jsonEncode(<String, Object?>{
-          'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
-        }),
+            'owner/repo': <String, String>{'p': kPkg, 'l': kLabel},
+          }),
         },
       );
       h.nativo.shizuku = ShizukuStatus.installedStopped;

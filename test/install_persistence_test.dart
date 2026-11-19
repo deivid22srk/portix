@@ -236,10 +236,10 @@ void main() {
         final Map<Object?, Object?> cached =
             jsonDecode(c.prefs.getString('install.packages')!)
                 as Map<Object?, Object?>;
-        expect(
-          cached['owner/repo'],
-          <String, String>{'p': 'com.example.game', 'l': ''},
-        );
+        expect(cached['owner/repo'], <String, String>{
+          'p': 'com.example.game',
+          'l': '',
+        });
         expect(lookupKnownPackage(c.ref, kGithubUrl), 'com.example.game');
       },
     );
