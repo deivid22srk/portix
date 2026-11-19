@@ -85,6 +85,15 @@ def patch_gradle(android: Path) -> None:
     if kts.exists():
         path = kts
         text = _read(path)
+        # compileSdk determinístico: o platform android-36 que o kotlinc do
+        # runner enxergou chegou sem as APIs 34 (PreapprovalDetails etc.).
+        # 37 é instalado pelo sdkmanager no configure e cobre a pré-aprovação
+        # (API 34) com folga.
+        if "compileSdk = flutter.compileSdkVersion" in text:
+            text = text.replace(
+                "compileSdk = flutter.compileSdkVersion",
+                "compileSdk = 37",
+            )
         if "isMinifyEnabled" not in text:
             text = text.replace(
                 "release {",
@@ -215,11 +224,27 @@ def copy_native(android: Path) -> None:
         shutil.copyfile(item, downloader_dir / item.name)
 
     # Instalador nativo (bridges + stubs compile-only das APIs ocultas).
+    # .kt → src/main/kotlin, .java → src/main/java (AGP NÃO compila .java
+    # de kotlin/ — os stubs Java precisam do source dir padrão do Java).
     install_source = source / "install"
     install_dir = package_dir / "install"
     install_dir.mkdir(parents=True, exist_ok=True)
+    java_root = (
+        android
+        / "app"
+        / "src"
+        / "main"
+        / "java"
+        / "com"
+        / "deivid22srk"
+        / "portix"
+        / "install"
+    )
+    java_root.mkdir(parents=True, exist_ok=True)
     for item in sorted(install_source.glob("*.kt")):
         shutil.copyfile(item, install_dir / item.name)
+    for item in sorted(install_source.glob("*.java")):
+        shutil.copyfile(item, java_root / item.name)
 
     # Copia qualquer outro pacote Kotlin (ex.: device/)
     for child in sorted(source.iterdir()):
