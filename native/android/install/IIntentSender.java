@@ -1,13 +1,14 @@
+/*
+ * PORTIX — stub compile-only de hidden API (padrão do demo oficial da
+ * Shizuku-API): o Kotlin compila contra ESTE arquivo, mas em runtime o
+ * boot classpath prevalece — os corpos nunca executam. Uma interface
+ * pública por arquivo (regra do javac).
+ */
 package android.content;
 
-/**
- * PORTIX — stub compile-only da hidden API IIntentSender (contrato AIDL real).
- *
- * Existente apenas para o Kotlin compilar chamadas contra a assinatura real;
- * em runtime o boot classpath prevalece (mesma técnica do demo oficial da
- * Shizuku-API). Nunca executa: os corpos lançam RuntimeException.
- */
+
 public interface IIntentSender extends android.os.IInterface {
+
 
     /** Stub AIDL — nunca usado em runtime (framework real prevalece). */
     abstract class Stub extends android.os.Binder implements IIntentSender {
