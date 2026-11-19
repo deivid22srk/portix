@@ -10,6 +10,7 @@ import '../../shared/widgets/primitives.dart';
 import 'categories/account_settings.dart';
 import 'categories/appearance_settings.dart';
 import 'categories/data_settings.dart';
+import 'categories/install_settings.dart';
 import 'categories/language_settings.dart';
 import 'categories/notifications_settings.dart';
 import 'categories/about_settings.dart';
@@ -93,6 +94,7 @@ class CategoryContent extends StatelessWidget {
       kSettingsNotifications => NotificationsSettingsBody(l10n: l10n),
       kSettingsLanguage => LanguageSettingsBody(l10n: l10n),
       kSettingsData => DataSettingsBody(l10n: l10n),
+      kSettingsInstall => InstallSettingsBody(l10n: l10n),
       kSettingsAbout => AboutSettingsBody(l10n: l10n),
       _ => NotFoundPage(),
     };

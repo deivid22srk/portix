@@ -14,6 +14,7 @@ const String kSettingsAppearance = 'aparencia';
 const String kSettingsNotifications = 'notificacoes';
 const String kSettingsLanguage = 'idioma';
 const String kSettingsData = 'dados';
+const String kSettingsInstall = 'instalacao';
 const String kSettingsAbout = 'sobre';
 
 /// Uma categoria: rota, ícone, título e descrição curta.
@@ -62,6 +63,12 @@ final List<SettingsCategory> kSettingsCategories = <SettingsCategory>[
     icon: Icons.storage_rounded,
     title: (L10n l10n) => l10n.settingsCatData,
     description: (L10n l10n) => l10n.settingsCatDataDesc,
+  ),
+  SettingsCategory(
+    id: kSettingsInstall,
+    icon: Icons.install_mobile_rounded,
+    title: (L10n l10n) => l10n.settingsCatInstall,
+    description: (L10n l10n) => l10n.settingsCatInstallDesc,
   ),
   SettingsCategory(
     id: kSettingsAbout,

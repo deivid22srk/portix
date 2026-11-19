@@ -51,12 +51,36 @@ class ApkAsset {
     required this.url,
     this.sizeBytes = 0,
     this.downloadCount = 0,
+    this.digest,
   });
 
   final String name;
   final String url;
   final int sizeBytes;
   final int downloadCount;
+
+  /// Digest declarado pelo GitHub (`sha256:<hex>`), quando a API o envia.
+  /// Usado pelo fluxo de instalação para validar o APK baixado (fail-closed).
+  final String? digest;
+
+  /// Aceita somente `sha256:<hex>` (64 dígitos). Outros formatos/valores
+  /// soltos são ignorados — a verificação cai no pacote+versão.
+  static String? _sha256DigestOf(Object? raw) {
+    final String text = raw?.toString().trim().toLowerCase() ?? '';
+    const String prefix = 'sha256:';
+    if (text.length != prefix.length + 64 || !text.startsWith(prefix)) {
+      return null;
+    }
+    for (int i = prefix.length; i < text.length; i++) {
+      final int code = text.codeUnitAt(i);
+      final bool hex =
+          (code >= 0x30 && code <= 0x39) || (code >= 0x61 && code <= 0x66);
+      if (!hex) {
+        return null;
+      }
+    }
+    return text;
+  }
 
   factory ApkAsset.fromMap(Map<Object?, Object?> map) {
     final Object? size = map['size'];
@@ -66,6 +90,7 @@ class ApkAsset {
       url: (map['browser_download_url'] ?? '').toString(),
       sizeBytes: size is num ? size.toInt() : 0,
       downloadCount: downloads is num ? downloads.toInt() : 0,
+      digest: _sha256DigestOf(map['digest']),
     );
   }
 
@@ -74,6 +99,7 @@ class ApkAsset {
     'url': url,
     'sizeBytes': sizeBytes,
     'downloadCount': downloadCount,
+    if (digest != null) 'digest': digest,
   };
 
   factory ApkAsset.fromJson(Map<String, dynamic> map) => ApkAsset(
@@ -83,6 +109,7 @@ class ApkAsset {
     downloadCount: map['downloadCount'] is num
         ? (map['downloadCount'] as num).toInt()
         : 0,
+    digest: _sha256DigestOf(map['digest']),
   );
 }
 

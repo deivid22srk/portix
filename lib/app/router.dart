@@ -100,6 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                       const SettingsCategoryPage(categoryId: kSettingsData),
                 ),
                 GoRoute(
+                  path: kSettingsInstall,
+                  builder: (_, __) =>
+                      const SettingsCategoryPage(categoryId: kSettingsInstall),
+                ),
+                GoRoute(
                   path: kSettingsAbout,
                   builder: (_, __) =>
                       const SettingsCategoryPage(categoryId: kSettingsAbout),

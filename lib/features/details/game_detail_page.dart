@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:ui' show BlendMode, ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -17,7 +18,6 @@ import '../../core/env.dart';
 import '../../core/formatters.dart';
 import '../../core/github_releases.dart';
 import '../../core/github_service.dart';
-import '../../core/native_downloader.dart';
 import '../../core/providers.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/collections.dart';
@@ -34,6 +34,10 @@ import '../../shared/widgets/states.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../collections/collections_controller.dart';
 import '../downloads/downloads_controller.dart';
+import '../install/install_flow.dart';
+import '../install/models.dart';
+import '../install/permissions.dart';
+import '../install/shizuku.dart';
 import 'developer_card.dart';
 import 'version_selector.dart';
 
@@ -99,6 +103,16 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
 
   void _onResumed() {
     ref.invalidate(installedAppProvider);
+    // Rechec da permissão de instalar: retoma o "Baixar" pendente (o sheet
+    // mandou o usuário para a tela do sistema — ao voltar, o fluxo segue).
+    final Map<String, FlowState> flows = ref.read(installFlowProvider);
+    for (final MapEntry<String, FlowState> entry in flows.entries) {
+      if (entry.value.phase == InstallPhase.needsInstallPermission) {
+        unawaited(
+          ref.read(installFlowProvider.notifier).onPermissionResume(entry.key),
+        );
+      }
+    }
   }
 
   void _onScroll() {
@@ -134,6 +148,246 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   // ---------------------------------------------------------------------------
+  // Reações ao fluxo de instalação (fases do install_flow — porte do fragmento
+  // recuperado: sheet de permissão, sheet de Shizuku bloqueado, snacks).
+  // ---------------------------------------------------------------------------
+
+  /// Jogo do sheet aberto no momento (para o reset no dismiss sem ação).
+  String _activeGameId = '';
+
+  void _onFlowChanged(GameDetail detail, FlowState previous, FlowState next) {
+    if (previous.phase == next.phase &&
+        previous.offerAndroidFallback == next.offerAndroidFallback) {
+      return;
+    }
+    switch (next.phase) {
+      case InstallPhase.needsInstallPermission:
+        _activeGameId = detail.game.id;
+        _showPermissionSheet();
+      case InstallPhase.blocked:
+        _activeGameId = detail.game.id;
+        _showShizukuBlockedSheet(detail, next);
+      case InstallPhase.downloading:
+        // Fluxo clássico (Android ≤ 13 ou pacote desconhecido): microcopy
+        // deixando claro que o diálogo do Android vem no final.
+        if (next.plan is AndroidPlan &&
+            !(next.plan! as AndroidPlan).usePreapproval) {
+          _showSnack(context.l10n.preapprovalNotice);
+        }
+      case InstallPhase.installed:
+        _showSnack(context.l10n.phaseInstalled);
+      case InstallPhase.failed:
+        if (next.offerAndroidFallback && next.plan is ShizukuPlan) {
+          _showShizukuBlockedSheet(detail, next);
+        } else {
+          _showSnack(_flowErrorText(next));
+        }
+      case InstallPhase.idle:
+        // Pré-aprovação dispensada ("declined" → idle): nada foi baixado.
+        if (previous.phase == InstallPhase.awaitingPreapproval) {
+          _showSnack(context.l10n.installCancelledNote);
+        }
+      default:
+        break;
+    }
+  }
+
+  String _flowErrorText(FlowState flow) {
+    final L10n l10n = context.l10n;
+    if (flow.verdict != null) {
+      return switch (flow.verdict!) {
+        IntegrityVerdict.digestMismatch => l10n.errDigest,
+        IntegrityVerdict.packageMismatch => l10n.errPackageMismatch,
+        IntegrityVerdict.downgradeBlocked => l10n.errDowngrade,
+        IntegrityVerdict.pass => l10n.errInstallFailed,
+      };
+    }
+    return switch (flow.error) {
+      'low-storage' => l10n.errLowStorage,
+      'permission-required' => l10n.errPermissionRequired,
+      'shizuku-unavailable' => l10n.errShizukuUnavailable,
+      _ => l10n.errInstallFailed,
+    };
+  }
+
+  /// Bottom sheet explicativo antes de abrir a tela do sistema.
+  Future<void> _showPermissionSheet() async {
+    final L10n l10n = context.l10n;
+    final Object? result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppContentColors.transparent,
+      useSafeArea: true,
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
+      builder: (BuildContext sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.lg,
+          right: AppSpacing.lg,
+          bottom: MediaQuery.paddingOf(sheetContext).bottom + AppSpacing.lg,
+        ),
+        child: GlassContainer(
+          radius: AppRadii.lg,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.install_mobile_rounded,
+                    color: sheetContext.colors.accent,
+                    size: 26,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      l10n.permissionSheetTitle,
+                      style: sheetContext.texts.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                l10n.permissionSheetBody,
+                style: sheetContext.texts.bodyMedium?.copyWith(
+                  color: sheetContext.colors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              PrimaryButton(
+                label: l10n.permissionSheetAction,
+                icon: Icons.settings_rounded,
+                onPressed: () async {
+                  Navigator.of(sheetContext).pop('settings');
+                  await PortixPermissions.openInstallAppsSettings();
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SecondaryButton(
+                label: l10n.setupNotNow,
+                onPressed: () => Navigator.of(sheetContext).pop('later'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    if (result != 'settings') {
+      // Dispensado sem ação (barrier ou "Agora não"): limpa a fase pendente
+      // ANTES do próximo toque (lição 7) para o sheet reabrir de novo.
+      unawaited(
+        ref
+            .read(installFlowProvider.notifier)
+            .resetIfPending(_activeGameId, InstallPhase.needsInstallPermission),
+      );
+    }
+  }
+
+  /// Shizuku escolhido mas não utilizável: explica e oferece o Android.
+  Future<void> _showShizukuBlockedSheet(
+    GameDetail detail,
+    FlowState flow,
+  ) async {
+    final L10n l10n = context.l10n;
+    final ShizukuPlan? plan = flow.plan is ShizukuPlan
+        ? flow.plan! as ShizukuPlan
+        : null;
+    final String body = plan?.blocker == ShizukuStatus.runningNoPermission
+        ? l10n.shizukuBlockedPermission
+        : l10n.shizukuBlockedStopped;
+    final Object? result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppContentColors.transparent,
+      useSafeArea: true,
+      barrierColor: AppContentColors.scrim.withValues(alpha: 0.6),
+      builder: (BuildContext sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.lg,
+          right: AppSpacing.lg,
+          bottom: MediaQuery.paddingOf(sheetContext).bottom + AppSpacing.lg,
+        ),
+        child: GlassContainer(
+          radius: AppRadii.lg,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.terminal_rounded,
+                    color: sheetContext.colors.warning,
+                    size: 26,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      l10n.shizukuBlockedTitle,
+                      style: sheetContext.texts.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                body,
+                style: sheetContext.texts.bodyMedium?.copyWith(
+                  color: sheetContext.colors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              PrimaryButton(
+                label: l10n.useAndroidThisTime,
+                icon: Icons.android_rounded,
+                onPressed: () {
+                  Navigator.of(sheetContext).pop('android');
+                  unawaited(
+                    ref
+                        .read(installFlowProvider.notifier)
+                        .useAndroidThisTime(detail.game.id),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SecondaryButton(
+                label: l10n.actionOpenShizuku,
+                icon: Icons.open_in_new_rounded,
+                onPressed: () async {
+                  Navigator.of(sheetContext).pop('shizuku');
+                  await ShizukuService.instance.openShizuku();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    if (result == null) {
+      // Dispensado sem ação (barrier): limpa a fase pendente (lição 7) —
+      // o próximo toque em "Baixar" reabre o sheet ou segue com o Android.
+      unawaited(
+        ref
+            .read(installFlowProvider.notifier)
+            .resetIfPending(_activeGameId, InstallPhase.blocked),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Fluxo do CTA (barra fixa): instalar / abrir / atualizar / baixar versão.
   // ---------------------------------------------------------------------------
 
@@ -161,10 +415,17 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           return;
         }
       }
-      // Sem app instalado (ou sem como abrir): instala o APK já baixado.
+      // Sem app instalado (ou sem como abrir): instala o APK já baixado
+      // pelo fluxo completo (permissões, verificação e instalação). `false`
+      // = arquivo não existe mais → recomeça o download normal abaixo.
       final String? path = current.apkPath;
-      if (path != null && await NativeDownloader.install(path)) {
-        return;
+      if (path != null) {
+        final bool accepted = await ref
+            .read(installFlowProvider.notifier)
+            .reinstallFromApk(detail.game, apkPath: path);
+        if (accepted) {
+          return;
+        }
       }
       final GamePort? donePort = detail.primaryPort;
       if (donePort?.url != null) {
@@ -227,7 +488,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   /// Baixa a versão escolhida: escolhe o asset, avisa sobre downgrade e
-  /// repassa para o motor de download existente (sem duplicar lógica).
+  /// repassa para o fluxo de instalação (permissões, pré-aprovação, download
+  /// via DownloadsController e instalação — nada duplicado aqui).
   Future<void> _downloadRelease(
     GameDetail detail,
     GithubRelease release,
@@ -268,12 +530,14 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
 
     ref
-        .read(downloadsProvider.notifier)
-        .start(
+        .read(installFlowProvider.notifier)
+        .begin(
           detail.game,
-          port: port,
-          urlOverride: asset.url,
+          port,
+          url: asset.url,
           releaseTag: release.tag,
+          digest: asset.digest,
+          sizeBytes: asset.sizeBytes,
           restart: current != null,
         );
     if (!mounted) {
@@ -340,6 +604,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   }
 
   /// Caminho antigo (sem release selecionada): direto na fonte.
+  /// Também passa pelo fluxo de instalação (mesmas permissões/pré-aprovação);
+  /// sem releaseTag/digest/size (desconhecidos nesta rota).
   Future<void> _installFallback(GameDetail detail) async {
     final L10n l10n = context.l10n;
     final GamePort? port = detail.primaryPort;
@@ -360,8 +626,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     }
 
     ref
-        .read(downloadsProvider.notifier)
-        .start(detail.game, port: port, urlOverride: direct);
+        .read(installFlowProvider.notifier)
+        .begin(detail.game, port, url: direct);
     _showSnack(
       l10n.downloadStarted,
       actionLabel: l10n.viewDownloads,
@@ -563,6 +829,17 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     final bool downloading = task?.status == DownloadStatus.downloading;
     final bool paused = task?.status == DownloadStatus.paused;
 
+    // Fase do fluxo de instalação deste jogo (idle = nada em andamento).
+    final FlowState flow = ref.watch(installFlowForGameProvider(game.id));
+    ref.listen<FlowState>(installFlowForGameProvider(game.id), (
+      FlowState? previous,
+      FlowState next,
+    ) {
+      if (mounted) {
+        _onFlowChanged(detail, previous ?? const FlowState.idle(), next);
+      }
+    });
+
     // Somente depois de baixar é que dá para checar instalação e atualização.
     final bool done = task != null && task.isDone;
     final String packageName = done ? (task.packageName ?? '') : '';
@@ -610,6 +887,18 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     } else if (paused) {
       ctaLabel = l10n.continueAction;
       ctaIcon = Icons.play_arrow_rounded;
+    } else if (flow.isBusy) {
+      // Fases do fluxo que não são o download em si (o download mostra o
+      // progresso real acima): pré-aprovação, verificação e instalação.
+      ctaLabel = switch (flow.phase) {
+        InstallPhase.awaitingPreapproval => l10n.phaseAwaitingApproval,
+        InstallPhase.verifying => l10n.phaseVerifying,
+        _ => l10n.phaseInstalling,
+      };
+      ctaIcon = Icons.hourglass_top_rounded;
+    } else if (flow.phase == InstallPhase.failed) {
+      ctaLabel = l10n.tryAgain;
+      ctaIcon = Icons.refresh_rounded;
     } else if (done && installed) {
       if (installedVersionSelected) {
         ctaLabel = l10n.openApp;
@@ -630,6 +919,17 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     } else {
       ctaLabel = l10n.install;
       ctaIcon = Icons.download_rounded;
+    }
+
+    // Cancela pelo fluxo quando existe (abandona a sessão pré-aprovada
+    // também); sem fluxo (ex.: tarefa restaurada após reiniciar o app),
+    // cancela só o download.
+    void cancelActive() {
+      if (flow.isBusy) {
+        ref.read(installFlowProvider.notifier).cancel(game.id);
+      } else {
+        ref.read(downloadsProvider.notifier).cancel(game.id);
+      }
     }
 
     final bool longDescription = game.description.length > 320;
@@ -748,6 +1048,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
               progress: task?.progress ?? 0,
               label: ctaLabel,
               icon: ctaIcon,
+              mainEnabled: !flow.isBusy,
+              flowCancellable:
+                  flow.phase == InstallPhase.awaitingPreapproval ||
+                  flow.phase == InstallPhase.installing,
               inLibrary: inLibrary,
               onLibrary: () => _toggleLibrary(detail),
               onMain: () => _ctaPressed(detail),
@@ -755,8 +1059,7 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                   ref.read(downloadsProvider.notifier).pause(detail.game.id),
               onResume: () =>
                   ref.read(downloadsProvider.notifier).resume(detail.game.id),
-              onCancel: () =>
-                  ref.read(downloadsProvider.notifier).cancel(detail.game.id),
+              onCancel: cancelActive,
             ),
           ),
         ],
@@ -782,6 +1085,8 @@ class _CtaBar extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onCancel,
+    this.mainEnabled = true,
+    this.flowCancellable = false,
   });
 
   final bool downloading;
@@ -795,6 +1100,14 @@ class _CtaBar extends StatelessWidget {
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onCancel;
+
+  /// Fluxo ocupado (pré-aprovação/verificação/instalação): o toque principal
+  /// fica desabilitado — nada para reentrar.
+  final bool mainEnabled;
+
+  /// Fluxo em fase cancelável sem tarefa visível (pré-aprovação ou
+  /// instalação): mostra um cancelar secundário sob o botão principal.
+  final bool flowCancellable;
 
   @override
   Widget build(BuildContext context) {
@@ -841,10 +1154,14 @@ class _CtaBar extends StatelessWidget {
         onPressed: onResume,
       );
     } else {
-      body = Row(
+      final Widget main = Row(
         children: <Widget>[
           Expanded(
-            child: PrimaryButton(label: label, icon: icon, onPressed: onMain),
+            child: PrimaryButton(
+              label: label,
+              icon: icon,
+              onPressed: mainEnabled ? onMain : null,
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           GlassCircleButton(
@@ -854,6 +1171,20 @@ class _CtaBar extends StatelessWidget {
           ),
         ],
       );
+      body = flowCancellable
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                main,
+                const SizedBox(height: AppSpacing.sm),
+                SecondaryButton(
+                  label: l10n.cancel,
+                  icon: Icons.close_rounded,
+                  onPressed: onCancel,
+                ),
+              ],
+            )
+          : main;
     }
 
     return ClipRect(

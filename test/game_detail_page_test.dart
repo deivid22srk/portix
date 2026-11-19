@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -264,11 +265,22 @@ Widget _host(ProviderContainer container) {
   );
 }
 
+/// Mesmo padrão do ui_test_helpers.pumpUi: no host de teste tratamos o app
+/// como fora do Android (flutter_test assume android como padrão) para os
+/// módulos de instalação caírem no fallback simulado e o fluxo completar em
+/// microtasks, sem canal nativo nenhum. O reset é via addTearDown (antes do
+/// postTest, onde a invariante de debug variables é verificada).
+void _nonAndroidPlatform() {
+  debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+  addTearDown(() => debugDefaultTargetPlatformOverride = null);
+}
+
 void main() {
   testWidgets(
     'CTA mostra "Abrir o app" com a versão instalada pré-selecionada',
     (WidgetTester tester) async {
       _mobileViewport(tester);
+      _nonAndroidPlatform();
       final ProviderContainer container = await _container();
       addTearDown(container.dispose);
       await tester.pumpWidget(_host(container));
@@ -286,6 +298,7 @@ void main() {
     'selecionar versão antiga → CTA "Atualizar" e diálogo de downgrade',
     (WidgetTester tester) async {
       _mobileViewport(tester);
+      _nonAndroidPlatform();
       final FakeDownloadsController downloads = FakeDownloadsController();
       final ProviderContainer container = await _container(
         downloads: downloads,
@@ -325,6 +338,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _mobileViewport(tester);
+    _nonAndroidPlatform();
     final FakeDownloadsController downloads = FakeDownloadsController();
     final ProviderContainer container = await _container(downloads: downloads);
     addTearDown(container.dispose);
@@ -345,6 +359,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _mobileViewport(tester);
+    _nonAndroidPlatform();
     final ProviderContainer container = await _container();
     addTearDown(container.dispose);
     await tester.pumpWidget(_host(container));

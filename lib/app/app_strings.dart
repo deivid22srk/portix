@@ -267,6 +267,12 @@ class L10n {
   String get settingsCatData => _t('Dados e Armazenamento', 'Data & storage');
   String get settingsCatDataDesc =>
       _t('Catálogo e cache local', 'Catalog and local cache');
+  String get settingsCatInstall =>
+      _t('Instalação e Permissões', 'Install & permissions');
+  String get settingsCatInstallDesc => _t(
+    'Instalador preferido, permissões e Shizuku',
+    'Preferred installer, permissions and Shizuku',
+  );
   String get settingsCatAbout => _t('Ajuda e Sobre', 'Help & about');
   String get settingsCatAboutDesc =>
       _t('Versão, legal e créditos', 'Version, legal and credits');
@@ -845,6 +851,7 @@ class L10n {
   // ---------------------------------------------- configurações de instalação
   String get installSection =>
       _t('Instalação e permissões', 'Install & permissions');
+  String get permissionsSection => _t('Permissões', 'Permissions');
   String get reviewSetup =>
       _t('Rever configuração inicial', 'Review initial setup');
   String get permInstallAppsTitle =>
