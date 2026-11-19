@@ -1,6 +1,81 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+// ============================================================================
+// PORTIX — leitura de APKs (pacote/versão) e verificação de integridade do
+// download (digest + pacote + downgrade). Pura, coberta por testes.
+// ============================================================================
+
+/// Veredito da checagem de integridade do APK baixado.
+enum IntegrityVerdict {
+  /// Tudo certo (ou sem dados para checar — asset sem digest no GitHub).
+  pass,
+
+  /// Digest divergente ou digest esperado sem hash calculado — descarta
+  /// (fail-closed).
+  digestMismatch,
+
+  /// O pacote do APK não é o esperado — descarta.
+  packageMismatch,
+
+  /// Versão mais antiga que a instalada sem direito a downgrade
+  /// (instalador Android; via Shizuku é permitido).
+  downgradeBlocked,
+}
+
+/// Regras de integridade (pura):
+/// - digest esperado presente e hash calculado ausente/divergente →
+///   [IntegrityVerdict.digestMismatch] (fail-closed, lição 10);
+/// - asset SEM digest do GitHub → valida só pacote + versão;
+/// - pacote esperado conhecido e diferente do lido do APK → pacote errado;
+/// - versão do APK menor que a instalada sem [allowDowngrade] → bloqueia.
+IntegrityVerdict verifyDownloadedApk({
+  required String? expectedDigest,
+  required String? actualDigest,
+  required String? expectedPackage,
+  required String? actualPackage,
+  required bool allowDowngrade,
+  required int? installedVersionCode,
+  required int? apkVersionCode,
+}) {
+  final String? expected = _normalizeDigest(expectedDigest);
+  if (expected != null) {
+    final String? actual = _normalizeDigest(actualDigest);
+    if (actual == null || actual != expected) {
+      return IntegrityVerdict.digestMismatch;
+    }
+  }
+  if (expectedPackage != null && expectedPackage.isNotEmpty) {
+    if (actualPackage == null || actualPackage.isEmpty ||
+        actualPackage != expectedPackage) {
+      return IntegrityVerdict.packageMismatch;
+    }
+  }
+  if (!allowDowngrade &&
+      installedVersionCode != null &&
+      apkVersionCode != null &&
+      apkVersionCode < installedVersionCode) {
+    return IntegrityVerdict.downgradeBlocked;
+  }
+  return IntegrityVerdict.pass;
+}
+
+/// Normaliza `sha256:<hex>` / `<hex>` / maiúsculas-espaços para comparação.
+String? _normalizeDigest(String? raw) {
+  if (raw == null) {
+    return null;
+  }
+  var text = raw.trim().toLowerCase();
+  if (text.isEmpty) {
+    return null;
+  }
+  const String prefix = 'sha256:';
+  if (text.startsWith(prefix)) {
+    text = text.substring(prefix.length);
+  }
+  return text.isEmpty ? null : text;
+}
+
 /// Dados de um APK (arquivo baixado) ou de um app instalado no aparelho.
 class ApkSummary {
   const ApkSummary({
