@@ -60,11 +60,17 @@ class StatusPill extends StatelessWidget {
             decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
           const SizedBox(width: AppSpacing.xxs),
-          Text(
-            label,
-            style: context.texts.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
+          // Flexible + ellipsis: em textScale 2.0 o rótulo não pode derrubar
+          // o layout (requisito da missão: fonte ampliada sem cortar botões).
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.texts.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -273,25 +279,22 @@ class InstallerOptionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: context.texts.titleSmall?.copyWith(
-                            color: enabled
-                                ? context.colors.textPrimary
-                                : context.colors.textTertiary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      if (status != null) ...<Widget>[
-                        const SizedBox(width: AppSpacing.sm),
-                        status!,
-                      ],
-                    ],
+                  Text(
+                    title,
+                    style: context.texts.titleSmall?.copyWith(
+                      color: enabled
+                          ? context.colors.textPrimary
+                          : context.colors.textTertiary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
+                  // Pill na própria linha: como filho lateral do Row o pill
+                  // era ilimitado e, em textScale 2.0 com rótulo longo,
+                  // derrubava o layout (18px de overflow em 375px).
+                  if (status != null) ...<Widget>[
+                    const SizedBox(height: AppSpacing.xxs),
+                    status!,
+                  ],
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
                     description,

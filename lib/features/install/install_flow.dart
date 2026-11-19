@@ -293,6 +293,11 @@ final installFlowForGameProvider = Provider.family<FlowState, String>(
 
 /// Orquestra o fluxo por jogo: resolve, pede permissão/pré-aprovação, baixa
 /// (via DownloadsController existente), verifica e instala.
+/// Fonte de eventos nativos do instalador. Provider para o teste injetar um
+/// StreamController direto (canal de plataforma não roda no fake-async).
+final Provider<Stream<NativeInstallEvent>> installEventsProvider =
+    Provider<Stream<NativeInstallEvent>>((Ref ref) => NativeInstaller.events());
+
 class InstallFlowController extends Notifier<Map<String, FlowState>> {
   final Map<String, _InstallRequest> _requests = <String, _InstallRequest>{};
 
@@ -309,7 +314,7 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
       _events = null;
     });
     if (NativeInstaller.isAndroid) {
-      _events = NativeInstaller.events().listen(_onNativeEvent);
+      _events = ref.read(installEventsProvider).listen(_onNativeEvent);
       // Sessões órfãs (app morto entre createSession e commit) e APKs
       // deixados para trás são limpos no startup (espec §1).
       unawaited(NativeInstaller.cleanupOrphanSessions());

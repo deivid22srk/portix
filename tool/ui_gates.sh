@@ -106,10 +106,14 @@ if git grep -nE 'BEGIN (RSA|EC|OPENSSH) PRIVATE KEY' -- . >/tmp/portix_keys.txt 
 fi
 
 # ---- regra de ouro: iteração precisa tocar UI -------------------------------
+# Isenções: commits só de registro (.ralph/) e commits só de infraestrutura
+# nativa/CI (native/, tools/ci, docs/, .github/workflows) — o instalador e o
+# Shizuku vivem fora de lib/ e são iterados sem mudança de UI.
 if git rev-parse --verify -q 'HEAD~1' >/dev/null 2>&1; then
   UI_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -Ec '^(lib/|assets/|test/|integration_test/|pubspec\.yaml)' || true)
   ONLY_RALPH=$(git diff --name-only HEAD~1 HEAD | grep -Evc '^\.ralph/' || true)
-  if [ "$UI_CHANGED" = "0" ] && [ "$ONLY_RALPH" != "0" ]; then
+  NATIVE_ONLY=$(git diff --name-only HEAD~1 HEAD | grep -Evc '^(native/|tools/ci/|docs/|\.github/workflows/|\.gitignore$)' || true)
+  if [ "$UI_CHANGED" = "0" ] && [ "$ONLY_RALPH" != "0" ] && [ "$NATIVE_ONLY" = "0" ]; then
     echo "UI_GATE FALHOU [ui_change] nenhuma mudança de UI no último commit (lib/|assets/|test/|integration_test/|pubspec.yaml)"
     FAIL=1
   fi
