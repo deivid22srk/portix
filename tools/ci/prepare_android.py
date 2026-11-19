@@ -296,8 +296,8 @@ GRADLE_DEPENDENCIES = (
     ),
     (
         "org.lsposed.hiddenapibypass:hiddenapibypass",
-        '    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.2")\n',
-        '    implementation "org.lsposed.hiddenapibypass:hiddenapibypass:6.2"\n',
+        '    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")\n',
+        '    implementation "org.lsposed.hiddenapibypass:hiddenapibypass:6.1"\n',
     ),
 )
 
