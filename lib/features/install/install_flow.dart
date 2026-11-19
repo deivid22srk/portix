@@ -718,22 +718,17 @@ class InstallFlowController extends Notifier<Map<String, FlowState>> {
           );
           return;
         }
-        await safeInvoke<Map<Object?, Object?>>(
-          () async {
-            final Object? result =
-                await const MethodChannel('portix/shizuku').invokeMethod<Object?>(
-                  'install',
-                  <String, Object?>{
-                    'key': gameId,
-                    'path': path,
-                    'expectedPackage': plan is ShizukuPlan
-                        ? plan.expectedPackage
-                        : null,
-                  },
-                );
-            return result as Map<Object?, Object?>?;
-          },
-        );
+        await safeInvoke<Map<Object?, Object?>>(() async {
+          final Object? result = await const MethodChannel('portix/shizuku')
+              .invokeMethod<Object?>('install', <String, Object?>{
+                'key': gameId,
+                'path': path,
+                'expectedPackage': plan is ShizukuPlan
+                    ? plan.expectedPackage
+                    : null,
+              });
+          return result as Map<Object?, Object?>?;
+        });
       case InstallerKind.android:
         final FlowState flow = stateFor(gameId);
         final int? sessionId = flow.sessionId;

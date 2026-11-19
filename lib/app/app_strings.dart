@@ -733,6 +733,209 @@ class L10n {
   String get statsDownloads => _t('Downloads', 'Downloads');
   String get statsRating => _t('Avaliação', 'Rating');
   String get statsRatingEmpty => _t('Sem notas', 'No ratings');
+
+  // ------------------------------------------------------------ setup inicial
+  // (merge do fragmento recuperado app_strings_final.dart — apenas adições;
+  // `back` ficou de fora: `tooltipBack` já cobre o mesmo texto)
+  String get setupTitle => _t('Configuração inicial', 'Initial setup');
+  String get setupStart => _t('Começar', 'Get started');
+  String get setupNotNow => _t('Agora não', 'Not now');
+  String get setupSkipAll =>
+      _t('Explorar sem configurar', 'Explore without setup');
+  String setupStepOf(int index, int total) =>
+      _t('Etapa $index de $total', 'Step $index of $total');
+  String setupAnnounce(int index, int total, String title) =>
+      _t('Etapa $index de $total: $title', 'Step $index of $total: $title');
+  String get setupWelcomeTitle =>
+      _t('Bem-vindo ao PORTIX', 'Welcome to PORTIX');
+  String get setupWelcomeBody1 => _t(
+    'Aqui você encontra ports de jogos para Android e instala tudo direto pelo app.',
+    'Here you find Android game ports and install everything right from the app.',
+  );
+  String get setupWelcomeBody2 => _t(
+    'Nas próximas etapas vamos pedir algumas permissões. Explicamos cada uma e você pode pular qualquer etapa.',
+    'In the next steps we will ask for a few permissions. We explain each one and you can skip any step.',
+  );
+  String get setupInstallTitle =>
+      _t('Instalar apps desconhecidos', 'Install unknown apps');
+  String get setupInstallBody => _t(
+    'O PORTIX baixa APKs dos desenvolvedores dos ports e precisa da permissão de instalar apps para colocá-los no aparelho.',
+    'PORTIX downloads APKs from port developers and needs permission to install apps to put them on your device.',
+  );
+  String get setupInstallGranted => _t(
+    'Permissão já concedida. Pode seguir.',
+    'Permission already granted. You are good to go.',
+  );
+  String get setupInstallDenied => _t(
+    'Se não conceder, o Android pedirá confirmação na hora de cada instalação. Você também pode ativar depois nas Configurações.',
+    'If you skip it, Android will ask for confirmation on each install. You can enable it later in Settings.',
+  );
+  String get setupAllowInstall =>
+      _t('Permitir instalar apps', 'Allow installing apps');
+  String get setupNotificationsTitle => _t('Notificações', 'Notifications');
+  String get setupNotificationsBody => _t(
+    'Mostramos o progresso dos downloads e das instalações na gaveta de notificações.',
+    'We show download and install progress in the notification drawer.',
+  );
+  String get setupNotificationsDenied => _t(
+    'Sem essa permissão o download continua, só sem a notificação de progresso.',
+    'Without it the download continues, just without the progress notification.',
+  );
+  String get setupAllowNotifications =>
+      _t('Permitir notificações', 'Allow notifications');
+  String get setupGranted => _t('Permissão concedida.', 'Permission granted.');
+  String get setupShizukuTitle =>
+      _t('Shizuku (opcional)', 'Shizuku (optional)');
+  String get setupShizukuBody => _t(
+    'Shizuku é um app que deixa o PORTIX instalar os APKs sem o diálogo do Android. Se preferir, pode pular e continuar com o instalador normal.',
+    'Shizuku is an app that lets PORTIX install APKs without the Android dialog. If you prefer, skip it and keep the regular installer.',
+  );
+  String get setupShizukuAllow =>
+      _t('Permitir com Shizuku', 'Allow with Shizuku');
+  String get setupShizukuOpen => _t('Abrir Shizuku', 'Open Shizuku');
+  String get setupInstallerTitle =>
+      _t('Instalador preferido', 'Preferred installer');
+  String get setupInstallerBody => _t(
+    'Escolha como o PORTIX instala os jogos. Você pode mudar depois nas Configurações.',
+    'Choose how PORTIX installs games. You can change it later in Settings.',
+  );
+  String get installerAutomatic => _t('Automático', 'Automatic');
+  String get installerAutomaticHint => _t(
+    'Usa o Shizuku quando estiver ativo; senão, o instalador do Android.',
+    'Uses Shizuku when active; otherwise the Android installer.',
+  );
+  String get installerAndroid =>
+      _t('Instalador do Android', 'Android installer');
+  String get installerAndroidHint => _t(
+    'No Android 14+ você aprova antes do download; em versões anteriores, o diálogo aparece ao final.',
+    'On Android 14+ you approve before the download; on older versions the dialog appears at the end.',
+  );
+  String get installerShizuku => _t('Shizuku', 'Shizuku');
+  String get installerShizukuHint => _t(
+    'Instala sem nenhum diálogo, direto pelo Shizuku.',
+    'Installs with no dialog, straight through Shizuku.',
+  );
+  String get installerShizukuUnavailable => _t(
+    'Instale e inicie o Shizuku para usar esta opção.',
+    'Install and start Shizuku to use this option.',
+  );
+  String get installerPrefLabel =>
+      _t('Instalador preferido', 'Preferred installer');
+  String get recommended => _t('Recomendado', 'Recommended');
+  String get setupDoneTitle => _t('Tudo pronto!', 'You are all set!');
+  String get statusGranted => _t('Concedido', 'Granted');
+  String get statusNotGranted => _t('Não concedido', 'Not granted');
+  String get statusActive => _t('Ativo', 'Active');
+  String get statusNeedsPermission =>
+      _t('Falta permissão', 'Permission needed');
+  String get statusStopped => _t('Parado', 'Stopped');
+  String get shizukuActive => _t(
+    'Shizuku está rodando e com permissão: as instalações ficam silenciosas.',
+    'Shizuku is running with permission: installs become silent.',
+  );
+  String get shizukuNeedsPermission => _t(
+    'Shizuku está rodando; falta conceder a permissão ao PORTIX.',
+    'Shizuku is running; the PORTIX permission is still missing.',
+  );
+  String get shizukuStopped => _t(
+    'Shizuku está instalado, mas o serviço não está rodando. Abra o app dele para iniciar.',
+    'Shizuku is installed but the service is not running. Open its app to start.',
+  );
+
+  // ---------------------------------------------- configurações de instalação
+  String get installSection =>
+      _t('Instalação e permissões', 'Install & permissions');
+  String get reviewSetup =>
+      _t('Rever configuração inicial', 'Review initial setup');
+  String get permInstallAppsTitle =>
+      _t('Instalar apps desconhecidos', 'Install unknown apps');
+  String get permInstallAppsDesc => _t(
+    'Necessária para instalar os APKs baixados pelo app.',
+    'Required to install the APKs downloaded by the app.',
+  );
+  String get permNotificationsTitle => _t('Notificações', 'Notifications');
+  String get permNotificationsDesc => _t(
+    'Progresso dos downloads e instalações (Android 13+).',
+    'Download and install progress (Android 13+).',
+  );
+  String get permShizukuTitle => _t('Shizuku', 'Shizuku');
+  String get permShizukuDesc => _t(
+    'Instalação sem diálogo quando o serviço estiver ativo.',
+    'Dialog-free installs when the service is active.',
+  );
+  String get actionOpenSettings => _t('Abrir configurações', 'Open settings');
+  String get actionOpenShizuku => _t('Abrir Shizuku', 'Open Shizuku');
+  String get actionGrant => _t('Permitir', 'Allow');
+  String get shizukuMissing =>
+      _t('Shizuku não está instalado', 'Shizuku is not installed');
+  String get shizukuMissingInfo => _t(
+    'Com o Shizuku o PORTIX pode instalar sem o diálogo do Android, direto pelo ADB do aparelho.',
+    'With Shizuku, PORTIX can install without the Android dialog, right from the device shell.',
+  );
+
+  // ------------------------------------------------- fases do fluxo de instalar
+  String get phaseAwaitingApproval =>
+      _t('Aguardando confirmação…', 'Waiting for approval…');
+  String get phaseVerifying => _t('Verificando…', 'Verifying…');
+  String get phaseInstalling => _t('Instalando…', 'Installing…');
+  String get phaseInstalled => _t('Instalado', 'Installed');
+  String get permissionSheetTitle =>
+      _t('Falta uma permissão', 'One permission missing');
+  String get permissionSheetBody => _t(
+    'Para instalar este jogo, o PORTIX precisa da permissão de instalar apps. Vamos abrir a tela do Android para você permitir — ao voltar, o download continua de onde parou.',
+    'To install this game, PORTIX needs the install-apps permission. We will open the Android screen for you to allow it — when you come back, the download resumes.',
+  );
+  String get permissionSheetAction =>
+      _t('Abrir configurações', 'Open settings');
+  String get preapprovalNotice => _t(
+    'O Android vai pedir uma confirmação rápida ao final da instalação.',
+    'Android will ask for a quick confirmation at the end of the install.',
+  );
+  String get shizukuBlockedTitle =>
+      _t('Shizuku indisponível', 'Shizuku unavailable');
+  String get shizukuBlockedStopped => _t(
+    'O Shizuku está instalado mas não está rodando. Abra o app dele para iniciar o serviço.',
+    'Shizuku is installed but not running. Open its app to start the service.',
+  );
+  String get shizukuBlockedPermission => _t(
+    'O Shizuku está rodando, mas falta conceder a permissão ao PORTIX.',
+    'Shizuku is running, but the PORTIX permission is missing.',
+  );
+  String get useAndroidThisTime => _t(
+    'Usar o instalador do Android desta vez',
+    'Use Android installer this time',
+  );
+  String get installCancelledNote => _t(
+    'Confirmação cancelada — nada foi baixado.',
+    'Approval cancelled — nothing was downloaded.',
+  );
+  String get errDigest => _t(
+    'O arquivo baixado está corrompido e foi descartado.',
+    'The downloaded file is corrupted and was discarded.',
+  );
+  String get errPackageMismatch => _t(
+    'O APK não corresponde ao jogo esperado e foi descartado.',
+    'The APK does not match the expected game and was discarded.',
+  );
+  String get errDowngrade => _t(
+    'Essa versão é menor que a instalada. Desinstale o app antes, ou use o Shizuku (que aceita downgrade).',
+    'This version is lower than the installed one. Uninstall the app first, or use Shizuku (which allows downgrades).',
+  );
+  String get errLowStorage => _t(
+    'Espaço insuficiente no aparelho para este download.',
+    'Not enough device storage for this download.',
+  );
+  String get errPermissionRequired => _t(
+    'Sem a permissão de instalar apps não dá para continuar.',
+    'Without the install-apps permission we cannot continue.',
+  );
+  String get errShizukuUnavailable => _t(
+    'O Shizuku ficou indisponível no meio da instalação.',
+    'Shizuku became unavailable during the install.',
+  );
+  String get errInstallFailed =>
+      _t('A instalação não foi concluída.', 'The install did not complete.');
+
   // -------------------------------------------------------------- contagens
   String gameCount(int n) =>
       _t('$n ${n == 1 ? 'jogo' : 'jogos'}', '$n ${n == 1 ? 'game' : 'games'}');

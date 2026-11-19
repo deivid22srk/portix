@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../core/providers.dart';
 import '../core/theme/tokens.dart';
 import '../features/device_specs/device_specs_screen.dart';
 import '../features/device_specs/device_specs_search_screen.dart';
@@ -20,6 +21,8 @@ import '../features/profile/auth_page.dart';
 import '../features/profile/profile_edit_page.dart';
 import '../features/profile/user_profile_page.dart';
 import '../features/search/search_page.dart';
+import '../features/setup/setup_page.dart';
+import '../features/setup/setup_steps.dart';
 import '../features/shell/main_shell.dart';
 import '../features/shell/not_found_page.dart';
 import '../models/news.dart';
@@ -30,8 +33,25 @@ import '../models/news.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/home',
-    redirect: (BuildContext context, GoRouterState state) =>
-        state.uri.path == '/' ? '/home' : null,
+    redirect: (BuildContext context, GoRouterState state) {
+      final String path = state.uri.path;
+      if (path == '/') {
+        return '/home';
+      }
+      // Primeiro uso SEM FLASH: o redirect decide ANTES de construir
+      // qualquer página do shell — não há frame de /home descartado.
+      // Reavaliado a cada navegação; `setup.version` gravado pelo setup
+      // libera o app. /setup e /setup?review=1 nunca se redirecionam
+      // (evita loop — o modo revisão é aberto pelas configurações).
+      // `setup.version` é gravado como int pela tela (spec §2); `get()`
+      // aceita int ou string — ausente (null) = setup pendente.
+      final bool setupPending =
+          ref.read(sharedPreferencesProvider).get(kSetupVersionKey) == null;
+      if (setupPending && !path.startsWith('/setup')) {
+        return '/setup';
+      }
+      return null;
+    },
     routes: <RouteBase>[
       StatefulShellRoute.indexedStack(
         builder:
@@ -108,6 +128,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/auth',
         pageBuilder: (BuildContext context, GoRouterState state) =>
             _expandPage(state, const AuthPage()),
+      ),
+      // Configuração inicial (stepper). Rota de topo, sem o MainShell.
+      // `?review=1` = modo revisão aberto pelas configurações: o setup não
+      // grava nada e apenas fecha.
+      GoRoute(
+        path: '/setup',
+        pageBuilder: (BuildContext context, GoRouterState state) => _expandPage(
+          state,
+          SetupPage(review: state.uri.queryParameters['review'] == '1'),
+        ),
       ),
       GoRoute(
         path: '/profile/edit',

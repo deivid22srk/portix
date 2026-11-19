@@ -13,11 +13,7 @@ import 'shizuku.dart';
 // ============================================================================
 
 /// Instaladores selecionáveis pelo usuário (persistido em `install.installer`).
-enum InstallerChoice {
-  automatic,
-  android,
-  shizuku;
-}
+enum InstallerChoice { automatic, android, shizuku }
 
 /// Alias da spec §1 — o mesmo enum com o nome usado na documentação.
 typedef InstallerPref = InstallerChoice;
@@ -47,11 +43,11 @@ sealed class InstallPlan {
   final String? expectedPackage;
 
   InstallerKind get kind => switch (this) {
-        ShizukuPlan() => InstallerKind.shizuku,
-        // BlockedPlan nunca chega ao executor (só é construído por
-        // [blockedPlanFor] para a UI); trata como Android por exaustividade.
-        AndroidPlan() || BlockedPlan() => InstallerKind.android,
-      };
+    ShizukuPlan() => InstallerKind.shizuku,
+    // BlockedPlan nunca chega ao executor (só é construído por
+    // [blockedPlanFor] para a UI); trata como Android por exaustividade.
+    AndroidPlan() || BlockedPlan() => InstallerKind.android,
+  };
 }
 
 /// Instala pelo PackageInstaller/intent do Android (com diálogo).
@@ -114,7 +110,8 @@ InstallPlan resolveInstaller({
   String? expectedPackage,
 }) {
   final bool hasPackage = expectedPackage != null && expectedPackage.isNotEmpty;
-  if (choice == InstallerChoice.shizuku || (choice == InstallerChoice.automatic && shizuku.isActive)) {
+  if (choice == InstallerChoice.shizuku ||
+      (choice == InstallerChoice.automatic && shizuku.isActive)) {
     if (shizuku.isActive) {
       return ShizukuPlan(expectedPackage: expectedPackage);
     }
@@ -151,9 +148,7 @@ class InstallPrefsController extends Notifier<InstallPrefsState> {
   /// para o próximo toque em "Baixar").
   void setChoice(InstallerChoice next) {
     state = InstallPrefsState(choice: next);
-    unawaited(
-      ref.read(sharedPreferencesProvider).setString(_key, next.name),
-    );
+    unawaited(ref.read(sharedPreferencesProvider).setString(_key, next.name));
   }
 
   static InstallerChoice _decode(String? raw) {

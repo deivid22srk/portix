@@ -88,9 +88,8 @@ class ShizukuService {
     return _events
         .receiveBroadcastStream()
         .map<ShizukuStatus>(
-          (Object? event) => ShizukuStatus.decode(
-            event is Map ? event['status'] : event,
-          ),
+          (Object? event) =>
+              ShizukuStatus.decode(event is Map ? event['status'] : event),
         )
         .handleError((Object _) => _current = ShizukuStatus.notInstalled);
   }
@@ -140,8 +139,8 @@ class ShizukuStatusNotifier extends Notifier<ShizukuStatus> {
     });
     if (ShizukuService.isAndroid) {
       _subscription ??= ShizukuService.instance.stream().listen(
-            (ShizukuStatus status) => state = status,
-          );
+        (ShizukuStatus status) => state = status,
+      );
       unawaited(refresh());
     }
     return ShizukuService.instance.current;

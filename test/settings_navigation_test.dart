@@ -101,7 +101,9 @@ Future<ProviderContainer> _container({
   String? email,
   CatalogRepository? repository,
 }) async {
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  // 'setup.version' presente: o redirect de primeiro uso do router não pode
+  // levar estes testes de navegação para /setup (intenção preservada).
+  SharedPreferences.setMockInitialValues(<String, Object>{'setup.version': 1});
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final ProviderContainer container = ProviderContainer(
     overrides: [

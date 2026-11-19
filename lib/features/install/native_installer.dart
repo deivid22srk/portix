@@ -176,15 +176,12 @@ class NativeInstaller {
       return;
     }
     await safeInvoke<void>(
-      () => _channel.invokeMethod<void>(
-        'commitPrepared',
-        <String, Object?>{
-          'key': key,
-          'sessionId': sessionId,
-          'path': path,
-          'expectedPackage': expectedPackage,
-        },
-      ),
+      () => _channel.invokeMethod<void>('commitPrepared', <String, Object?>{
+        'key': key,
+        'sessionId': sessionId,
+        'path': path,
+        'expectedPackage': expectedPackage,
+      }),
     );
   }
 
@@ -198,10 +195,10 @@ class NativeInstaller {
       return;
     }
     await safeInvoke<void>(
-      () => _channel.invokeMethod<void>(
-        'commitFresh',
-        <String, Object?>{'key': key, 'path': path},
-      ),
+      () => _channel.invokeMethod<void>('commitFresh', <String, Object?>{
+        'key': key,
+        'path': path,
+      }),
     );
   }
 
@@ -213,25 +210,27 @@ class NativeInstaller {
       return;
     }
     await safeInvoke<void>(
-      () => _channel.invokeMethod<void>(
-        'abandon',
-        <String, Object?>{'sessionId': sessionId},
-      ),
+      () => _channel.invokeMethod<void>('abandon', <String, Object?>{
+        'sessionId': sessionId,
+      }),
     );
   }
 
   /// Cancela um prepare em andamento (ícone/sessão): impede o diálogo de
   /// pré-aprovação de aparecer. `attemptId` monotônico: callbacks velhos
   /// são ignorados no Kotlin.
-  static Future<void> cancelPrepare(String key, {required int attemptId}) async {
+  static Future<void> cancelPrepare(
+    String key, {
+    required int attemptId,
+  }) async {
     if (!isAndroid) {
       return;
     }
     await safeInvoke<void>(
-      () => _channel.invokeMethod<void>(
-        'cancelPrepare',
-        <String, Object?>{'key': key, 'attemptId': attemptId},
-      ),
+      () => _channel.invokeMethod<void>('cancelPrepare', <String, Object?>{
+        'key': key,
+        'attemptId': attemptId,
+      }),
     );
   }
 

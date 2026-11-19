@@ -46,7 +46,8 @@ IntegrityVerdict verifyDownloadedApk({
     }
   }
   if (expectedPackage != null && expectedPackage.isNotEmpty) {
-    if (actualPackage == null || actualPackage.isEmpty ||
+    if (actualPackage == null ||
+        actualPackage.isEmpty ||
         actualPackage != expectedPackage) {
       return IntegrityVerdict.packageMismatch;
     }
