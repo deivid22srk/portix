@@ -145,6 +145,17 @@ jobs:
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 
+      # APK universal (todas as ABIs): é o link usado pelo aviso de
+      # atualização in-app, que baixa um único arquivo para qualquer aparelho.
+      - name: Build APK universal (update in-app)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
       - name: Listar artefatos
         run: ls -lh build/app/outputs/flutter-apk/
 
